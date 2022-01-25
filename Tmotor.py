@@ -65,7 +65,8 @@ def parse_servo_message(message):
     current = float( np.int16(data[4] << 8 | data[5]) ) * 0.01
     temp = float(np.int8(data[6]))
     error = np.int8(data[7])
-    motor = str(message.arbitration_id)
+    motor = message.arbitration_id
+    
     if debug:
         print('motor: ' + str(motor))
         print('Position: ' + str(position))
