@@ -118,7 +118,7 @@ if __name__ == "__main__":
  
     while True:
         msg = bus.recv(timeout=1.0)
-        (position, speed, current, temp, error) = parse_servo_message(msg)
+        (motor, position, speed, current, temp, error) = parse_servo_message(msg)
 
 
 
