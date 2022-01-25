@@ -4,6 +4,8 @@ import time
 
 
 debug = True # set to False for final version
+motor_on = False
+motor_ID = 1
 
 control_modes = { 'duty' : 0, 'current_loop' : 1, 'current_break' : 2, 'velocity' : 3, 'position' : 4, 'set_origin' : 5, 'position_velocity_accel' : 6}
 special_codes = {
@@ -75,6 +77,32 @@ def parse_servo_message(message):
     return (motor, position, speed, current, temp, error)
 
     
+def power_on(bus, motor_id):
+    send_setting_message(bus, motor_id, special_codes['enter_motor_control_mode'])
+        
+
+def power_off(bus, motor_id):
+    send_setting_message(bus, motor_id, special_codes['enter_motor_control_mode'])
+    
+
+def set_duty_cycle(bus, motor_id, duty):
+    if duty > 1.0:
+        duty = 1.0
+    elif duty < -1.0:
+        duty = -1.0
+
+    duty_bytes = int(duty*100000.0).to_bytes()
+    send_servo_control_message(bus, motor_id, control_modes['duty'], duty_bytes)
+
+
+def set_position_deg(bus, motor_id, position):
+    if position > 36000.0:
+        position = 36000.0
+    elif position < -36000.0:
+        position = -36000.0
+
+    position_bytes = int(position * 1000000.0).to_bytes()
+    send_servo_control_message(bus, motor_id, control_modes['position'], position_bytes)
 
 
 if __name__ == "__main__":
@@ -84,14 +112,13 @@ if __name__ == "__main__":
     except:
         print("Failed to initialize bus.")
 
-    send_setting_message(bus, 1, special_codes['enter_motor_control_mode'])
-
+    send_setting_message(bus, motor_ID, special_codes['enter_motor_control_mode'])
     time.sleep(1)
-
-    send_servo_control_message(bus, 1,'position', [0,0,0,0]) # go to position 0
-
-    msg = bus.recv()
-    (position, speed, current, temp, error) = parse_servo_message(msg)
+    send_servo_control_message(bus, motor_ID,'position', [0,0,0,0]) # go to position 0
+ 
+    while True:
+        msg = bus.recv(timeout=1.0)
+        (position, speed, current, temp, error) = parse_servo_message(msg)
 
 
 
