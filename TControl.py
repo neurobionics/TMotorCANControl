@@ -34,7 +34,7 @@ def send_servo_control_message(bus, motor_id, control_mode, data):
     if debug:
         print('ID: ' + str(hex(arbitration_id)) + '   Data: ' + '[{}]'.format(', '.join(hex(d) for d in data)) )
     
-    message = can.Message(arbitration_id=arbitration_id, data=data, is_extended=True)
+    message = can.Message(arbitration_id=arbitration_id, data=data, is_extended_id=True)
     try:
         bus.send(message)
         if debug:
@@ -51,7 +51,7 @@ def send_setting_message(bus, motor_id, data):
     if debug:
         print('ID: ' + str(hex(motor_id)) + '   Data: ' + '[{}]'.format(', '.join(hex(d) for d in data)) )
     
-    message = can.Message(arbitration_id=motor_id, data=data, is_extended=False)
+    message = can.Message(arbitration_id=motor_id, data=data, is_extended_id=False)
     try:
         bus.send(message)
         if debug:
@@ -118,18 +118,20 @@ def set_position_deg(bus, motor_id, position):
 
 if __name__ == "__main__":
 
-    try:
-        bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
-    except:
-        print("Failed to initialize bus.")
+    bus = can.interface.Bus(channel='vcan0', bustype='socketcan_native')
+    # try:
+    #     bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
+    # except:
+	#     print('Cannot find PiCAN board.')
 
     send_setting_message(bus, motor_ID, special_codes['enter_motor_control_mode'])
+
     time.sleep(1)
-    send_servo_control_message(bus, motor_ID,'position', [0,0,0,0]) # go to position 0
  
     while True:
         msg = bus.recv(timeout=1.0)
-        (motor, position, speed, current, temp, error) = parse_servo_message(msg)
+        if msg is not None:
+            (motor, position, speed, current, temp, error) = parse_servo_message(msg)
 
 
 
