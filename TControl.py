@@ -207,6 +207,20 @@ def parse_MIT_message(message):
     return (motor, position, velocity, current, temp, error)
     
 
+def oscillate(bus):
+    v_des = 0.0
+    i_des = 0.0
+    Kp = 1
+    Kd = 0.1
+    while True:
+        MIT_controller(bus, motor_ID, 0.0, v_des, Kp, Kd, i_des)
+        time.sleep(0.5)
+        MIT_controller(bus, motor_ID, np.pi/2, v_des, Kp, Kd, i_des)
+        time.sleep(0.5)
+
+
+
+# Main function for testing, in final version put some sort of test routine in here!
 if __name__ == "__main__":
 
     p_des = 0.0
