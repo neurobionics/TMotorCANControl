@@ -18,6 +18,6 @@ else:
 
     while True:
         tc.MIT_controller(bus, motor_ID, 0.0, v_des, Kp, Kd, i_des)
-        time.sleep(1)
+        time.sleep(2)
         tc.MIT_controller(bus, motor_ID, 3.14, v_des, Kp, Kd, i_des)
-        time.sleep(1)
+        time.sleep(2)
