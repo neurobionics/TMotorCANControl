@@ -6,7 +6,7 @@ import time
 
 debug = True # set to False for final version
 motor_ID = 2
-MIT_Mode_New = False
+
 
 control_modes = { 
     'duty' : 0,
@@ -38,22 +38,16 @@ Servo_Params = {
 }
 
 MIT_Params = {
-    'P_min' : -95.5,
-    'P_max' : 95.5,
-    'V_min' : -30.0,
-    'V_max' : 30.0,
+    'P_min' : -12.5,
+    'P_max' : 12.5,
+    'V_min' : -25.64,
+    'V_max' : 25.64,
     'I_min' : -18.0,
     'I_max' : 18.0,
     'Kp_min': 0.0,
     'Kp_max': 500.0,
     'Kd_min': 0.0,
     'Kd_max': 5.0,
-    'P_min_old' : -12.5,
-    'P_max_old' : 12.5,
-    'V_min_old' : -25.64,
-    'V_max_old' : 25.64,
-    'I_min_old' : -18.0,
-    'I_max_old' : 18.0,
 }
 
 
@@ -75,7 +69,7 @@ def send_servo_control_message(bus, motor_id, control_mode, data):
         if debug:
             print("    Message NOT sent")
 
-def send_setting_message(bus, motor_id, data):
+def send_MIT_message(bus, motor_id, data):
     DLC = len(data)
     assert (DLC <= 8), ('Data too long in message for motor: ' + str(motor_id))
     
@@ -91,6 +85,7 @@ def send_setting_message(bus, motor_id, data):
         if debug:
             print("    Message NOT sent")
     
+
 
 def parse_servo_message(message):
     data = bytes(message.data)
@@ -146,10 +141,13 @@ def set_position_deg(bus, motor_id, position):
 
 # MIT Mode Functions
 def power_on(bus, motor_id):
-    send_setting_message(bus, motor_id, special_codes['enter_motor_control_mode'])
+    send_MIT_message(bus, motor_id, special_codes['enter_motor_control_mode'])
         
 def power_off(bus, motor_id):
-    send_setting_message(bus, motor_id, special_codes['exit_motor_control_mode'])
+    send_MIT_message(bus, motor_id, special_codes['exit_motor_control_mode'])
+
+def zero(bus, motor_id):
+    send_MIT_message(bus, motor_id, special_codes['zero_current_motor_position'])
 
 def float_to_uint(x,x_min,x_max,num_bits):
     x = limit_value(x,x_min,x_max)
@@ -164,20 +162,14 @@ def uint_to_float(x,x_min,x_max,num_bits):
 
 def MIT_controller(bus, motor_id, position, velocity, Kp, Kd, I):
 
-    if MIT_Mode_New:
-        position_uint16 = float_to_uint(position, MIT_Params['P_min'], MIT_Params['P_max'],16)
-        velocity_uint12 = float_to_uint(velocity, MIT_Params['V_min'], MIT_Params['V_max'],12)
-        Kp_uint12 = float_to_uint(Kp, MIT_Params['Kp_min'], MIT_Params['Kp_max'],12)
-        Kd_uint12 = float_to_uint(Kd, MIT_Params['Kd_min'], MIT_Params['Kd_max'],12)
-        I_uint12 = float_to_uint(I, MIT_Params['I_min'], MIT_Params['I_max'],12)
-    else:
-        position_uint16 = float_to_uint(position, MIT_Params['P_min_old'], MIT_Params['P_max_old'],16)
-        velocity_uint12 = float_to_uint(velocity, MIT_Params['V_min_old'], MIT_Params['V_max_old'],12)
-        Kp_uint12 = float_to_uint(Kp, MIT_Params['Kp_min'], MIT_Params['Kp_max'],12)
-        Kd_uint12 = float_to_uint(Kd, MIT_Params['Kd_min'], MIT_Params['Kd_max'],12)
-        I_uint12 = float_to_uint(I, MIT_Params['I_min_old'], MIT_Params['I_max_old'],12)
+    position_uint16 = float_to_uint(position, MIT_Params['P_min'], MIT_Params['P_max'],16)
+    velocity_uint12 = float_to_uint(velocity, MIT_Params['V_min'], MIT_Params['V_max'],12)
+    Kp_uint12 = float_to_uint(Kp, MIT_Params['Kp_min'], MIT_Params['Kp_max'],12)
+    Kd_uint12 = float_to_uint(Kd, MIT_Params['Kd_min'], MIT_Params['Kd_max'],12)
+    I_uint12 = float_to_uint(I, MIT_Params['I_min'], MIT_Params['I_max'],12)
 
-    data = [position_uint16 >> 8,
+    data = [
+        position_uint16 >> 8,
         position_uint16 & 0x00FF,
         (velocity_uint12) >> 4,
         (velocity_uint12&0x00F<<4) | (Kp_uint12) >> 8,
@@ -186,8 +178,7 @@ def MIT_controller(bus, motor_id, position, velocity, Kp, Kd, I):
         (Kd_uint12&0x00F<<4) | (I_uint12) >> 8,
         (I_uint12&0x0FF)
     ]
-
-    send_setting_message(bus, motor_id, data)
+    send_MIT_message(bus, motor_id, data)
 
 
 def parse_MIT_message(message):
@@ -195,44 +186,44 @@ def parse_MIT_message(message):
     data = bytes(message.data)
     print(data)
 
-    (motor, position, velocity, current, temp, error) = ("No data","No data","No data","No data","No data","No data")
+    ID = data[0]
 
-    if MIT_Mode_New: 
-        if len(data) > 0:
-            motor = data[0]
-        if len(data) > 2:
-            position = data[1] <<8 | data[2]
-        if len(data) > 4:
-            velocity = data[3] << 8 | data[4]&0xF0
-        if len(data) > 5:
-            current = data[4]&0x0F<<8 | data[5]
-        if len(data) > 6:
-            temp = data[6]
-        if len(data) > 7:
-            error = data[7]
+    if ID != 0:
+        return
+
     else:
-        if len(data) > 0:
-            motor = data[0]
-        if len(data) > 2:
-            position = data[1] <<8 | data[2]
-        if len(data) > 4:
-            velocity = (data[3] << 8) | (data[4] >> 4)
-        if len(data) > 5:
-            current = ((data[4]&0xF)<<8) | data[5]
+        temp = None
+        error = None
+        
+        if len(data)  == 8:
+            position_uint = data[1] <<8 | data[2]
+            velocity_uint = data[3] << 8 | data[4]&0xF0
+            current_uint = data[4]&0x0F<<8 | data[5]
+            temp = data[6]
+            error = data[7]
+            
+        elif len(data)  == 6:
+            position_uint = data[1] << 8 | data[2]
+            velocity_uint = (data[3] << 8) | (data[4] >> 4)
+            current_uint = ((data[4]&0xF)<<8) | data[5]
+            
+        else:
+            print("Not an MIT Mode State Message")
 
-    position = uint_to_float(position, MIT_Params['P_min'], MIT_Params['P_max'], 16)
-    velocity = uint_to_float(velocity, MIT_Params['V_min'], MIT_Params['V_max'], 12)
-    current = uint_to_float(current, MIT_Params['I_min'], MIT_Params['I_max'], 12)
+        position = uint_to_float(position_uint, MIT_Params['P_min'], MIT_Params['P_max'], 16)
+        velocity = uint_to_float(velocity_uint, MIT_Params['V_min'], MIT_Params['V_max'], 12)
+        current = uint_to_float(current_uint, MIT_Params['I_min'], MIT_Params['I_max'], 12)
 
-    if debug:
-        print('  ID: ' + str(motor))
-        print('  Position: ' + str(position))
-        print('  Velocity: ' + str(velocity))
-        print('  Current: ' + str(current))
-        print('  Temp: ' + str(temp))
-        print('  Error: ' + str(error))
+        if debug:
+            print('  ID: ' + str(ID))
+            print('  Position: ' + str(position))
+            print('  Velocity: ' + str(velocity))
+            print('  Current: ' + str(current))
+            if (temp is not None) and (error is not None):
+                print('  Temp: ' + str(temp))
+                print('  Error: ' + str(error))
 
-    return (motor, position, velocity, current, temp, error)
+        return (ID, position, velocity, current, temp, error)
 
 # Main function for testing, in final version put some sort of test routine in here!
 if __name__ == "__main__":
@@ -249,8 +240,8 @@ if __name__ == "__main__":
         print("Failed to open CAN bus.")
     else:
         # send_setting_message(bus, motor_ID, special_codes['exit_motor_control_mode'])
-        send_setting_message(bus, motor_ID, special_codes['enter_motor_control_mode'])
-        send_setting_message(bus, motor_ID, special_codes['zero_current_motor_position'])
+        send_MIT_message(bus, motor_ID, special_codes['enter_motor_control_mode'])
+        send_MIT_message(bus, motor_ID, special_codes['zero_current_motor_position'])
         
         MIT_controller(bus, motor_ID, p_des, v_des, Kp, Kd, i_des)
         # time.sleep(10000)
@@ -264,16 +255,6 @@ if __name__ == "__main__":
                 parse_MIT_message(msg)
             else:
                 print("timeout")
-            
-            # MIT_controller(bus, motor_ID, p_des, v_des, Kp, Kd, i_des)
-            # msg_buffer = []
-            # start = time.time()
-            # while(msg != None and not (timeout < (time.time() - start))):
-            #     msg = bus.recv(timeout=1.0)
-            #     msg_buffer.append(msg)
-
-            # for message in msg_buffer:
-            #     parse_MIT_message(message)
 
 
 

@@ -16,8 +16,12 @@ else:
     tc.send_setting_message(bus, motor_ID, tc.special_codes['enter_motor_control_mode'])
     tc.send_setting_message(bus, motor_ID, tc.special_codes['zero_current_motor_position'])
 
-    while True:
+    end_time = time.time() + 10.0
+
+    while time.time() < end_time:
         tc.MIT_controller(bus, motor_ID, 0.0, v_des, Kp, Kd, i_des)
         time.sleep(2)
         tc.MIT_controller(bus, motor_ID, 3.14, v_des, Kp, Kd, i_des)
         time.sleep(2)
+
+    tc.send_setting_message(bus, motor_ID, tc.special_codes['exit_motor_control_mode'])

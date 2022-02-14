@@ -7,5 +7,4 @@ try:
 except:
     print("Failed to open CAN bus.")
 else:
-    
-    tc.send_setting_message(bus, motor_ID, tc.special_codes['exit_motor_control_mode'])
+    tc.power_off(bus, motor_ID)

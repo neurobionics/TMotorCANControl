@@ -1,34 +1,35 @@
 import TControl as tc
 import can
 import time
-import json
 motor_ID = 2
+
+
+def handle_message(msg):
+    tc.parse_MIT_message(msg)
+    
+
 
 try:
     bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
 except:
     print("Failed to open CAN bus.")
 else:
-    v_des = 0.0
-    i_des = 0.0
-    Kp = 10.0
-    Kd = 1.0
-
-    tc.send_setting_message(bus, motor_ID, tc.special_codes['enter_motor_control_mode'])
-    tc.send_setting_message(bus, motor_ID, tc.special_codes['zero_current_motor_position'])
-    data_log = []
-    end_time = time.time() + 10.0
+    csvListener = can.CSVWriter('csv_data.csv', append=False)
+    canPrinter = can.Printer()
+    notifier = can.Notifier([csvListener,canPrinter,handle_message])
+    
+    tc.power_on(bus, motor_ID)
+    tc.zero(bus, motor_ID)
+    
+    end_time = time.time() + 2.0
 
     while time.time() < end_time:
-        tc.send_setting_message(bus, motor_ID, tc.special_codes['enter_motor_control_mode'])
-        msg = bus.recv(timeout=0.5)
-        if msg is not None:
-            data_log.append( [ msg.data, tc.parse_MIT_message(msg) ] )
+        tc.power_on(bus, motor_ID)
+        time.sleep(0.05)
 
-
-    json_string = json.dump(data_log)
-    f = open('json_data.json', 'w')
-    json.dump(json_string, f)
+    notifier.stop()
+    tc.zero(bus, motor_ID)
+        
     
 
             
