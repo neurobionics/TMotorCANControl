@@ -1,7 +1,7 @@
 import TControl as tc
 import can
 import time
-motor_ID = 2
+motor_ID = 3
 
 
 def handle_message(msg):
