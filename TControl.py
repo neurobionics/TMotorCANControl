@@ -188,42 +188,42 @@ def parse_MIT_message(message):
 
     ID = data[0]
 
-    if ID != 0:
-        return
+    # if ID != 0:
+    #     return
 
-    else:
-        temp = None
-        error = None
+    # else:
+    temp = None
+    error = None
+    
+    if len(data)  == 8:
+        position_uint = data[1] <<8 | data[2]
+        velocity_uint = ((data[3] << 8) | (data[4]>>4) <<4 ) >> 4
+        current_uint = data[4]&0x0F<<8 | data[5]
+        temp = data[6]
+        error = data[7]
         
-        if len(data)  == 8:
-            position_uint = data[1] <<8 | data[2]
-            velocity_uint = data[3] << 8 | data[4]&0xF0
-            current_uint = data[4]&0x0F<<8 | data[5]
-            temp = data[6]
-            error = data[7]
-            
-        elif len(data)  == 6:
-            position_uint = data[1] << 8 | data[2]
-            velocity_uint = (data[3] << 8) | (data[4] >> 4)
-            current_uint = ((data[4]&0xF)<<8) | data[5]
-            
-        else:
-            print("Not an MIT Mode State Message")
+    elif len(data)  == 6:
+        position_uint = data[1] << 8 | data[2]
+        velocity_uint = ((data[3] << 8) | (data[4]>>4) <<4 ) >> 4
+        current_uint = ((data[4]&0xF)<<8) | data[5]
+        
+    else:
+        print("Not an MIT Mode State Message")
 
-        position = uint_to_float(position_uint, MIT_Params['P_min'], MIT_Params['P_max'], 16)
-        velocity = uint_to_float(velocity_uint, MIT_Params['V_min'], MIT_Params['V_max'], 12)
-        current = uint_to_float(current_uint, MIT_Params['I_min'], MIT_Params['I_max'], 12)
+    position = uint_to_float(position_uint, MIT_Params['P_min'], MIT_Params['P_max'], 16)
+    velocity = uint_to_float(velocity_uint, MIT_Params['V_min'], MIT_Params['V_max'], 12)
+    current = uint_to_float(current_uint, MIT_Params['I_min'], MIT_Params['I_max'], 12)
 
-        if debug:
-            print('  ID: ' + str(ID))
-            print('  Position: ' + str(position))
-            print('  Velocity: ' + str(velocity))
-            print('  Current: ' + str(current))
-            if (temp is not None) and (error is not None):
-                print('  Temp: ' + str(temp))
-                print('  Error: ' + str(error))
+    if debug:
+        print('  ID: ' + str(ID))
+        print('  Position: ' + str(position))
+        print('  Velocity: ' + str(velocity))
+        print('  Current: ' + str(current))
+        if (temp is not None) and (error is not None):
+            print('  Temp: ' + str(temp))
+            print('  Error: ' + str(error))
 
-        return (ID, position, velocity, current, temp, error)
+    return (ID, position, velocity, current, temp, error)
 
 # Main function for testing, in final version put some sort of test routine in here!
 if __name__ == "__main__":
