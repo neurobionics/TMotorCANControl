@@ -7,4 +7,4 @@ A library in progress for controlling the AK80-9 Tmotor Actuator from CubeMars o
 2. If the serial interface is giving you OTW fault, it's a temperature fault, wait for the chip to cool off
 3. Serial baud rate: 921600
 4. CAN bus data rate: 1MBps
-5. You seem to need at least 2 devices to start a network with the newer motors, but with the older ones you seemed to need only 1
+5. You need to use the 120 Ohm Termination resistor for proper communication
