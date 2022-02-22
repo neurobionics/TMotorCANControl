@@ -1,6 +1,6 @@
 import TControl as tc
 import can
-motor_ID = 2
+motor_ID = 3
 
 try:
     bus = can.interface.Bus(channel='can0', bustype='socketcan_native')

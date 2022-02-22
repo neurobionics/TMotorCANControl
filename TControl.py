@@ -4,7 +4,7 @@ import time
 
 # global settings
 
-debug = True # set to False for final version
+debug = False # set to False for final version
 motor_ID = 2
 
 
@@ -50,7 +50,6 @@ MIT_Params = {
     'Kd_max': 5.0,
 }
 
-
 # Utility Functions
 
 def send_servo_control_message(bus, motor_id, control_mode, data):
@@ -68,6 +67,8 @@ def send_servo_control_message(bus, motor_id, control_mode, data):
     except can.CanError:
         if debug:
             print("    Message NOT sent")
+
+
 
 def send_MIT_message(bus, motor_id, data):
     DLC = len(data)
