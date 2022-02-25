@@ -4,8 +4,9 @@ import time
 motor_ID = 3
 
 
-def handle_message(msg):
+def handle_message(msg, str):
     tc.parse_MIT_message(msg)
+    print(str)
     
 
 
