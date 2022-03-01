@@ -314,24 +314,24 @@ class TMotorManager():
                 "Motor must be in position or impedance mode to accept a position setpoint")
 
         if self.control_state == TMotorManState.POSITION:
-            self.control_variables  = (0.0,0.0,0.0,pos)
+            self.control_variables.setpoint = pos
             integralTerm = self.control_variables.error_integral*self.current_gains.ki
             self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.position_gains.kp, self.position_gains.kd, integralTerm)
 
         elif self.control_state == TMotorManState.IMPEDANCE:
             # current_qaxis = K*(theta_des - theta) + B*(omega) + Kp*(-current) + Ki*(-dcurrent_integral)
             # what to do with feed forward gain? If that's what ff stands for? Units?
-            self.control_variables  = (0.0,0.0,0.0,0.0) # want zero current setpoint so the controller will resist torques applied to the motor
-            control_signal = self.control_variables.error*self.impedance_gains.kp + self.control_variables.error_integral*self.impedance_gains.ki
+            self.control_variables.setpoint = 0.0 # want zero current setpoint so the controller will resist
+            control_signal = self.control_variables.error*self.impedance_gains.Kp + self.control_variables.error_integral*self.impedance_gains.ki
             self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.impedance_gains.K, self.impedance_gains.B, control_signal)
 
     def set_current_qaxis_amps(self, current_q):
         if self.control_state != TMotorManState.CURRENT:
             raise RuntimeError("Motor must be in current mode to accept a current command")
-        self.control_variables  = (0.0,0.0,0.0,current_q)
+        self.control_variables.setpoint = current_q
 
         # what to do with feed forward gain? If that's what ff stands for? Units? 
-        control_signal = self.control_variables.error*self.current_gains.kp + self.control_variables.error_integral*self.current_gains.ki
+        control_signal = self.control_variables.error*self.current_gains.Kp + self.control_variables.error_integral*self.current_gains.ki
         self.canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, control_signal)
 
 
