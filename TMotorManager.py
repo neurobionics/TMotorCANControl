@@ -1,4 +1,3 @@
-from turtle import position
 import can
 import time
 import os
@@ -23,7 +22,7 @@ MIT_Params = {
 }
 
 # These all use rad, rad/s, rad/s/s, A, and degrees C for their values
-class MIT_motor_state:
+class motor_state:
     def __init__(self,position, velocity, current, temperature, error, acceleration):
         self.position = position
         self.velocity = velocity
@@ -32,7 +31,7 @@ class MIT_motor_state:
         self.error = error
         self.acceleration = acceleration
 
-motor_state = namedtuple('motor_state', 'position velocity current temperature error acceleration')
+MIT_motor_state = namedtuple('motor_state', 'position velocity current temperature error')
 impedance_gains = namedtuple('impedance_gains','kp ki K B ff')
 # current_gains = namedtuple('current_gains', 'kp ki ff')
 # position_gains = namedtuple('position_gains', 'kp ki kd')
@@ -317,9 +316,8 @@ class TMotorManager():
 
     # controller setters
     def set_motor_angle_radians(self, pos):
-        if self.control_state not in [TMotorManState.POSITION, TMotorManState.IMPEDANCE]:
-            raise RuntimeError(
-                "Motor must be in position or impedance mode to accept a position setpoint")
+        if self.control_state != TMotorManState.IMPEDANCE:
+            raise RuntimeError("Motor must be in position or impedance mode to accept a position setpoint")
 
         self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.impedance_gains.K, self.impedance_gains.B, 0.0)
 
