@@ -4,6 +4,8 @@ import os
 from collections import namedtuple
 from enum import Enum
 from math import isfinite
+import StatProfiler
+from SoftRealtimeLoop import SoftRealtimeLoop
 
 MIT_Params = {
         'AK80-9':{
@@ -30,6 +32,14 @@ class motor_state:
         self.temperature = temperature
         self.error = error
         self.acceleration = acceleration
+
+    def set_state(self, other_motor_state):
+        self.position = other_motor_state.position
+        self.velocity = other_motor_state.velocity
+        self.current = other_motor_state.current
+        self.temperature = other_motor_state.temperature
+        self.error = other_motor_state.error
+        self.acceleration = other_motor_state.acceleration
 
 MIT_motor_state = namedtuple('motor_state', 'position velocity current temperature error')
 impedance_gains = namedtuple('impedance_gains','kp ki K B ff')
@@ -200,7 +210,11 @@ class TMotorManager():
 
 
         self.motor_state = motor_state(0,0,0,0,0,0)
+        self.motor_state_async = motor_state(0,0,0,0,0,0)
         self.impedance_gains = impedance_gains(0,0,0,0,0)
+        self.setpoint = None
+        self.control_state = TMotorManState.IDLE
+
         # self.current_gains = current_gains(0,0,0)
         # self.position_gains = position_gains(0,0,0)
 
@@ -212,6 +226,8 @@ class TMotorManager():
 
         self.entered = False
         self.last_update_time = 0.0
+        self.updated = False
+        
 
     def __enter__(self):
         self.power_on()
@@ -226,21 +242,39 @@ class TMotorManager():
         now = time.time()
         dt = self.last_update_time - now
         self.last_update_time = now
-
+        # print("dt: " + str(dt))
         # seems like a hacky way to get acceleration but it has to be discrete anyway right?
         acceleration = MIT_state.velocity/dt
-        self.motor_state = motor_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
+        self.motor_state_async = motor_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
+        self.updated = True
+        messageTimer.toc()
 
+    def update(self):
+        if not self.updated:
+            # could generalize later!!
+            # if not self.entered:
+            #     raise 
+            if self.control_state == TMotorManState.IMPEDANCE:
+                self.set_motor_angle_radians(self.setpoint)
+            elif self.control_state == TMotorManState.IDLE:
+                self.power_on()
+            
         
+        self.motor_state.set_state(self.motor_state_async)
+        self.updated = False
 
     # Basic Motor Utility Commands
     def power_on(self):
+        messageTimer.tic()
         self.canman.power_on(self.ID)
+        self.updated = True
 
     def power_off(self):
+        # messageTimer.tic()
         self.canman.power_off(self.ID)
 
     def zero_position(self):
+        messageTimer.tic()
         self.canman.zero(self.ID)
 
     # getters for motor state
@@ -295,6 +329,7 @@ class TMotorManager():
         # assert(isfinite(kp) and 0 <= kp and kp <= 80)
         # assert(isfinite(ki) and 0 <= ki and ki <= 800)
         # assert(isfinite(ff) and 0 <= ff and ff <= 128)
+        
         assert(isfinite(K) and MIT_Params[self.type]["Kp_min"] <= K and K <= MIT_Params[self.type]["Kp_max"])
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self.impedance_gains = impedance_gains(kp,ki,K,B,ff)
@@ -302,12 +337,12 @@ class TMotorManager():
         self.control_variables = (0,0,0,0)
         self.set_motor_angle_radians(self.get_motor_angle_radians())
 
-
     # controller setters
     def set_motor_angle_radians(self, pos):
+        messageTimer.tic()
         if self.control_state != TMotorManState.IMPEDANCE:
             raise RuntimeError("Motor must be in position or impedance mode to accept a position setpoint")
-
+        self.setpoint = pos
         self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.impedance_gains.K, self.impedance_gains.B, 0.0)
 
     def set_current_qaxis_amps(self, current_q):
@@ -320,23 +355,55 @@ class TMotorManager():
         # control_signal = self.control_variables.error*self.current_gains.Kp + self.control_variables.error_integral*self.current_gains.ki
         # self.canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, control_signal)
 
+    def print_state(self, overwrite=False):
+
+        if overwrite:
+            printstr = "\rPosition: " + str(round(self.motor_state.position,4)) + "rad | Velocity: " + str(round(self.motor_state.velocity,4)) + "rad/s | current: " + str(round(self.motor_state.current,4)) + "A"
+            print(printstr,end = '')
+        else:
+            print(printstr = "Position: " + str(round(self.motor_state.position,4)) + "rad | Velocity: " + str(round(self.motor_state.velocity,4)) + "rad/s | current: " + str(round(self.motor_state.current,4)) + "A")
 
     
 
 
 if __name__ == "__main__":
-   
+    messageTimer = StatProfiler.StatProfiler("messageTimer")
+    
     ## Should the canman use a with block too? Almost certainly
     with TMotorManager(motor_type='AK80-9', motor_ID=3) as motor3:
-        motor3.zero_position()
-        motor3.set_impedance_gains_real_unit_KB(0,0,10,1,0)
-        time.sleep(0.1)
-        while(True):
-            printstr = "\rPosition: " + str(round(motor3.motor_state.position,4)) + "rad | Velocity: " + str(round(motor3.motor_state.velocity,4)) + "rad/s | current: " + str(round(motor3.motor_state.current,4)) + "A"
-            print(printstr,end = '')
-            motor3.set_motor_angle_radians(3.14/2)
-            time.sleep(0.1)
         
+        motor3.zero_position()
+        
+        motor3.update()
+        
+        time.sleep(1)
+        motor3.set_impedance_gains_real_unit_KB(0,0,10,1,0)
+        motor3.set_motor_angle_radians(3.14/2)
+        loop = SoftRealtimeLoop(dt = 0.001, report=True, fade=0.0)
+
+        for t in loop:
+            motor3.update()
+        del loop
+
+    del messageTimer
+
+            
+
+
+""" 
+TODO:
+Test Timing
+Rework controller to save current setpoints and then change those setpoints with intelligent commands
+    MIT Mode: specify position and current
+    Set total Current Mode (over writes MIT position control): specify current
+    Set additional Current Mode (still in MIT mode): specify current, will use old command for position
+
+Use the softrealtime fading function
+Verify timing in a more robust way
+Add in the fancy Greek variable notation
+
+"""
+
         
 
 
