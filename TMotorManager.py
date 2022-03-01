@@ -199,13 +199,13 @@ class TMotorManager():
         self.ID = motor_ID
 
 
-        self.motor_state = TMotorManState.IDLE
+        self.motor_state = motor_state(0,0,0,0,0,0)
         self.impedance_gains = impedance_gains(0,0,0,0,0)
         # self.current_gains = current_gains(0,0,0)
         # self.position_gains = position_gains(0,0,0)
 
         # self.control_variables = control_variables(0,0)
-        self.control_state = None
+        self.control_state = TMotorManState.IDLE
         
         self.canman = CAN_Manager()
         self.canman.add_motor(self)
@@ -224,24 +224,13 @@ class TMotorManager():
     def update_state(self, MIT_state):
         # is time.time() good enough?
         now = time.time()
-        dt = self.last_update_time
+        dt = self.last_update_time - now
         self.last_update_time = now
 
         # seems like a hacky way to get acceleration but it has to be discrete anyway right?
-        acceleration = MIT_motor_state.velocity/dt
-        self.motor_state = motor_state(MIT_state, acceleration)
+        acceleration = MIT_state.velocity/dt
+        self.motor_state = motor_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
 
-        # look later to find alternatives to if/else (match? switch?)
-        # Is it good to minimize memory reads/writes by using a temp variable,
-        # or would it be faster to just write into self.control_variables.error directly?
-        # if self.control_state == TMotorManState.POSITION:
-        #     error = motor_state.position - self.control_variables.setpoint
-        # elif self.control_state in [TMotorManState.CURRENT, TMotorManState.IMPEDANCE]:
-        #     error = motor_state.current - self.control_variables.setpoint
-
-        # self.control_variables.error = error 
-        # self.control_variables.error_derivative = error/dt
-        # self.control_variables.error_integral += error*dt
         
 
     # Basic Motor Utility Commands
@@ -340,13 +329,12 @@ if __name__ == "__main__":
     ## Should the canman use a with block too? Almost certainly
     with TMotorManager(motor_type='AK80-9', motor_ID=3) as motor3:
         motor3.zero_position()
-        
+        motor3.set_impedance_gains_real_unit_KB(0,0,10,1,0)
         time.sleep(0.1)
         while(True):
             printstr = "\rPosition: " + str(round(motor3.motor_state.position,4)) + "rad | Velocity: " + str(round(motor3.motor_state.velocity,4)) + "rad/s | current: " + str(round(motor3.motor_state.current,4)) + "A"
             print(printstr,end = '')
-            
-            motor3.power_on()
+            motor3.set_motor_angle_radians(3.14/2)
             time.sleep(0.1)
         
         
