@@ -1,3 +1,4 @@
+from turtle import position
 import can
 import time
 import os
@@ -5,15 +6,36 @@ from collections import namedtuple
 from enum import Enum
 from math import isfinite
 
+MIT_Params = {
+        'AK80-9':{
+            'P_min' : -12.5,
+            'P_max' : 12.5,
+            'V_min' : -50.0,
+            'V_max' : 50.0,
+            'I_min' : -18.0,
+            'I_max' : 18.0,
+            'Kp_min': 0.0,
+            'Kp_max': 500.0,
+            'Kd_min': 0.0,
+            'Kd_max': 5.0,
+            'NM_PER_AMP': 0.146 # probably the same if its the same motor
+        }
+}
+
 # These all use rad, rad/s, rad/s/s, A, and degrees C for their values
-MIT_motor_state = namedtuple('motor_state', 'position velocity current temperature error')
+class MIT_motor_state:
+    def __init__(self,position, velocity, current, temperature, error, acceleration):
+        self.position = position
+        self.velocity = velocity
+        self.current = current
+        self.temperature = temperature
+        self.error = error
+        self.acceleration = acceleration
+
 motor_state = namedtuple('motor_state', 'position velocity current temperature error acceleration')
-control_variables = namedtuple('control_variables', 'error error_integral error_derivative setpoint')
 impedance_gains = namedtuple('impedance_gains','kp ki K B ff')
-current_gains = namedtuple('current_gains', 'kp ki ff')
-position_gains = namedtuple('position_gains', 'kp ki kd')
-
-
+# current_gains = namedtuple('current_gains', 'kp ki ff')
+# position_gains = namedtuple('position_gains', 'kp ki kd')
 
 
 class motorListener(can.Listener):
@@ -34,21 +56,6 @@ class CAN_Manager(object):
     
     debug = False
     
-    MIT_Params = {
-        'AK80-9':{
-            'P_min' : -12.5,
-            'P_max' : 12.5,
-            'V_min' : -50.0,
-            'V_max' : 50.0,
-            'I_min' : -18.0,
-            'I_max' : 18.0,
-            'Kp_min': 0.0,
-            'Kp_max': 500.0,
-            'Kd_min': 0.0,
-            'Kd_max': 5.0,
-            'NM_PER_AMP': 0.146 # probably the same if its the same motor
-        }
-    }
 
     # Note, defining singletons in this way means that you cannot inherit
     # from this class, as apparently __init__ will be called twice
@@ -56,19 +63,17 @@ class CAN_Manager(object):
     def __new__(cls):
         if not cls._instance:
             cls._instance = super(CAN_Manager, cls).__new__(cls)
-            
+            print("Initializing CAN Manager")
+            os.system( 'sudo /sbin/ip link set can0 down' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'down']
+            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'up', 'type', 'can', 'bitrate', '1000000']
+            cls._instance.bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
+            cls._instance.notifier = can.Notifier(bus=cls._instance.bus, listeners=[])
+
         return cls._instance
 
     def __init__(self):
-        # unsure if this will work
-        print("Initializing CAN Manager")
-        os.system( 'sudo /sbin/ip link set can0 down' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'down']
-        os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'up', 'type', 'can', 'bitrate', '1000000']
-        self.bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
-        self.notifier = can.Notifier(bus=self.bus, listeners=[])
+        pass
         
-
-
 
     def add_motor(self, motor):
         self.notifier.add_listener(motorListener(self, motor))
@@ -124,16 +129,16 @@ class CAN_Manager(object):
         self.send_MIT_message(motor_id, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE])
 
     def MIT_controller(self, motor_id, motor_type, position, velocity, Kp, Kd, I):
-        position_uint16 = CAN_Manager.float_to_uint(position, self.MIT_Params[motor_type]['P_min'], 
-                                                    self.MIT_Params[motor_type]['P_max'], 16)
-        velocity_uint12 = CAN_Manager.float_to_uint(velocity, self.MIT_Params[motor_type]['V_min'], 
-                                                    self.MIT_Params[motor_type]['V_max'], 12)
-        Kp_uint12 = CAN_Manager.float_to_uint(Kp, self.MIT_Params[motor_type]['Kp_min'], 
-                                                    self.MIT_Params[motor_type]['Kp_max'], 12)
-        Kd_uint12 = CAN_Manager.float_to_uint(Kd, self.MIT_Params[motor_type]['Kd_min'], 
-                                                    self.MIT_Params[motor_type]['Kd_max'], 12)
-        I_uint12 = CAN_Manager.float_to_uint(I, self.MIT_Params[motor_type]['I_min'], 
-                                                    self.MIT_Params[motor_type]['I_max'], 12)
+        position_uint16 = CAN_Manager.float_to_uint(position, MIT_Params[motor_type]['P_min'], 
+                                                    MIT_Params[motor_type]['P_max'], 16)
+        velocity_uint12 = CAN_Manager.float_to_uint(velocity, MIT_Params[motor_type]['V_min'], 
+                                                    MIT_Params[motor_type]['V_max'], 12)
+        Kp_uint12 = CAN_Manager.float_to_uint(Kp, MIT_Params[motor_type]['Kp_min'], 
+                                                    MIT_Params[motor_type]['Kp_max'], 12)
+        Kd_uint12 = CAN_Manager.float_to_uint(Kd, MIT_Params[motor_type]['Kd_min'], 
+                                                    MIT_Params[motor_type]['Kd_max'], 12)
+        I_uint12 = CAN_Manager.float_to_uint(I, MIT_Params[motor_type]['I_min'], 
+                                                    MIT_Params[motor_type]['I_max'], 12)
 
         data = [
             position_uint16 >> 8,
@@ -162,12 +167,12 @@ class CAN_Manager(object):
             temp = int(data[6])
             error = int(data[7])
 
-        position = CAN_Manager.uint_to_float(position_uint, self.MIT_Params[motor_type]['P_min'], 
-                                            self.MIT_Params[motor_type]['P_max'], 16)
-        velocity = CAN_Manager.uint_to_float(velocity_uint, self.MIT_Params[motor_type]['V_min'], 
-                                            self.MIT_Params[motor_type]['V_max'], 12)
-        current = CAN_Manager.uint_to_float(current_uint, self.MIT_Params[motor_type]['I_min'], 
-                                            self.MIT_Params[motor_type]['I_max'], 12)
+        position = CAN_Manager.uint_to_float(position_uint, MIT_Params[motor_type]['P_min'], 
+                                            MIT_Params[motor_type]['P_max'], 16)
+        velocity = CAN_Manager.uint_to_float(velocity_uint, MIT_Params[motor_type]['V_min'], 
+                                            MIT_Params[motor_type]['V_max'], 12)
+        current = CAN_Manager.uint_to_float(current_uint, MIT_Params[motor_type]['I_min'], 
+                                            MIT_Params[motor_type]['I_max'], 12)
 
         if self.debug:
             print('  Position: ' + str(position))
@@ -183,9 +188,10 @@ class CAN_Manager(object):
    
 class TMotorManState(Enum):
     # VOLTAGE = 1
-    CURRENT = 2
-    POSITION = 3
+    # CURRENT = 2
+    # POSITION = 3
     IMPEDANCE = 4
+    IDLE = 5
 
 
 class TMotorManager():
@@ -194,12 +200,12 @@ class TMotorManager():
         self.ID = motor_ID
 
 
-        self.motor_state = None
+        self.motor_state = TMotorManState.IDLE
         self.impedance_gains = impedance_gains(0,0,0,0,0)
-        self.current_gains = current_gains(0,0,0)
-        self.position_gains = position_gains(0,0,0)
+        # self.current_gains = current_gains(0,0,0)
+        # self.position_gains = position_gains(0,0,0)
 
-        self.control_variables = control_variables(0,0)
+        # self.control_variables = control_variables(0,0)
         self.control_state = None
         
         self.canman = CAN_Manager()
@@ -229,14 +235,14 @@ class TMotorManager():
         # look later to find alternatives to if/else (match? switch?)
         # Is it good to minimize memory reads/writes by using a temp variable,
         # or would it be faster to just write into self.control_variables.error directly?
-        if self.control_state == TMotorManState.POSITION:
-            error = motor_state.position - self.control_variables.setpoint
-        elif self.control_state in [TMotorManState.CURRENT, TMotorManState.IMPEDANCE]:
-            error = motor_state.current - self.control_variables.setpoint
+        # if self.control_state == TMotorManState.POSITION:
+        #     error = motor_state.position - self.control_variables.setpoint
+        # elif self.control_state in [TMotorManState.CURRENT, TMotorManState.IMPEDANCE]:
+        #     error = motor_state.current - self.control_variables.setpoint
 
-        self.control_variables.error = error 
-        self.control_variables.error_derivative = error/dt
-        self.control_variables.error_integral += error*dt
+        # self.control_variables.error = error 
+        # self.control_variables.error_derivative = error/dt
+        # self.control_variables.error_integral += error*dt
         
 
     # Basic Motor Utility Commands
@@ -271,39 +277,41 @@ class TMotorManager():
         return self.motor_state.acceleration
 
     def get_motor_torque_newton_meters(self):
-        return self.get_current_qaxis_amps()*self.canman.MIT_Params[self.type]["NM_PER_AMP"]
+        return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]
 
         
 
     # setting gains
     def set_position_gains(self, kp=200, ki=50, kd=0):
-        assert(isfinite(kp) and 0 <= kp and kp <= 500)
-        assert(isfinite(ki) and 0 <= ki and ki <= 1000)
-        assert(isfinite(kd) and 0 <= kd and kd <= 1000)
-        self.position_gains = (kp, ki, kd)
-        self.control_state=TMotorManState.POSITION
-        self.control_variables = (0.0,0.0,0.0,0.0)
-        self.set_motor_angle_radians(self.get_motor_angle_radians())
+        # assert(isfinite(kp) and 0 <= kp and kp <= 500)
+        # assert(isfinite(ki) and 0 <= ki and ki <= 1000)
+        # assert(isfinite(kd) and 0 <= kd and kd <= 1000)
+        # self.position_gains = (kp, ki, kd)
+        # self.control_state=TMotorManState.POSITION
+        # self.control_variables = (0.0,0.0,0.0,0.0)
+        # self.set_motor_angle_radians(self.get_motor_angle_radians())
+        raise NotImplemented()
 
     def set_current_gains(self, kp=40, ki=400, ff=128, spoof=False):
         # what does spoof do?
-        assert(isfinite(kp) and 0 <= kp and kp <= 500) # ours goes up to 500
-        assert(isfinite(ki) and 0 <= ki and ki <= 800)
-        assert(isfinite(ff) and 0 <= ff and ff <= 128)
-        self.current_gains = (kp, ki, ff)
-        self.control_state = TMotorManState.CURRENT
-        self.control_variables = (0.0,0.0,0.0,0.0)
-        self.set_current_qaxis_amps(0.0)
+        # assert(isfinite(kp) and 0 <= kp and kp <= 500) # ours goes up to 500
+        # assert(isfinite(ki) and 0 <= ki and ki <= 800)
+        # assert(isfinite(ff) and 0 <= ff and ff <= 128)
+        # self.current_gains = (kp, ki, ff)
+        # self.control_state = TMotorManState.CURRENT
+        # self.control_variables = (0.0,0.0,0.0,0)
+        # self.set_current_qaxis_amps(0.0)
+        raise NotImplemented()
 
     def set_impedance_gains_real_unit_KB(self, kp=40, ki=400, K=300, B=1600, ff=128):
-        assert(isfinite(kp) and 0 <= kp and kp <= 80)
-        assert(isfinite(ki) and 0 <= ki and ki <= 800)
-        assert(isfinite(ff) and 0 <= ff and ff <= 128)
-        assert(isfinite(K) and 0 <= K)
-        assert(isfinite(B) and 0 <= B)
-        self.impedance_gains = (kp,ki,K,B,ff)
+        # assert(isfinite(kp) and 0 <= kp and kp <= 80)
+        # assert(isfinite(ki) and 0 <= ki and ki <= 800)
+        # assert(isfinite(ff) and 0 <= ff and ff <= 128)
+        assert(isfinite(K) and MIT_Params[self.type]["Kp_min"] <= K and K <= MIT_Params[self.type]["Kp_max"])
+        assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
+        self.impedance_gains = impedance_gains(kp,ki,K,B,ff)
         self.control_state = TMotorManState.IMPEDANCE
-        self.control_variables = (0.0,0.0,0.0,0.0)
+        self.control_variables = (0,0,0,0)
         self.set_motor_angle_radians(self.get_motor_angle_radians())
 
 
@@ -313,26 +321,17 @@ class TMotorManager():
             raise RuntimeError(
                 "Motor must be in position or impedance mode to accept a position setpoint")
 
-        if self.control_state == TMotorManState.POSITION:
-            self.control_variables.setpoint = pos
-            integralTerm = self.control_variables.error_integral*self.current_gains.ki
-            self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.position_gains.kp, self.position_gains.kd, integralTerm)
-
-        elif self.control_state == TMotorManState.IMPEDANCE:
-            # current_qaxis = K*(theta_des - theta) + B*(omega) + Kp*(-current) + Ki*(-dcurrent_integral)
-            # what to do with feed forward gain? If that's what ff stands for? Units?
-            self.control_variables.setpoint = 0.0 # want zero current setpoint so the controller will resist
-            control_signal = self.control_variables.error*self.impedance_gains.Kp + self.control_variables.error_integral*self.impedance_gains.ki
-            self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.impedance_gains.K, self.impedance_gains.B, control_signal)
+        self.canman.MIT_controller(self.ID,self.type, pos, 0.0, self.impedance_gains.K, self.impedance_gains.B, 0.0)
 
     def set_current_qaxis_amps(self, current_q):
-        if self.control_state != TMotorManState.CURRENT:
-            raise RuntimeError("Motor must be in current mode to accept a current command")
-        self.control_variables.setpoint = current_q
-
-        # what to do with feed forward gain? If that's what ff stands for? Units? 
-        control_signal = self.control_variables.error*self.current_gains.Kp + self.control_variables.error_integral*self.current_gains.ki
-        self.canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, control_signal)
+        raise NotImplemented()
+        # if self.control_state != TMotorManState.CURRENT:
+        #     raise RuntimeError("Motor must be in current mode to accept a current command")
+        # self.control_variables.setpoint = current_q
+        
+        # # what to do with feed forward gain? If that's what ff stands for? Units? 
+        # control_signal = self.control_variables.error*self.current_gains.Kp + self.control_variables.error_integral*self.current_gains.ki
+        # self.canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, control_signal)
 
 
     
