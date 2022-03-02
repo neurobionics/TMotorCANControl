@@ -37,6 +37,9 @@ LOG_VARIABLES = [
 # These all use rad, rad/s, rad/s/s, A, and degrees C for their values
 class motor_state:
     def __init__(self,position, velocity, current, temperature, error, acceleration):
+        self.set_state(position, velocity, current, temperature, error, acceleration)
+
+    def set_state(self, position, velocity, current, temperature, error, acceleration):
         self.position = position
         self.velocity = velocity
         self.current = current
@@ -44,7 +47,7 @@ class motor_state:
         self.error = error
         self.acceleration = acceleration
 
-    def set_state(self, other_motor_state):
+    def set_state_obj(self, other_motor_state):
         self.position = other_motor_state.position
         self.velocity = other_motor_state.velocity
         self.current = other_motor_state.current
@@ -91,6 +94,7 @@ class CAN_Manager(object):
             os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'up', 'type', 'can', 'bitrate', '1000000']
             cls._instance.bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
             cls._instance.notifier = can.Notifier(bus=cls._instance.bus, listeners=[])
+            print("Connected on: " + str(cls._instance.bus))
 
         return cls._instance
 
@@ -223,6 +227,7 @@ class TMotorManState(Enum):
 class TMotorManager():
     
     def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES):
+        print("Initializing device: " + motor_type + "  ID: " + str(motor_ID))
         self.type = motor_type
         self.ID = motor_ID
         self.csv_file_name = CSV_file
@@ -250,7 +255,7 @@ class TMotorManager():
         }
 
     def __enter__(self):
-
+        print('Turning on control for device: ' + str(self.type) + '  ID: ' + str(self.ID) )
         if self.csv_file_name is not None:
             with open(self.csv_file_name,'w') as fd:
                 writer = csv.writer(fd)
@@ -280,37 +285,37 @@ class TMotorManager():
         self.last_update_time = now
         acceleration = MIT_state.velocity/dt
 
-        self.motor_state_async = motor_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
+        self.motor_state_async.set_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
         self.updated = True
         # # messageTimer.toc()
 
     # this method is called by the user to synchronize the current state used by the controller
     # with the most recent message recieved
     def update_state(self):
-        if not self.updated:
-            if self.control_state in  [TMotorManState.IMPEDANCE_ONLY,TMotorManState.CURRENT_ONLY,TMotorManState.FULL_MIT]:
-                self.canman.MIT_controller(self.ID,self.type, self.command.position, self.command.velocity, self.command.kp, self.command.kd, self.command.current)
-            elif self.control_state == TMotorManState.IDLE:
-                self.power_on()
+        if not self.entered:
+            raise RuntimeError("Tried to update motor state before powering on for device: " + str(self.type) + "  ID: " + str(self.ID))
 
-        self.motor_state.set_state(self.motor_state_async)
+        # if not self.updated:
+        #     if self.control_state in [TMotorManState.IMPEDANCE_ONLY, TMotorManState.CURRENT_ONLY, TMotorManState.FULL_MIT]:
+        #         self.canman.MIT_controller(self.ID,self.type, self.command.position, self.command.velocity, self.command.kp, self.command.kd, self.command.current)
+        
+        self.motor_state.set_state_obj(self.motor_state_async)
 
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self.last_update_time - self.start_time]+[self.LOG_FUNCTIONS[var]() for var in self.log_vars])
+            self.csv_writer.writerow([self.last_update_time - self.start_time, time.time() - self.start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
         self.updated = False
         
 
     # this method is called by the user to update the commad being sent to the motor
-    def update_command(self):
-        if self.control_state == TMotorManState.IDLE:
-            self.power_on()
-        elif self.control_state == TMotorManState.FULL_MIT:
+    def send_command(self):
+        if self.control_state == TMotorManState.FULL_MIT:
             self.canman.MIT_controller(self.ID,self.type, self.command.position, self.command.velocity, self.command.kp, self.command.kd, self.command.current)
         elif self.control_state == TMotorManState.IMPEDANCE_ONLY:
             self.canman.MIT_controller(self.ID,self.type, self.command.position, self.command.velocity, self.command.kp, self.command.kd, 0.0)
         elif self.control_state == TMotorManState.CURRENT_ONLY:
             self.canman.MIT_controller(self.ID,self.type, self.motor_state.position, self.motor_state.velocity, 0.0, 0.0, self.command.current)
+        self.updated = True
 
     # Basic Motor Utility Commands
     def power_on(self):
@@ -325,6 +330,8 @@ class TMotorManager():
     def zero_position(self):
         # messageTimer.tic()
         self.canman.zero(self.ID)
+        self.updated = True
+        self.update_state()
 
     # getters for motor state
     def get_current_qaxis_amps(self):
@@ -356,7 +363,7 @@ class TMotorManager():
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self.command.kp = K
         self.command.kd = B
-        self.set_motor_angle_radians_impedance_only(self.get_motor_angle_radians())
+        # self.set_motor_angle_radians_impedance_only(self.get_motor_angle_radians())
 
     # controller setters
     def set_motor_angle_radians_impedance_only(self, pos):
@@ -379,6 +386,12 @@ class TMotorManager():
         self.control_state = TMotorManState.FULL_MIT
         self.command.current = current
 
+    def set_motor_torque_newton_meters_torque_only(self, torque):
+        return self.set_motor_current_qaxis_amps_current_only(torque/MIT_Params[self.type]["NM_PER_AMP"])
+
+    def set_motor_torque_newton_meters_torque_and_impedance(self, torque):
+        return self.set_motor_current_qaxis_amps_current_and_impedance(torque/MIT_Params[self.type]["NM_PER_AMP"])
+
     def print_state(self, overwrite=False, asynch=False):
         if asynch:
             if overwrite:
@@ -394,49 +407,58 @@ class TMotorManager():
             else:
                 print("Position: " + str(round(self.motor_state.position,4)) + "rad | Velocity: " + str(round(self.motor_state.velocity,4)) + "rad/s | current: " + str(round(self.motor_state.current,4)) + "A")
 
-        
-    
+    # electrical variables
+    i = property(get_current_qaxis_amps, set_motor_current_qaxis_amps_current_only, doc="current_qaxis_amps_current_only")
+    i_add = property(get_current_qaxis_amps, set_motor_current_qaxis_amps_current_and_impedance, doc="current_qaxis_amps_current_and_impedance")
+
+    # motor-side variables
+    θ = property(get_motor_angle_radians, set_motor_angle_radians_impedance_only, doc="motor_angle_radians_impedance_only")
+    θ_add = property(get_motor_angle_radians, set_motor_angle_radians_impedance_and_current, doc="motor_angle_radians_impedance_and_current")
+    θd = property (get_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    θdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
+    τ = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_only, doc="motor_torque_newton_meters")
+    τ_add = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_and_impedance, doc="motor_torque_newton_meters")
+
+    # output-side variables
+    # θ = property(get_output_angle_radians, set_output_angle_radians)
+    # θd = property(get_output_velocity_radians_per_second, 
+    #     set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    # θdd = property(get_output_acceleration_radians_per_second_squared, 
+    #     set_output_acceleration_radians_per_second_squared,
+    #     doc="output_acceleration_radians_per_second_squared")
+    # τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters,
+    #     doc="output_torque_newton_meters")
+
 
 
 if __name__ == "__main__":
     # messageTimer = StatProfiler.StatProfiler("# messageTimer")
     
-    ## Should the canman use a with block too? Almost certainly
+    
     with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as motor3:
-        motor3.print_state(asynch=True)
-        motor3.zero_position()
-        motor3.print_state(asynch=True)
-        time.sleep(0.5)
-        motor3.print_state(asynch=True)
-        motor3.set_impedance_gains_real_unit(K=10,B=0.5)
 
-        loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0.0)
+        motor3.zero_position()
+        motor3.set_impedance_gains_real_unit(K=10,B=0.5)
+        time.sleep(3)
+        loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
         for t in loop:
             motor3.update_state()
-            motor3.set_motor_angle_radians_impedance_only(np.sin(np.pi*t))
-            # motor3.set_motor_current_qaxis_amps_current_only(0.35)
-            motor3.update_command()
+            motor3.θ = np.sin(np.pi*t)
+            motor3.send_command()
 
         del loop
+        
+        
+        # print("\n\nSTARTING")
+        # while(True):
+        #     motor3.update_state()
+        #     motor3.θ = 0.5
+        #     motor3.send_command()
+        #     time.sleep(0.01)
 
     # del messageTimer
 
-            
 
-
-""" 
-TODO:
-Test Timing
-Rework controller to save current setpoints and then change those setpoints with intelligent commands
-    MIT Mode: specify position and current
-    Set total Current Mode (over writes MIT position control): specify current
-    Set additional Current Mode (still in MIT mode): specify current, will use old command for position
-
-Use the softrealtime fading function
-Verify timing in a more robust way
-Add in the fancy Greek variable notation
-
-"""
 
         
 
