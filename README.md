@@ -8,3 +8,4 @@ A library in progress for controlling the AK80-9 Tmotor Actuator from CubeMars o
 3. Serial baud rate: 921600
 4. CAN bus data rate: 1MBps
 5. You need to use the 120 Ohm Termination resistor for proper communication
+6. The zeroing function of the TMotor control board causes about a second of delay time before the board will send state updates again :/

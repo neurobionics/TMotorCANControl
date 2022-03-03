@@ -264,6 +264,7 @@ class TMotorManager():
             self.csv_writer = csv.writer(self.csv_file)
 
         self.power_on()
+        self.send_command()
         self.entered = True
         return self
 
@@ -283,7 +284,7 @@ class TMotorManager():
         now = time.time()
         dt = self.last_update_time - now
         self.last_update_time = now
-        acceleration = MIT_state.velocity/dt
+        acceleration = (MIT_state.velocity - self.motor_state_async.velocity)/dt
 
         self.motor_state_async.set_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
         self.updated = True
@@ -302,7 +303,7 @@ class TMotorManager():
         self.motor_state.set_state_obj(self.motor_state_async)
 
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self.last_update_time - self.start_time, time.time() - self.start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
+            self.csv_writer.writerow([self.last_update_time - self.start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
         self.updated = False
         
@@ -315,6 +316,8 @@ class TMotorManager():
             self.canman.MIT_controller(self.ID,self.type, self.command.position, self.command.velocity, self.command.kp, self.command.kd, 0.0)
         elif self.control_state == TMotorManState.CURRENT_ONLY:
             self.canman.MIT_controller(self.ID,self.type, self.motor_state.position, self.motor_state.velocity, 0.0, 0.0, self.command.current)
+        elif self.control_state == TMotorManState.IDLE:
+            self.canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.updated = True
 
     # Basic Motor Utility Commands
@@ -330,8 +333,12 @@ class TMotorManager():
     def zero_position(self):
         # messageTimer.tic()
         self.canman.zero(self.ID)
+        # self.canman.power_on(self.ID)
         self.updated = True
-        self.update_state()
+        now = time.time() + 0.1
+        while(self.last_update_time < now):
+            pass
+        print("Zeroing delay: " + str(round(time.time() - now, 4)) + "s")
 
     # getters for motor state
     def get_current_qaxis_amps(self):
@@ -436,26 +443,23 @@ if __name__ == "__main__":
     
     
     with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as motor3:
-
-        motor3.zero_position()
+        motor3.power_on()
+        motor3.zero_position() # delays 2 seconds!!
         motor3.set_impedance_gains_real_unit(K=10,B=0.5)
-        time.sleep(3)
+        
         loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
         for t in loop:
             motor3.update_state()
-            motor3.θ = np.sin(np.pi*t)
+            if t < 1.0:
+                motor3.θ = 0.0
+            elif t < 4:
+                motor3.θ = np.sin(np.pi*t)
+            else:
+                motor3.θ = 2*np.sin(0.5*np.pi*t)
             motor3.send_command()
 
         del loop
         
-        
-        # print("\n\nSTARTING")
-        # while(True):
-        #     motor3.update_state()
-        #     motor3.θ = 0.5
-        #     motor3.send_command()
-        #     time.sleep(0.01)
-
     # del messageTimer
 
 
