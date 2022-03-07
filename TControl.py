@@ -22,7 +22,8 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.146 # probably the same if its the same motor
+            'NM_PER_AMP': 0.146, # probably the same if its the same motor
+            'GEAR_RATIO': 9.0 # hence the 9 in the name
         }
 }
 
@@ -336,26 +337,27 @@ class TMotorManager():
         # self.canman.power_on(self.ID)
         self.updated = True
         now = time.time() + 0.1
-        while(self.last_update_time < now):
-            pass
-        print("Zeroing delay: " + str(round(time.time() - now, 4)) + "s")
+        print("Zeroing motor position for device " + str(self.type) + "  ID: " + str(self.ID))
+        while( self.last_update_time < now ):
+            if (time.time() - now) > 5.0:
+                raise RuntimeError("Tried to zero, but didn't get a response within 5 seconds. \nCheck motor connection to device: " + str(self.type) + "  ID: " + str(self.ID))
+        print("Position zeroed. Delay: " + str(round(time.time() - now, 4)) + "s")
 
     # getters for motor state
     def get_current_qaxis_amps(self):
         return self.motor_state.current
 
-    def get_motor_angle_radians(self):
+    def get_output_angle_radians(self):
         return self.motor_state.position
 
-    def get_motor_velocity_radians_per_second(self):
+    def get_output_velocity_radians_per_second(self):
         return self.motor_state.velocity
 
-    def get_motor_acceleration_radians_per_second_squared(self):
+    def get_output_acceleration_radians_per_second_squared(self):
         return self.motor_state.acceleration
 
-    def get_motor_torque_newton_meters(self):
+    def get_output_torque_newton_meters(self):
         return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]
-
 
     # setting gains
     def set_position_gains(self, kp=200, ki=50, kd=0):
@@ -370,15 +372,15 @@ class TMotorManager():
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self.command.kp = K
         self.command.kd = B
-        # self.set_motor_angle_radians_impedance_only(self.get_motor_angle_radians())
+        
 
     # controller setters
-    def set_motor_angle_radians_impedance_only(self, pos):
+    def set_output_angle_radians_impedance_only(self, pos):
         # messageTimer.tic()
         self.control_state = TMotorManState.IMPEDANCE_ONLY
         self.command.position = pos
 
-    def set_motor_angle_radians_impedance_and_current(self, pos):
+    def set_output_angle_radians_impedance_and_current(self, pos):
         # messageTimer.tic()
         self.control_state = TMotorManState.FULL_MIT
         self.command.position = pos
@@ -393,11 +395,41 @@ class TMotorManager():
         self.control_state = TMotorManState.FULL_MIT
         self.command.current = current
 
-    def set_motor_torque_newton_meters_torque_only(self, torque):
+    def set_output_torque_newton_meters_torque_only(self, torque):
         return self.set_motor_current_qaxis_amps_current_only(torque/MIT_Params[self.type]["NM_PER_AMP"])
 
-    def set_motor_torque_newton_meters_torque_and_impedance(self, torque):
+    def set_output_torque_newton_meters_torque_and_impedance(self, torque):
         return self.set_motor_current_qaxis_amps_current_and_impedance(torque/MIT_Params[self.type]["NM_PER_AMP"])
+
+
+
+    # motor-side functions to account for the gear ratio
+    def get_motor_angle_radians(self):
+        return self.motor_state.position*MIT_Params[self.type]["GEAR_RATIO"]
+
+    def get_motor_velocity_radians_per_second(self):
+        return self.motor_state.velocity*MIT_Params[self.type]["GEAR_RATIO"]
+
+    def get_motor_acceleration_radians_per_second_squared(self):
+        return self.motor_state.acceleration*MIT_Params[self.type]["GEAR_RATIO"]
+
+    def get_motor_torque_newton_meters(self):
+        return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
+        
+    
+
+    def set_motor_angle_radians_impedance_only(self, pos):
+        self.set_output_angle_radians_impedance_only(self, pos/MIT_Params[self.type]["GEAR_RATIO"])
+
+    def set_motor_angle_radians_impedance_and_current(self, pos):
+        self.set_output_angle_radians_impedance_and_current(self, pos/MIT_Params[self.type]["GEAR_RATIO"])
+
+    def set_motor_torque_newton_meters_torque_only(self, torque):
+        return self.set_output_torque_newton_meters_torque_only(self, torque/MIT_Params[self.type]["GEAR_RATIO"])
+
+    def set_motor_torque_newton_meters_torque_and_impedance(self, torque):
+        return self.set_output_torque_newton_meters_torque_and_impedance(self, torque/MIT_Params[self.type]["GEAR_RATIO"])
+
 
     def print_state(self, overwrite=False, asynch=False):
         if asynch:
@@ -418,29 +450,27 @@ class TMotorManager():
     i = property(get_current_qaxis_amps, set_motor_current_qaxis_amps_current_only, doc="current_qaxis_amps_current_only")
     i_add = property(get_current_qaxis_amps, set_motor_current_qaxis_amps_current_and_impedance, doc="current_qaxis_amps_current_and_impedance")
 
-    # motor-side variables
-    θ = property(get_motor_angle_radians, set_motor_angle_radians_impedance_only, doc="motor_angle_radians_impedance_only")
-    θ_add = property(get_motor_angle_radians, set_motor_angle_radians_impedance_and_current, doc="motor_angle_radians_impedance_and_current")
-    θd = property (get_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
-    θdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
-    τ = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_only, doc="motor_torque_newton_meters")
-    τ_add = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_and_impedance, doc="motor_torque_newton_meters")
-
     # output-side variables
-    # θ = property(get_output_angle_radians, set_output_angle_radians)
-    # θd = property(get_output_velocity_radians_per_second, 
-    #     set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
-    # θdd = property(get_output_acceleration_radians_per_second_squared, 
-    #     set_output_acceleration_radians_per_second_squared,
-    #     doc="output_acceleration_radians_per_second_squared")
-    # τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters,
-    #     doc="output_torque_newton_meters")
+    θ = property(get_output_angle_radians, set_output_angle_radians_impedance_only, doc="output_angle_radians_impedance_only")
+    θ_add = property(get_output_angle_radians, set_output_angle_radians_impedance_and_current, doc="output_angle_radians_impedance_and_current")
+    θd = property (get_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    θdd = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
+    τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters_torque_only, doc="output_torque_newton_meters")
+    τ_add = property(get_output_torque_newton_meters, set_output_torque_newton_meters_torque_and_impedance, doc="output_torque_newton_meters")
+
+    # motor-side variables
+    ϕ = property(get_motor_angle_radians, set_motor_angle_radians_impedance_only, doc="motor_angle_radians_impedance_only")
+    ϕ_add = property(get_motor_angle_radians, set_motor_angle_radians_impedance_and_current, doc="motor_angle_radians_impedance_and_current")
+    ϕd = property (get_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
+    τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_only, doc="motor_torque_newton_meters")
+    τm_add = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_and_impedance, doc="motor_torque_newton_meters")
+
 
 
 
 if __name__ == "__main__":
     # messageTimer = StatProfiler.StatProfiler("# messageTimer")
-    
     
     with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as motor3:
         motor3.power_on()
