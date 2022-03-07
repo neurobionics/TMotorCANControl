@@ -7,7 +7,7 @@ velocity = []
 acceleration = []
 current = []
 time = []
-with open("log.csv",'r') as fd:
+with open("test/log.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -51,8 +51,18 @@ plt.show()
 plt.savefig('plots/current.png')
 plt.clf()
 
-print("Average position: " + str(np.average(position)))
-print("Average velocity: " + str(np.average(velocity)))
-print("Average acceleration: " + str(np.average(acceleration)))
+
 print("Average current: " + str(np.average(current)))
+print("Std Dev current: " + str(np.std(current)))
+
+print("Average position: " + str(np.average(position)))
+print("Std Dev position: " + str(np.std(position)))
+
+print("Average velocity: " + str(np.average(velocity)))
+print("Std Dev velocity: " + str(np.std(velocity)))
+
+print("Average acceleration: " + str(np.average(acceleration)))
+print("Std Dev acceleration: " + str(np.std(acceleration)))
+
+
         
