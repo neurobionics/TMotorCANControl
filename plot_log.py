@@ -7,7 +7,7 @@ velocity = []
 acceleration = []
 current = []
 time = []
-with open("test/log.csv",'r') as fd:
+with open("log.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
