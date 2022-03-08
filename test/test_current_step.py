@@ -16,6 +16,6 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as motor
         if t < 1.0:
             motor3.i = 0.0
         else:
-            motor3.i = -0.5
+            motor3.i = 0.5
 
     del loop

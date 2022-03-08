@@ -29,13 +29,6 @@ MIT_Params = {
 }
 
 
-LOG_VARIABLES = [
-    "angle", 
-    "velocity", 
-    "acceleration", 
-    "current"
-]
-
 # These all use rad, rad/s, rad/s/s, A, and degrees C for their values
 class motor_state:
     def __init__(self,position, velocity, current, temperature, error, acceleration):
@@ -92,9 +85,13 @@ class CAN_Manager(object):
         if not cls._instance:
             cls._instance = super(CAN_Manager, cls).__new__(cls)
             print("Initializing CAN Manager")
-            os.system( 'sudo /sbin/ip link set can0 down' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'down']
-            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' ) # ['sudo', '/sbin/ip', 'link', 'set', 'can0', 'up', 'type', 'can', 'bitrate', '1000000']
+            # verify the CAN bus is currently down
+            os.system( 'sudo /sbin/ip link set can0 down' )
+            # start the CAN bus back up
+            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' )
+            # create a python-can bus object
             cls._instance.bus = can.interface.Bus(channel='can0', bustype='socketcan_native')
+            # create a python-can notifier object, which motors can later subscribe to
             cls._instance.notifier = can.Notifier(bus=cls._instance.bus, listeners=[])
             print("Connected on: " + str(cls._instance.bus))
 
@@ -103,6 +100,8 @@ class CAN_Manager(object):
     def __init__(self):
         pass
         
+    def __del__(self):
+        os.system( 'sudo /sbin/ip link set can0 down' ) # shut down the CAN bus when the object is deleted
 
     def add_motor(self, motor):
         self.notifier.add_listener(motorListener(self, motor))
@@ -214,6 +213,14 @@ class CAN_Manager(object):
         return MIT_motor_state(position, velocity, current, temp, error)
 
 
+
+LOG_VARIABLES = [
+    "angle", 
+    "velocity", 
+    "acceleration", 
+    "current",
+    "torque"
+]
    
 class TMotorManState(Enum):
     # VOLTAGE = 1
@@ -239,13 +246,15 @@ class TMotorManager():
         self.command = MIT_command(0,0,0,0,0)
         self.control_state = TMotorManState.IDLE
         self.times_past_limit = 0
-        self.angle_threshold = MIT_Params[self.type]['P_max'] - 1.0 # radians
+        self.angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians
+        self.old_pos = 0.0
 
         self.entered = False
         self.start_time = time.time()
         self.last_update_time = self.start_time
+        self.last_command_time = None
         self.updated = False
-        self.command_sent = False
+        
         
 
         self.log_vars = log_vars
@@ -253,15 +262,15 @@ class TMotorManager():
         self.canman = CAN_Manager()
         self.canman.add_motor(self)
         self.LOG_FUNCTIONS = {
-            "angle" : self.get_motor_angle_radians, 
-            "velocity" : self.get_motor_velocity_radians_per_second, 
-            "acceleration" : self.get_motor_acceleration_radians_per_second_squared, 
+            "angle" : self.get_output_angle_radians, 
+            "velocity" : self.get_output_velocity_radians_per_second, 
+            "acceleration" : self.get_output_acceleration_radians_per_second_squared, 
             "current" : self.get_current_qaxis_amps,
-            "torque": self.get_motor_torque_newton_meters 
+            "torque": self.get_output_torque_newton_meters 
         }
 
     def __enter__(self):
-        print('Turning on control for device: ' + str(self.type) + '  ID: ' + str(self.ID) )
+        print('Turning on control for device: ' + self.device_info_string())
         if self.csv_file_name is not None:
             with open(self.csv_file_name,'w') as fd:
                 writer = csv.writer(fd)
@@ -275,7 +284,7 @@ class TMotorManager():
         return self
 
     def __exit__(self, etype, value, tb):
-        print('Turning off control for device: ' + str(self.type) + '  ID: ' + str(self.ID) )
+        print('Turning off control for device: ' + self.device_info_string())
         self.power_off()
 
         if self.csv_file_name is not None:
@@ -302,16 +311,19 @@ class TMotorManager():
 
         # check that the motor is safely turned on
         if not self.entered:
-            raise RuntimeError("Tried to update motor state before safely powering on for device: " + str(self.type) + "  ID: " + str(self.ID))
+            raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
 
         # check that the motor data is recent
-        if self.command_sent and (time.time() - self.last_update_time > 0.2):
-            print("State update requested but no data recieved from motor. Delay longer after zeroing, decrease frequency, or check connection.")
-            # warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection.", UserWarning)
-
+        # print(self.command_sent)
+        now = time.time()
+        if (now - self.last_command_time) < 0.25 and ( (now - self.last_update_time) > 0.1):
+            # print("State update requested but no data recieved from motor. Delay longer after zeroing, decrease frequency, or check connection.")
+            warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection. " + self.device_info_string(), RuntimeWarning)
+        else:
+            self.command_sent = False
         # artificially extending the range of the position that we track
         P_max = MIT_Params[self.type]['P_max']
-        old_pos = self.motor_state.position % P_max
+        old_pos = self.old_pos
         new_pos = self.motor_state_async.position
         thresh = self.angle_threshold
         if (thresh <= new_pos and new_pos <= P_max) and (-P_max <= old_pos and old_pos <= -thresh):
@@ -320,18 +332,18 @@ class TMotorManager():
             self.times_past_limit += 1
             
         # update position
+        self.old_pos = new_pos
         self.motor_state.set_state_obj(self.motor_state_async)
-        # self.motor_state.position += self.times_past_limit*2*P_max
+        self.motor_state.position += self.times_past_limit*2*P_max
         
         # send current motor command
         self.send_command()
 
         # writing to log file
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self.last_update_time - self.start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + [old_pos,self.times_past_limit])
+            self.csv_writer.writerow([self.last_update_time - self.start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
         self.updated = False
-        self.command_sent = False
         
         
 
@@ -346,8 +358,8 @@ class TMotorManager():
         elif self.control_state == TMotorManState.IDLE:
             self.canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
         else:
-            raise RuntimeError("UNDEFINED STATE!")
-        self.command_sent = True
+            raise RuntimeError("UNDEFINED STATE for device " + self.device_info_string())
+        self.last_command_time = time.time()
 
     # Basic Motor Utility Commands
     def power_on(self):
@@ -362,6 +374,8 @@ class TMotorManager():
     def zero_position(self):
         # messageTimer.tic()
         self.canman.zero(self.ID)
+        self.last_command_time = time.time()
+        # self.update()
         # self.canman.power_on(self.ID)
         # now = time.time() + 0.1
         # print("Zeroing motor position for device " + str(self.type) + "  ID: " + str(self.ID))
@@ -415,12 +429,12 @@ class TMotorManager():
     def set_output_angle_radians(self, pos):
         # messageTimer.tic()
         if self.control_state not in [TMotorManState.IMPEDANCE, TMotorManState.FULL_STATE]:
-            raise RuntimeError("Attempted to send position command without gains for device " + str(self.type) + "  ID: " + str(self.ID)) 
+            raise RuntimeError("Attempted to send position command without gains for device " + self.device_info_string()) 
         self.command.position = pos
 
     def set_motor_current_qaxis_amps(self, current):
         if self.control_state not in [TMotorManState.CURRENT, TMotorManState.FULL_STATE]:
-            raise RuntimeError("Attempted to send current command before entering current mode for device " + str(self.type) + "  ID: " + str(self.ID)) 
+            raise RuntimeError("Attempted to send current command before entering current mode for device " + self.device_info_string()) 
         self.command.current = current
 
     def set_output_torque_newton_meters(self, torque):
@@ -445,8 +459,13 @@ class TMotorManager():
 
     def get_motor_torque_newton_meters(self):
         return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
-        
 
+    # Pretty stuff
+    def __str__(self):
+        return self.device_info_string() + " | Position: " + str(round(self.θ,3)) + " rad | Velocity: " + str(round(self.θd ,3)) + " rad/s | current: " + str(round(self.i,3)) + " A | torque: " + str(round(self.τ,3)) + " Nm"
+
+    def device_info_string(self):
+        return str(self.type) + "  ID: " + str(self.ID)
 
     def print_state(self, overwrite=False, asynch=False):
         if asynch:
@@ -507,14 +526,6 @@ if __name__ == "__main__":
         del loop
         
     # del messageTimer
-
-"""
-Stuff to change:
-
-Zeroing function -- throw runtime
-
-Account for positions beyond 12.5 rad bounds
-"""
 
         
 
