@@ -238,12 +238,15 @@ class TMotorManager():
         self.motor_state_async = motor_state(0,0,0,0,0,0)
         self.command = MIT_command(0,0,0,0,0)
         self.control_state = TMotorManState.IDLE
+        self.times_past_limit = 0
+        self.angle_threshold = 1.0 # radians
 
         self.entered = False
         self.start_time = time.time()
         self.last_update_time = self.start_time
         self.updated = False
         self.command_sent = False
+        
 
         self.log_vars = log_vars
         
@@ -297,19 +300,40 @@ class TMotorManager():
     # with the most recent message recieved
     def update(self):
 
+        # check that the motor is safely turned on
         if not self.entered:
-            raise RuntimeError("Tried to update motor state before powering on for device: " + str(self.type) + "  ID: " + str(self.ID))
+            raise RuntimeError("Tried to update motor state before safely powering on for device: " + str(self.type) + "  ID: " + str(self.ID))
 
-        if self.command_sent and (time.time() - self.last_update_time > 0.1):
+        # check that the motor data is recent
+        if self.command_sent and (time.time() - self.last_update_time > 0.2):
             print("State update requested but no data recieved from motor. Delay longer after zeroing, decrease frequency, or check connection.")
             # warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection.", UserWarning)
 
-        self.motor_state.set_state_obj(self.motor_state_async)
+        # artificially extending the range of the position that we track
+        old_pos = self.motor_state.position
+        new_pos = self.motor_state_async.position
+        thresh = (MIT_Params[self.type]['P_max'] - self.angle_threshold)
+        adjustment = 0
 
+        if (thresh <= new_pos and new_pos <= MIT_Params[self.type]['P_max']) and ((MIT_Params[self.type]['P_min'] <= old_pos and old_pos <= -thresh)):
+            self.times_past_limit -= 1
+        elif (thresh <= old_pos and old_pos <= MIT_Params[self.type]['P_max']) and ((MIT_Params[self.type]['P_min'] <= new_pos and new_pos <= -thresh))
+            self.times_past_limit += 1
+            
+        # update position
+        self.motor_state.set_state_obj(self.motor_state_async)
+        if self.times_past_limit < 0:
+            self.motor_state.position += self.times_past_limit*(np.abs(MIT_Params[self.type]['P_min']))
+        elif self.times_past_limit > 0:
+            self.motor_state.position += self.times_past_limit*(np.abs(MIT_Params[self.type]['P_max']))
+
+        # send current motor command
+        self.send_command()
+
+        # writing to log file
         if self.csv_file_name is not None:
             self.csv_writer.writerow([self.last_update_time - self.start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
-        self.send_command()
         self.updated = False
         self.command_sent = False
         
