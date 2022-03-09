@@ -428,6 +428,8 @@ class TMotorManager():
     # controller setters
     def set_output_angle_radians(self, pos):
         # messageTimer.tic()
+        # position commands must be within a certain range. Test this!
+        pos = (np.abs(pos) % MIT_Params[self.type]["Kp_max"])*np.sign(pos)
         if self.control_state not in [TMotorManState.IMPEDANCE, TMotorManState.FULL_STATE]:
             raise RuntimeError("Attempted to send position command without gains for device " + self.device_info_string()) 
         self.command.position = pos
