@@ -320,7 +320,6 @@ class TMotorManager():
 
         self._motor_state_async.set_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
         self._updated = True
-        # # messageTimer.toc()
 
     # this method is called by the user to synchronize the current state used by the controller
     # with the most recent message recieved
@@ -364,7 +363,7 @@ class TMotorManager():
         
         
 
-    # this method is called by the user to update the commad being sent to the motor
+    # sends a command to the motor depending on whats controlm mode the motor is in
     def _send_command(self):
         if self._control_state == _TMotorManState.FULL_STATE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current)
@@ -380,26 +379,17 @@ class TMotorManager():
 
     # Basic Motor Utility Commands
     def power_on(self):
-        # messageTimer.tic()
         self._canman.power_on(self.ID)
         self._updated = True
 
     def power_off(self):
-        # # messageTimer.tic()
         self._canman.power_off(self.ID)
 
+    # zeros the position, like a scale you have to wait about a second before you can
+    # use the motor again. This responsibility is on the user!!
     def zero_position(self):
-        # messageTimer.tic()
         self._canman.zero(self.ID)
         self._last_command_time = time.time()
-        # self.update()
-        # self._canman.power_on(self.ID)
-        # now = time.time() + 0.1
-        # print("Zeroing motor position for device " + str(self.type) + "  ID: " + str(self.ID))
-        # while( self._last_update_time < now ):
-        #     if (time.time() - now) > 5.0:
-        #         raise RuntimeError("Tried to zero, but didn't get a response within 5 seconds. \nCheck motor connection to device: " + str(self.type) + "  ID: " + str(self.ID))
-        # print("Position zeroed. Delay: " + str(round(time.time() - now, 4)) + "s")
 
     # getters for motor state
     def get_current_qaxis_amps(self):
@@ -417,18 +407,19 @@ class TMotorManager():
     def get_output_torque_newton_meters(self):
         return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
 
-    # setting gains
+    # not implemented but in other version
     def set_position_gains(self, kp=200, ki=50, kd=0):
         raise NotImplemented()
 
-    # the default gains seem low, due to gear ratio?
+    # uses plain impedance mode, will send 0.0 for current command.
     def set_impedance_gains_real_unit(self, kp=0, ki=0, K=0.08922, B=0.0038070, ff=0):
         assert(isfinite(K) and MIT_Params[self.type]["Kp_min"] <= K and K <= MIT_Params[self.type]["Kp_max"])
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self._command.kp = K
         self._command.kd = B
         self._control_state = _TMotorManState.IMPEDANCE
-        
+    
+    # uses full MIT mode, will send whatever current command is set. 
     def set_impedance_gains_real_unit_full_state_feedback(self, kp=0, ki=0, K=0.08922, B=0.0038070, ff=0):
         assert(isfinite(K) and MIT_Params[self.type]["Kp_min"] <= K and K <= MIT_Params[self.type]["Kp_max"])
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
@@ -436,15 +427,16 @@ class TMotorManager():
         self._command.kd = B
         self._control_state = _TMotorManState.FULL_STATE
 
+    # uses plain current mode, will send 0.0 for position gains.
     def set_current_gains(self, kp=40, ki=400, ff=128, spoof=False):
         self._control_state = _TMotorManState.CURRENT
 
+    # uses full MIT mode, will send whatever position gains and values are set
     def set_current_gains_full_state_feedback(self, kp=40, ki=400, ff=128, spoof=False):
         self._control_state = _TMotorManState.FULL_STATE
 
-    # controller setters
+    # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):
-        # messageTimer.tic()
         # position commands must be within a certain range :/
         # pos = (np.abs(pos) % MIT_Params[self.type]["P_max"])*np.sign(pos) # this doesn't work because it will unwind itself!
         # CANNOT Control using impedance mode for angles greater than 12.5 rad!!
@@ -455,14 +447,15 @@ class TMotorManager():
             raise RuntimeError("Attempted to send position command without gains for device " + self.device_info_string()) 
         self._command.position = pos
 
+    # used for either current MIT mode to set current
     def set_motor_current_qaxis_amps(self, current):
         if self._control_state not in [_TMotorManState.CURRENT, _TMotorManState.FULL_STATE]:
             raise RuntimeError("Attempted to send current command before entering current mode for device " + self.device_info_string()) 
         self._command.current = current
 
+    # used for either current or MIT Mode to set current, based on desired torque
     def set_output_torque_newton_meters(self, torque):
         self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
-
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
@@ -490,54 +483,46 @@ class TMotorManager():
     def device_info_string(self):
         return str(self.type) + "  ID: " + str(self.ID)
 
-    def print_state(self, overwrite=False, asynch=False):
-        if asynch:
-            if overwrite:
-                printstr = "\rPosition: " + str(round(self._motor_state_async.position,4)) + "rad | Velocity: " + str(round(self._motor_state_async.velocity,4)) + "rad/s | current: " + str(round(self._motor_state_async.current,4)) + "A"
-                print(printstr,end = '')
-            else:
-                print("Position: " + str(round(self._motor_state_async.position,4)) + "rad | Velocity: " + str(round(self._motor_state_async.velocity,4)) + "rad/s | current: " + str(round(self._motor_state_async.current,4)) + "A")
 
-        else:
-            if overwrite:
-                printstr = "\rPosition: " + str(round(self._motor_state.position,4)) + "rad | Velocity: " + str(round(self._motor_state.velocity,4)) + "rad/s | current: " + str(round(self._motor_state.current,4)) + "A"
-                print(printstr,end = '')
-            else:
-                print("Position: " + str(round(self._motor_state.position,4)) + "rad | Velocity: " + str(round(self._motor_state.velocity,4)) + "rad/s | current: " + str(round(self._motor_state.current,4)) + "A")
+    ## Greek letter math symbol property interface. This is the good
+    #  interface, for those who like code that resembles math. It works best
+    #  to use the UnicodeMath plugin for sublime-text, "Fast Unicode Math
+    #  Characters" in VS Code, or the like to allow easy typing of ϕ, θ, and
+    #  τ.
 
     # electrical variables
     i = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps_current_only")
-    # i_add = property(get_current_qaxis_amps, set_motor_current_qaxis_amps_current_and_impedance, doc="current_qaxis_amps_current_and_impedance")
 
     # output-side variables
     θ = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians_impedance_only")
-    # θ_add = property(get_output_angle_radians, set_output_angle_radians_impedance_and_current, doc="output_angle_radians_impedance_and_current")
     θd = property (get_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
     θdd = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
     τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
-    # τ_add = property(get_output_torque_newton_meters, set_output_torque_newton_meters_torque_and_impedance, doc="output_torque_newton_meters")
 
     # motor-side variables
     ϕ = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians_impedance_only")
-    #ϕ_add = property(get_motor_angle_radians, set_motor_angle_radians_impedance_and_current, doc="motor_angle_radians_impedance_and_current")
     ϕd = property (get_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
     ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
     τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
-    #τm_add = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters_torque_and_impedance, doc="motor_torque_newton_meters")
-
-
-
-
-if __name__ == "__main__":
-    # messageTimer = StatProfiler.StatProfiler("# messageTimer")
     
+
+# A sample program--should do nothing, then oscillate, then oscillate wider
+if __name__ == "__main__":
+    # use the with block to safely shut down
     with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as motor3:
-        motor3.zero_position() # has a delay!
-        time.sleep(1.0)
+        # zero the position
+        motor3.zero_position()
+
+        # wait to ensure the motor is zeroed before sending commands
+        time.sleep(1.2)
+
+        # set the gains for our controller, enter impedance only mode
         motor3.set_impedance_gains_real_unit(K=10,B=0.5)
         
+        # create a soft realtime loop to ensure steady timing
         loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
         for t in loop:
+            # update motor state and send the current command (idle to start)
             motor3.update()
             if t < 1.0:
                 motor3.θ = 0.0
@@ -546,9 +531,8 @@ if __name__ == "__main__":
             else:
                 motor3.θ = 2*np.sin(0.5*np.pi*t)
 
+        # ensure the loop's destructor is called explicitly to show timing data
         del loop
-        
-    # del messageTimer
 
         
 
