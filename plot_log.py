@@ -14,7 +14,7 @@ Mvelocity = []
 Macceleration = []
 Mtorque = []
 
-motorside = True
+motorside = False
 
 with open("log.csv",'r') as fd:
     reader = csv.reader(fd)

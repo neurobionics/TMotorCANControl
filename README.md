@@ -36,8 +36,8 @@ on the UART port on the motor will work for this purpose.
 
 With the elctronics set up, you can follow the [instructions](https://copperhilltech.com/blog/pican2-pican3-and-picanm-driver-installation-for-raspberry-pi/)
 given on the CopperHill website to set up the software on the pi to drive the PiCAN 2 Hat. 
-Before connecting the motor, you can verify that the PiCAN hat is functioning properly by
-starting up the network in loopback mode, with the following command, as recommended in the
+Once this is done, you can verify that the PiCAN hat is functioning properly by
+starting up the network in loopback mode as recommended in the
 [troubleshooting guide](https://copperhilltech.com/blog/pican2-can-bus-board-for-raspberry-pi-functionality-test/)
 on the CopperHill website. 
 
@@ -45,14 +45,14 @@ If the loopback mode test worked successfully, then the PiCAN hat is working pro
 can begin to test the motor. To verify that the CAN connection to the motor is working properly,
 run the "test_motor_connection.py" script in the test folder, with the "ID" and "type" variables
 set to the proper CAN ID and motor type (default 1 and AK80-9) for your setup. If all is working
-correctly, you should see the motor print out it's current position and velocity information. If 
+correctly, you should see a message saying the motor is successfully connected. If 
 you see an error related to the CAN bus, then check the connection and verify the CAN hat is working.
 If you see an error that seems to be related to the TControl API implementation, then let us know
 so we can help you troubleshoot.
 
 With the motor configured and connected, you can now start programming! For some code examples,
 see the test folder in this repository. For some more detailed explainations, see the section
-below or check out the API full documentation. (insert link to that when I make it)
+below or check out the full documentation. (insert link to that when I make it)
 
 ## API usage
 
@@ -66,6 +66,12 @@ below or check out the API full documentation. (insert link to that when I make 
 5. You need to use the 120 Ohm Termination resistor for proper communication
 6. The zeroing function of the TMotor control board causes about a second of delay time before the board will send state updates again :/
 
+Things to test:
+- desired torque vs actual torque for motor
+    - test static torque, torque during generation as well by manually twisting output shaft
+    - fit model to account for coulomb friction and viscous damping for output torque based on input current
+    - derive emperical motor constant
+- bode plot of current 
 
 
 This work is performed under the [Neurobionics Laboratory](https://neurobionics.robotics.umich.edu/) 
