@@ -26,7 +26,9 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'NM_PER_AMP': 0.146, # probably the same if its the same motor
-            'GEAR_RATIO': 9.0 # hence the 9 in the name
+            'GEAR_RATIO': 9.0, # hence the 9 in the name
+            'Use_derived_torque_constants': True, # true if you have a better model
+            'derived_torque_constants': [-0.0550782, -0.6211586, -0.00728279, -0.26881858, -0.03679624]
         }
 }
 
@@ -287,6 +289,8 @@ class TMotorManager():
         self._canman = CAN_Manager()
         self._canman.add_motor(self)
         
+            
+        
 
     def __enter__(self):
         print('Turning on control for device: ' + self.device_info_string())
@@ -421,7 +425,14 @@ class TMotorManager():
 
     def get_output_torque_newton_meters(self):
         """Returns the most recently updated output torque in Newton Meters"""
-        return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
+        if MIT_Params[self.type]['Use_derived_torque_constants']:
+            a_hat = MIT_Params[self.type]['derived_torque_constants']
+            kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
+            i = self.get_current_qaxis_amps()
+            v = self.get_motor_velocity_radians_per_second()
+            return a_hat[0] + a_hat[1]*kt*i - a_hat[2]*i*i - a_hat[3]*np.sign(v) - a_hat[4]*np.abs(i)*np.sign(v)
+        else:
+            return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
 
     # not implemented but in other version
     def set_position_gains(self, kp=200, ki=50, kd=0):
@@ -473,12 +484,20 @@ class TMotorManager():
     # used for either current or MIT Mode to set current, based on desired torque
     def set_output_torque_newton_meters(self, torque):
         """used for either current or MIT Mode to set current, based on desired torque"""
-        self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
+        if MIT_Params[self.type]['Use_derived_torque_constants']:
+            a_hat = MIT_Params[self.type]['derived_torque_constants']
+            kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["NM_PER_AMP"]
+            i = self.get_current_qaxis_amps()
+            v = self.get_motor_velocity_radians_per_second()
+            ides = (torque - a_hat[0] + (a_hat[3] + a_hat[4]*np.abs(i))*np.sign(v) )/(a_hat[1]*(kt-a_hat[2]*np.abs(i)/a_hat[1]))
+            self.set_motor_current_qaxis_amps(ides)
+        else:
+            self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
         """Version of set_output_torque that accounts for gear ratio to control motor-side torque"""
-        self.set_motor_current_qaxis_amps(torque/(MIT_Params[self.type]["NM_PER_AMP"]) )
+        self.set_motor_torque_newton_meters(torque*MIT_Params[self.type]["NM_PER_AMP"])
 
     def set_motor_angle_radians(self, pos):
         """Wrapper for set_output_angle that accounts for gear ratio to control motor-side angle"""
@@ -498,7 +517,7 @@ class TMotorManager():
 
     def get_motor_torque_newton_meters(self):
         """Wrapper for get_output_torque that accounts for gear ratio to get motor-side torque"""
-        return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]
+        return self.get_motor_torque_newton_meters()*MIT_Params[self.type]["GEAR_RATIO"]
 
     # Pretty stuff
     def __str__(self):
