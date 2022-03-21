@@ -1,4 +1,4 @@
-from CAN_Manager import *
+from TMotorCANControl.CAN_Manager import *
 import can
 import time
 import csv
@@ -6,8 +6,7 @@ import traceback
 from collections import namedtuple
 from enum import Enum
 from math import isfinite
-import StatProfiler
-from SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 import numpy as np
 import warnings
 
@@ -360,12 +359,13 @@ class TMotorManager():
             torque: The desired output torque in Nm.
         """
         if MIT_Params[self.type]['Use_derived_torque_constants']:
-            a_hat = MIT_Params[self.type]['derived_torque_constants']
-            kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["NM_PER_AMP"]
-            i = self.get_current_qaxis_amps()
-            v = self.get_motor_velocity_radians_per_second()
-            ides = (torque - a_hat[0] + (a_hat[3] + a_hat[4]*np.abs(i))*np.sign(v) )/(a_hat[1]*(kt-a_hat[2]*np.abs(i)/a_hat[1]))
-            self.set_motor_current_qaxis_amps(ides)
+            # a_hat = MIT_Params[self.type]['derived_torque_constants']
+            # kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["NM_PER_AMP"]
+            # i = self.get_current_qaxis_amps()
+            # v = self.get_motor_velocity_radians_per_second()
+            # ides = (torque - a_hat[0] + (a_hat[3] + a_hat[4]*np.abs(i))*np.sign(v) )/(a_hat[1]*(kt-a_hat[2]*np.abs(i)/a_hat[1]))
+            # self.set_motor_current_qaxis_amps(ides)
+            self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
         else:
             self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 
