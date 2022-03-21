@@ -161,7 +161,9 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars
     dev.zero_position()
     time.sleep(1.5)
     dev.set_impedance_gains_real_unit(K=10,B=0.5)
-    loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0):
+    loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
+
+    for t in loop:
         dev.update()
         dev.θ = 3.14
 ```
