@@ -144,7 +144,7 @@ above getters and setters as follows:
 - ϕdd: motor-side acceleration
 - τm: motor-side torque
 
-Another notable function is the zero() function, which sends a command to the motor to 
+Another notable function is the zero_position() function, which sends a command to the motor to 
 zero it's current angle. This function will shut off control of the motor for about a second
 while the motor zeros (sort of like zeroing a scale, it seems to record a few points to get 
 a good measurement). As such, after calling the method you should delay for at least a second

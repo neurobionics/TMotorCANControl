@@ -502,7 +502,7 @@ if __name__ == "__main__":
             dev.update()
             
             if t < 3:
-                dev.τ = loop.fade*amp*chirp.next(t)*3/3.7
+                dev.τ = loop.fade*1.0*chirp.next(t)*3/3.7
 
         # ensure the loop's destructor is called explicitly to show timing data
         del loop

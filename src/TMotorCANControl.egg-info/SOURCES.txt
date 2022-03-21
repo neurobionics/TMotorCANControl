@@ -8,7 +8,6 @@ src/TMotorCANControl/derive_torque_constants.py
 src/TMotorCANControl/plot_adc_motor_log.py
 src/TMotorCANControl/plot_log.py
 src/TMotorCANControl/shutoffMotor.py
-src/TMotorCANControl/test.py
 src/TMotorCANControl.egg-info/PKG-INFO
 src/TMotorCANControl.egg-info/SOURCES.txt
 src/TMotorCANControl.egg-info/dependency_links.txt
