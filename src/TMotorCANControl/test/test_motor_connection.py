@@ -1,6 +1,4 @@
-from sys import path
 from TMotorCANControl.TMotorManager import TMotorManager
-import time
 
 # CHANGE THESE TO MATCH YOUR dev!
 ID = 3

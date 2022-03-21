@@ -1,5 +1,5 @@
 from sys import path
-from TMotorCANControl import TMotorManager
+from TMotorCANControl.TMotorManager import TMotorManager
 from SoftRealtimeLoop import SoftRealtimeLoop
 from AdcManager import ADC_Manager
 import csv

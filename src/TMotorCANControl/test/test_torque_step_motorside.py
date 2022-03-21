@@ -1,8 +1,5 @@
 from SoftRealtimeLoop import SoftRealtimeLoop
-from sys import path
-path.append("/home/pi/TControl")
-from TControl import TMotorManager
-import numpy as np
+from TMotorCANControl.TMotorManager import TMotorManager
 import time
 
 logvars = [

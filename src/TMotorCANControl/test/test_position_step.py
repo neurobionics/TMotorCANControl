@@ -1,7 +1,5 @@
 from SoftRealtimeLoop import SoftRealtimeLoop
-from sys import path
-path.append("/home/pi/TControl")
-from TControl import TMotorManager
+from TMotorCANControl.TMotorManager import TMotorManager
 import numpy as np
 import time
 
