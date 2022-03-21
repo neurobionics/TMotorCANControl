@@ -1,4 +1,5 @@
 from sys import path
+path.append("/home/pi/TMotorCANControl/src")
 from TMotorCANControl.TMotorManager import TMotorManager
 from SoftRealtimeLoop import SoftRealtimeLoop
 from AdcManager import ADC_Manager
@@ -7,9 +8,8 @@ import csv
 
 bias = 0.5896742308538513 # Nm
 delay = 5.0 # s
-test_torques = [0.0,0.25,-0.25,1.0,-1.0] # Nm
+test_torques = [0.0, 0.25, -0.25, 1.0, -1.0] # Nm
 torque = test_torques[0] # Nm
-
 
 csv_file_name = "log_adc_and_motor.csv"
 with ADC_Manager(csv_file_name="dummyLog") as adc:
@@ -22,8 +22,9 @@ with ADC_Manager(csv_file_name="dummyLog") as adc:
             loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
             t_next = delay
             i = 0
+            print("Testing torque: " + str(torque) + " Nm")
             for t in loop:
-                if t > t_next:
+                if t > t_next and i < len(test_torques):
                     i += 1
                     torque = test_torques[i]
                     t_next += delay

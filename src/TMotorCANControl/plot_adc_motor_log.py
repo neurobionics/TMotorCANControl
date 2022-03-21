@@ -24,7 +24,7 @@ with open("log_adc_and_motor.csv",'r') as fd:
 
 torque_adc_adjusted = [-1*τ for τ in torque_adc]
 
-plt.plot(time,torque_adc,label="τ_adc")
+plt.plot(time,torque_adc_adjusted,label="τ_adc")
 plt.plot(time,torque_motor,label="τ_motor")
 # plt.plot(time,torque_adc_adjusted,label="τ_adc_adjusted")
 plt.title('Torque vs Time')
@@ -32,7 +32,7 @@ plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/ADC_Motor_Torque.png')
+plt.savefig('src/TMotorCANControl/plots/ADC_Motor_Torque.png')
 plt.clf()
 
 print("Average τ_adc: " + str(np.average(torque_adc)))
@@ -40,4 +40,4 @@ print("Std Dev τ_adc: " + str(np.std(torque_adc)))
 
 print("Average τ_motor: " + str(np.average(torque_motor)))
 print("Std Dev τ_motor: " + str(np.std(torque_motor)))
-        
+

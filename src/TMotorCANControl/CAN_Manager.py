@@ -19,8 +19,8 @@ MIT_Params = {
             'Kd_max': 5.0,
             'NM_PER_AMP': 0.146, # probably the same if its the same motor
             'GEAR_RATIO': 9.0, # hence the 9 in the name
-            'Use_derived_torque_constants': True, # true if you have a better model
-            'derived_torque_constants': [-0.0550782, -0.6211586, -0.00728279, -0.26881858, -0.03679624]
+            'Use_derived_torque_constants': False, # true if you have a better model
+            'a_hat' : [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
         }
 }
 

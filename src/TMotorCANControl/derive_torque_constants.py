@@ -20,7 +20,7 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
-with open("src/TMotorCANControl/test/saved_logs/system_id_test_1/log_adc_and_motor.csv",'r') as fd:
+with open("src/TMotorCANControl/test/saved_logs/system_id_test_3-model_prediction/log_adc_and_motor.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -46,19 +46,15 @@ v = np.array(speed_motor).reshape((t.shape[0],1))
 # 0.146 Nm per amp motor-side, with gear ratio of 1:9
 kt = 0.146
 gr = 9.0
+ϵ = 1.0
+A = np.hstack((np.ones_like(t), gr*kt*i, -gr*np.abs(i)*i, -np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ), -np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )))
 
-A = np.hstack((np.ones_like(t), gr*kt*i, -gr*np.abs(i)*i, -np.sign(v), -np.abs(i)*np.sign(v)))
 print(A.shape)
-# τ_adc = butter_lowpass_filter(τ_adc,2,100,2)
-# low pass filter
-
-# for i in range(A.shape[1]):
-#     A[:][i] =  butter_lowpass_filter(A[:][i],2,100,2)
 
 a_hat = np.linalg.inv(A.T@A)@A.T@τ_adc
 print(a_hat)
 
-τ_approx = a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v) - a_hat[4]*np.abs(i)*np.sign(v)
+τ_approx = a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ) - a_hat[4]*np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )
 
 error = np.abs((τ_approx - τ_adc)/τ_adc)
 rmse = np.sqrt(np.mean(τ_approx - τ_adc)**2)

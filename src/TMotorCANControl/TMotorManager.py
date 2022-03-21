@@ -93,8 +93,6 @@ class TMotorManager():
         self._canman.add_motor(self)
         
             
-        
-
     def __enter__(self):
         """
         Used to safely power the motor on and begin the log file.
@@ -258,11 +256,13 @@ class TMotorManager():
             the most recently updated output torque in Nm
         """
         if MIT_Params[self.type]['Use_derived_torque_constants']:
-            a_hat = MIT_Params[self.type]['derived_torque_constants']
-            kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
+            a_hat = MIT_Params[self.type]['a_hat']
+            kt = MIT_Params[self.type]["NM_PER_AMP"]
+            gr = MIT_Params[self.type]["GEAR_RATIO"]
+            ϵ = 1.0
             i = self.get_current_qaxis_amps()
             v = self.get_motor_velocity_radians_per_second()
-            return a_hat[0] + a_hat[1]*kt*i - a_hat[2]*i*i - a_hat[3]*np.sign(v) - a_hat[4]*np.abs(i)*np.sign(v)
+            return a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ) - a_hat[4]*np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )
         else:
             return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
 
@@ -359,13 +359,16 @@ class TMotorManager():
             torque: The desired output torque in Nm.
         """
         if MIT_Params[self.type]['Use_derived_torque_constants']:
-            # a_hat = MIT_Params[self.type]['derived_torque_constants']
-            # kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["NM_PER_AMP"]
-            # i = self.get_current_qaxis_amps()
-            # v = self.get_motor_velocity_radians_per_second()
-            # ides = (torque - a_hat[0] + (a_hat[3] + a_hat[4]*np.abs(i))*np.sign(v) )/(a_hat[1]*(kt-a_hat[2]*np.abs(i)/a_hat[1]))
-            # self.set_motor_current_qaxis_amps(ides)
             self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
+            a_hat = MIT_Params[self.type]['a_hat']
+            kt = MIT_Params[self.type]["NM_PER_AMP"]
+            gr = MIT_Params[self.type]["GEAR_RATIO"]
+            ϵ = 1.0
+            i = self.get_current_qaxis_amps()
+            v = self.get_motor_velocity_radians_per_second()
+            SF = 0.8
+            Iq_des = (torque - a_hat[0] + np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i))*SF )/(gr*(a_hat[1]*kt - a_hat[2]*np.abs(i)))
+            self.set_motor_current_qaxis_amps(Iq_des)
         else:
             self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 
@@ -377,7 +380,7 @@ class TMotorManager():
         Args:
             torque: The desired motor-side torque in Nm.
         """
-        self.set_motor_torque_newton_meters(torque*MIT_Params[self.type]["NM_PER_AMP"])
+        self.set_output_torque_newton_meters(torque*MIT_Params[self.type]["NM_PER_AMP"])
 
     def set_motor_angle_radians(self, pos):
         """
