@@ -1,16 +1,14 @@
 from sys import path
-path.append("/home/pi/TControl")
-from TControl import TMotorManager
-from SoftRealtimeLoop import SoftRealtimeLoop
+from TMotorCANControl.TMotorManager import TMotorManager
 import time
 
-# CHANGE THESE TO MATCH YOUR MOTOR!
+# CHANGE THESE TO MATCH YOUR dev!
 ID = 3
 Type = 'AK80-9'
 
-with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as motor:
-    if motor.check_can_connection():
-        print("\nMotor is successfully connected!\n")
+with TMotorManager(dev_type=Type, dev_ID=ID, CSV_file="log.csv") as dev:
+    if dev.check_can_connection():
+        print("\ndev is successfully connected!\n")
     else:
-        print("\nMotor not connected. Check motor power, network wiring, and CAN bus connection.\n")
+        print("\ndev not connected. Check dev power, network wiring, and CAN bus connection.\n")
     

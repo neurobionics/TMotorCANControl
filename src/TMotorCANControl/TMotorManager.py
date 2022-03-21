@@ -31,8 +31,33 @@ class _TMotorManState(Enum):
 
 # the user-facing class that manages the motor.
 class TMotorManager():
-    """The user-facing class that manages the motor."""
+    """
+    The user-facing class that manages the motor. This class should be
+    used in the context of a with as block, in order to safely enter/exit
+    control of the motor.
+    """
     def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES):
+        """
+        Sets up the motor manager. Note the device will not be powered on by this method! You must
+        call __enter__, mostly commonly by using a with block, before attempting to control the motor.
+
+        Args:
+            motor_type: The type of motor being controlled, ie AK80-9.
+            motor_ID: The CAN ID of the motor.
+            CSV_file: A CSV file to output log info to. If None, no log will be recorded.
+            log_vars: The variables to log as a python list. The full list of possibilities is:
+                [
+                    "output_angle", 
+                    "output_velocity", 
+                    "output_acceleration", 
+                    "current",
+                    "output_torque",
+                    "motor_angle", 
+                    "motor_velocity", 
+                    "motor_acceleration", 
+                    "motor_torque"
+                ]
+        """
         self.type = motor_type
         self.ID = motor_ID
         self.csv_file_name = CSV_file
@@ -72,6 +97,9 @@ class TMotorManager():
         
 
     def __enter__(self):
+        """
+        Used to safely power the motor on and begin the log file.
+        """
         print('Turning on control for device: ' + self.device_info_string())
         if self.csv_file_name is not None:
             with open(self.csv_file_name,'w') as fd:
@@ -86,6 +114,9 @@ class TMotorManager():
         return self
 
     def __exit__(self, etype, value, tb):
+        """
+        Used to safely power the motor off and close the log file.
+        """
         print('Turning off control for device: ' + self.device_info_string())
         self.power_off()
 
@@ -98,8 +129,13 @@ class TMotorManager():
     # this method is called by the handler every time a message is recieved on the bus
     # from this motor, to store the most recent state information for later
     def _update_state_async(self, MIT_state):
-        """this method is called by the handler every time a message is recieved on the bus
-        from this motor, to store the most recent state information for later"""
+        """
+        This method is called by the handler every time a message is recieved on the bus
+        from this motor, to store the most recent state information for later
+        
+        Args:
+            MIT_state: The MIT_Motor_State namedtuple with the most recent motor state.
+        """
         now = time.time()
         dt = self._last_update_time - now
         self._last_update_time = now
@@ -111,8 +147,10 @@ class TMotorManager():
     # this method is called by the user to synchronize the current state used by the controller
     # with the most recent message recieved
     def update(self):
-        """this method is called by the user to synchronize the current state used by the controller
-        with the most recent message recieved"""
+        """
+        This method is called by the user to synchronize the current state used by the controller
+        with the most recent message recieved, as well as to send the current command.
+        """
 
         # check that the motor is safely turned on
         if not self._entered:
@@ -154,7 +192,8 @@ class TMotorManager():
 
     # sends a command to the motor depending on whats controlm mode the motor is in
     def _send_command(self):
-        """sends a command to the motor depending on whats controlm mode the motor is in"""
+        """Sends a command to the motor depending on whats controlm mode the motor is in. This method
+        is called by update(), and should only be called on its own if you don't want to update the motor state info."""
         if self._control_state == _TMotorManState.FULL_STATE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current)
         elif self._control_state == _TMotorManState.IMPEDANCE:
@@ -187,23 +226,38 @@ class TMotorManager():
 
     # getters for motor state
     def get_current_qaxis_amps(self):
-        """Returns the most recently updated qaxis current in amps"""
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
         return self._motor_state.current
 
     def get_output_angle_radians(self):
-        """Returns the most recently updated output angle in radians"""
+        """
+        Returns:
+        The most recently updated output angle in radians
+        """
         return self._motor_state.position
 
     def get_output_velocity_radians_per_second(self):
-        """Returns the most recently updated output velocity in radians per second"""
+        """
+        Returns:
+            The most recently updated output velocity in radians per second
+        """
         return self._motor_state.velocity
 
     def get_output_acceleration_radians_per_second_squared(self):
-        """Returns the most recently updated output acceleration in radians per second per second"""
+        """
+        Returns:
+            The most recently updated output acceleration in radians per second per second
+        """
         return self._motor_state.acceleration
 
     def get_output_torque_newton_meters(self):
-        """Returns the most recently updated output torque in Newton Meters"""
+        """
+        Returns:
+            the most recently updated output torque in Nm
+        """
         if MIT_Params[self.type]['Use_derived_torque_constants']:
             a_hat = MIT_Params[self.type]['derived_torque_constants']
             kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
@@ -213,13 +267,18 @@ class TMotorManager():
         else:
             return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
 
-    # not implemented but in other version
-    def set_position_gains(self, kp=200, ki=50, kd=0):
-        raise NotImplemented()
-
     # uses plain impedance mode, will send 0.0 for current command.
     def set_impedance_gains_real_unit(self, kp=0, ki=0, K=0.08922, B=0.0038070, ff=0):
-        """uses plain impedance mode, will send 0.0 for current command in addition to position request."""
+        """
+        Uses plain impedance mode, will send 0.0 for current command in addition to position request.
+
+        Args:
+            kp: A dummy argument for backward compatibility with the dephy library.
+            ki: A dummy argument for backward compatibility with the dephy library.
+            K: The stiffness in Nm/rad
+            B: The damping in Nm/(rad/s)
+            ff: A dummy argument for backward compatibility with the dephy library.
+        """
         assert(isfinite(K) and MIT_Params[self.type]["Kp_min"] <= K and K <= MIT_Params[self.type]["Kp_max"])
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self._command.kp = K
@@ -228,7 +287,15 @@ class TMotorManager():
     
     # uses full MIT mode, will send whatever current command is set. 
     def set_impedance_gains_real_unit_full_state_feedback(self, kp=0, ki=0, K=0.08922, B=0.0038070, ff=0):
-        """"uses full MIT mode, will send whatever current command is set in addition to position request."""
+        """"
+        Uses full state feedback mode, will send whatever current command is set in addition to position request.
+        
+        Args:
+            kp: A dummy argument for backward compatibility with the dephy library.
+            ki: A dummy argument for backward compatibility with the dephy library.
+            K: The stiffness in Nm/rad
+            B: The damping in Nm/(rad/s)
+            ff: A dummy argument for backward compatibility with the dephy library."""
         assert(isfinite(K) and MIT_Params[self.type]["Kp_min"] <= K and K <= MIT_Params[self.type]["Kp_max"])
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self._command.kp = K
@@ -237,12 +304,27 @@ class TMotorManager():
 
     # uses plain current mode, will send 0.0 for position gains.
     def set_current_gains(self, kp=40, ki=400, ff=128, spoof=False):
-        """Uses plain current mode, will send 0.0 for position gains in addition to requested current."""
+        """
+        Uses plain current mode, will send 0.0 for position gains in addition to requested current.
+        
+        Args:
+            kp: A dummy argument for backward compatibility with the dephy library.
+            ki: A dummy argument for backward compatibility with the dephy library.
+            ff: A dummy argument for backward compatibility with the dephy library.
+            spoof: A dummy argument for backward compatibility with the dephy library.
+        """
         self._control_state = _TMotorManState.CURRENT
 
     # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):
-        """Used for either impedance or full state feedback mode to set output angle command."""
+        """
+        Used for either impedance or full state feedback mode to set output angle command.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
+
+        Args:
+            pos: The desired output position in rads
+        """
         # position commands must be within a certain range :/
         # pos = (np.abs(pos) % MIT_Params[self.type]["P_max"])*np.sign(pos) # this doesn't work because it will unwind itself!
         # CANNOT Control using impedance mode for angles greater than 12.5 rad!!
@@ -255,14 +337,28 @@ class TMotorManager():
 
     # used for either current MIT mode to set current
     def set_motor_current_qaxis_amps(self, current):
-        """Used for either current or full state feedback mode to set current command."""
+        """
+        Used for either current or full state feedback mode to set current command.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
+        
+        Args:
+            current: the desired current in amps.
+        """
         if self._control_state not in [_TMotorManState.CURRENT, _TMotorManState.FULL_STATE]:
             raise RuntimeError("Attempted to send current command before entering current mode for device " + self.device_info_string()) 
         self._command.current = current
 
     # used for either current or MIT Mode to set current, based on desired torque
     def set_output_torque_newton_meters(self, torque):
-        """used for either current or MIT Mode to set current, based on desired torque"""
+        """
+        Used for either current or MIT Mode to set current, based on desired torque.
+        If a more complicated torque model is available for the motor, that will be used.
+        Otherwise it will just use the motor's torque constant.
+        
+        Args:
+            torque: The desired output torque in Nm.
+        """
         if MIT_Params[self.type]['Use_derived_torque_constants']:
             a_hat = MIT_Params[self.type]['derived_torque_constants']
             kt = MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["NM_PER_AMP"]
@@ -275,27 +371,57 @@ class TMotorManager():
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
-        """Version of set_output_torque that accounts for gear ratio to control motor-side torque"""
+        """
+        Version of set_output_torque that accounts for gear ratio to control motor-side torque
+        
+        Args:
+            torque: The desired motor-side torque in Nm.
+        """
         self.set_motor_torque_newton_meters(torque*MIT_Params[self.type]["NM_PER_AMP"])
 
     def set_motor_angle_radians(self, pos):
-        """Wrapper for set_output_angle that accounts for gear ratio to control motor-side angle"""
+        """
+        Wrapper for set_output_angle that accounts for gear ratio to control motor-side angle
+        
+        Args:
+            pos: The desired motor-side position in rad.
+        """
         self.set_output_angle_radians(pos/(MIT_Params[self.type]["GEAR_RATIO"]) )
 
     def get_motor_angle_radians(self):
-        """Wrapper for get_output_angle that accounts for gear ratio to get motor-side angle"""
+        """
+        Wrapper for get_output_angle that accounts for gear ratio to get motor-side angle
+        
+        Returns:
+            The most recently updated motor-side angle in rad.
+        """
         return self._motor_state.position*MIT_Params[self.type]["GEAR_RATIO"]
 
     def get_motor_velocity_radians_per_second(self):
-        """Wrapper for get_output_velocity that accounts for gear ratio to get motor-side velocity"""
+        """
+        Wrapper for get_output_velocity that accounts for gear ratio to get motor-side velocity
+        
+        Returns:
+            The most recently updated motor-side velocity in rad/s.
+        """
         return self._motor_state.velocity*MIT_Params[self.type]["GEAR_RATIO"]
 
     def get_motor_acceleration_radians_per_second_squared(self):
-        """Wrapper for get_output_acceleration that accounts for gear ratio to get motor-side acceleration"""
+        """
+        Wrapper for get_output_acceleration that accounts for gear ratio to get motor-side acceleration
+        
+        Returns:
+            The most recently updated motor-side acceleration in rad/s/s.
+        """
         return self._motor_state.acceleration*MIT_Params[self.type]["GEAR_RATIO"]
 
     def get_motor_torque_newton_meters(self):
-        """Wrapper for get_output_torque that accounts for gear ratio to get motor-side torque"""
+        """
+        Wrapper for get_output_torque that accounts for gear ratio to get motor-side torque
+        
+        Returns:
+            The most recently updated motor-side torque in Nm.
+        """
         return self.get_motor_torque_newton_meters()*MIT_Params[self.type]["GEAR_RATIO"]
 
     # Pretty stuff
@@ -304,10 +430,20 @@ class TMotorManager():
         return self.device_info_string() + " | Position: " + str(round(self.θ,3)) + " rad | Velocity: " + str(round(self.θd ,3)) + " rad/s | current: " + str(round(self.i,3)) + " A | torque: " + str(round(self.τ,3)) + " Nm"
 
     def device_info_string(self):
+        """Prints the motor's ID and device type."""
         return str(self.type) + "  ID: " + str(self.ID)
 
     # Checks the motor connection by sending a 10 commands and making sure the motor responds.
     def check_can_connection(self):
+        """
+        Checks the motor's connection by attempting to send 10 startup messages.
+        If it gets 10 replies, then the connection is confirmed.
+
+        Returns:
+            True if a connection is established and False otherwise.
+        """
+        if not self._entered:
+            raise RuntimeError("Tried to check_can_connection before entering motor control! Enter control using the __enter__ method, or instantiating the TMotorManager in a with block.")
         Listener = can.BufferedReader()
         self._canman.notifier.add_listener(Listener)
         for i in range(10):
@@ -346,30 +482,37 @@ class TMotorManager():
 # A sample program--should do nothing, then oscillate, then oscillate wider
 if __name__ == "__main__":
     # use the with block to safely shut down
-    with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as motor3:
+    with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
         # zero the position
-        motor3.zero_position()
+        dev.zero_position()
 
         # wait to ensure the motor is zeroed before sending commands
         time.sleep(1.2)
 
         # set the gains for our controller, enter impedance only mode
-        motor3.set_impedance_gains_real_unit(K=10,B=0.5)
+        dev.set_impedance_gains_real_unit(K=10,B=0.5)
         
+        # Create a chirp sound to use
+        chirp = Chirp(250, 25, 1)
+
         # create a soft realtime loop to ensure steady timing
-        loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
+        loop = SoftRealtimeLoop(dt = 0.001, report=True, fade=0)
         for t in loop:
             # update motor state and send the current command (idle to start)
-            motor3.update()
-            if t < 1.0:
-                motor3.θ = 0.0
-            elif t < 4:
-                motor3.θ = 0.5*np.sin(np.pi*t)
-            else:
-                motor3.θ = 2*np.sin(0.5*np.pi*t)
+            dev.update()
+            
+            if t < 3:
+                dev.τ = loop.fade*amp*chirp.next(t)*3/3.7
 
         # ensure the loop's destructor is called explicitly to show timing data
         del loop
+
+        # store can manager for explicit destruction, not usually needed, since the CAN port
+        # will shut down when the Raspberry Pi does anyway.
+        canman = dev._canman
+
+    # shut down the CAN port
+    del canman
 
         
 

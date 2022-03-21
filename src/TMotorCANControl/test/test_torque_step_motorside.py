@@ -17,17 +17,17 @@ logvars = [
     "motor_torque"
 ]
 
-with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv",log_vars=logvars) as motor3:
-    motor3.zero_position() # has a delay!
+with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv",log_vars=logvars) as dev:
+    dev.zero_position() # has a delay!
     time.sleep(1.5)
-    motor3.set_current_gains()
+    dev.set_current_gains()
     
     loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
     for t in loop:
-        motor3.update()
+        dev.update()
         if t < 1.0:
-            motor3.τm = 0.0
+            dev.τm = 0.0
         else:
-            motor3.τm = 0.1
+            dev.τm = 0.1
 
     del loop

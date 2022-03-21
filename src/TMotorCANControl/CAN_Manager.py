@@ -25,13 +25,33 @@ MIT_Params = {
 }
 
 
-# Data structure to store and update motor states
+
 class motor_state:
     """Data structure to store and update motor states"""
     def __init__(self,position, velocity, current, temperature, error, acceleration):
+        """
+        Sets the motor state to the input.
+
+        Args:
+            position: Position in rad
+            velocity: Velocity in rad/s
+            current: current in amps
+            temperature: temperature in degrees C
+            error: error code, 0 means no error
+        """
         self.set_state(position, velocity, current, temperature, error, acceleration)
 
     def set_state(self, position, velocity, current, temperature, error, acceleration):
+        """
+        Sets the motor state to the input.
+
+        Args:
+            position: Position in rad
+            velocity: Velocity in rad/s
+            current: current in amps
+            temperature: temperature in degrees C
+            error: error code, 0 means no error
+        """
         self.position = position
         self.velocity = velocity
         self.current = current
@@ -40,6 +60,12 @@ class motor_state:
         self.acceleration = acceleration
 
     def set_state_obj(self, other_motor_state):
+        """
+        Sets this motor state object's values to those of another motor state object.
+
+        Args:
+            other_motor_state: The other motor state object with values to set this motor state object's values to.
+        """
         self.position = other_motor_state.position
         self.velocity = other_motor_state.velocity
         self.current = other_motor_state.current
@@ -51,6 +77,16 @@ class motor_state:
 class MIT_command:
     """Data structure to store MIT_command that will be sent upon update"""
     def __init__(self, position, velocity, kp, kd, current):
+        """
+        Sets the motor state to the input.
+
+        Args:
+            position: Position in rad
+            velocity: Velocity in rad/s
+            kp: Position gain
+            kd: Velocity gain
+            current: Current in amps
+        """
         self.position = position
         self.velocity = velocity
         self.kp = kp
@@ -63,16 +99,29 @@ MIT_motor_state = namedtuple('motor_state', 'position velocity current temperatu
 # python-can listener object, with handler to be called upon reception of a message on the CAN bus
 class motorListener(can.Listener):
     """Python-can listener object, with handler to be called upon reception of a message on the CAN bus"""
-    def __init__(self, _canman, motor):
-        self._canman = _canman
-        self.bus = _canman.bus
+    def __init__(self, canman, motor):
+        """
+        Sets stores can manager and motor object references
+        
+        Args:
+            canman: The CanManager object to get messages from
+            motor: The TMotorCANManager object to update
+        """
+        self.canman = canman
+        self.bus = canman.bus
         self.motor = motor
 
     def on_message_received(self, msg):
-            data = bytes(msg.data)
-            ID = data[0]
-            if ID == self.motor.ID:
-                self.motor._update_state_async(self._canman.parse_MIT_message(data, self.motor.type))
+        """
+        Updates this listener's motor with the info contained in msg, if that message was for this motor.
+
+        args:
+            msg: A python-can CAN message
+        """
+        data = bytes(msg.data)
+        ID = data[0]
+        if ID == self.motor.ID:
+            self.motor._update_state_async(self.canman.parse_MIT_message(data, self.motor.type))
             
 
 # A class to manage the low level CAN communication protocols
@@ -83,6 +132,9 @@ class CAN_Manager(object):
     # from this class, as apparently __init__ for the subclass will be called twice
     _instance = None
     def __new__(cls):
+        """
+        Makes a singleton object to manage a socketcan_native CAN bus.
+        """
         if not cls._instance:
             cls._instance = super(CAN_Manager, cls).__new__(cls)
             print("Initializing CAN Manager")
@@ -102,18 +154,34 @@ class CAN_Manager(object):
         pass
         
     def __del__(self):
+        """
         # shut down the CAN bus when the object is deleted
-        # I think this may not ever get called, so keep a pointer and explicitly delete if this is important.
+        # This may not ever get called, so keep a reference and explicitly delete if this is important.
+        """
         os.system( 'sudo /sbin/ip link set can0 down' ) 
 
     # subscribe a motor object to the CAN bus to be updated upon message reception
     def add_motor(self, motor):
+        """
+        Subscribe a motor object to the CAN bus to be updated upon message reception
+
+        Args:
+            motor: The TMotorManager object to be subscribed to the notifier
+        """
         self.notifier.add_listener(motorListener(self, motor))
 
 
     # Locks value between min and max
     @staticmethod
     def limit_value(value, min, max):
+        """
+        Limits value to be between min and max
+
+        Args:
+            value: The value to be limited.
+            min: The lowest number allowed (inclusive) for value
+            max: The highest number allowed (inclusive) for value
+        """
         if value > max:
             return max
         elif value < min:
@@ -125,6 +193,16 @@ class CAN_Manager(object):
     # as specified with the num_bits
     @staticmethod
     def float_to_uint(x,x_min,x_max,num_bits):
+        """
+        Interpolates a floating point number to an unsigned integer of num_bits length.
+        A number of x_max will be the largest integer of num_bits, and x_min would be 0.
+
+        args:
+            x: The floating point number to convert
+            x_min: The minimum value for the floating point number
+            x_max: The maximum value for the floating point number
+            num_bits: The number of bits for the unsigned integer
+        """
         x = CAN_Manager.limit_value(x,x_min,x_max)
         span = x_max-x_min
         # (x - x_min)*(2^num_bits)/span
@@ -133,12 +211,28 @@ class CAN_Manager(object):
     # undoes the above method
     @staticmethod
     def uint_to_float(x,x_min,x_max,num_bits):
+        """
+        Interpolates an unsigned integer of num_bits length to a floating point number between x_min and x_max.
+
+        args:
+            x: The floating point number to convert
+            x_min: The minimum value for the floating point number
+            x_max: The maximum value for the floating point number
+            num_bits: The number of bits for the unsigned integer
+        """
         span = x_max-x_min
         # (x*span/(2^num_bits -1)) + x_min
         return float(x*span/((1<<num_bits)-1) + x_min)
 
     # sends a message to the motor (when the motor is in MIT mode)
     def send_MIT_message(self, motor_id, data):
+        """
+        Sends an MIT Mode message to the motor, with a header of motor_id and data array of data
+
+        Args:
+            motor_id: The CAN ID of the motor to send to.
+            data: An array of integers or bytes of data to send.
+        """
         DLC = len(data)
         assert (DLC <= 8), ('Data too long in message for motor ' + str(motor_id))
         
@@ -156,19 +250,52 @@ class CAN_Manager(object):
 
     # send the power on code
     def power_on(self, motor_id):
+        """
+        Sends the power on code to motor_id.
+
+        Args:
+            motor_id: The CAN ID of the motor to send the message to.
+        """
         self.send_MIT_message(motor_id, [ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0XFC])
         
     # send the power off code
     def power_off(self, motor_id):
+        """
+        Sends the power off code to motor_id.
+
+        Args:
+            motor_id: The CAN ID of the motor to send the message to.
+        """
         self.send_MIT_message(motor_id, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0XFD])
 
     # send the zeroing code. Like a scale, it takes about a second to zero the position
     def zero(self, motor_id):
+        """
+        Sends the zeroing code to motor_id. This code will shut off communication with the motor for about a second.
+
+        Args:
+            motor_id: The CAN ID of the motor to send the message to.
+        """
         self.send_MIT_message(motor_id, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE])
 
     # send an MIT control signal, consisting of desired position, velocity, and current, and gains for position and velocity control
     # basically an impedance controller
     def MIT_controller(self, motor_id, motor_type, position, velocity, Kp, Kd, I):
+        """
+        Sends an MIT style control signal to the motor. This signal will be used to generate a 
+        current for the field-oriented controller on the motor control chip, given by this expression:
+
+            q_control = Kp*(position - current_position) + Kd*(velocity - current_velocity) + I
+
+        Args:
+            motor_id: The CAN ID of the motor to send the message to
+            motor_type: A string noting the type of motor, ie 'AK80-9'
+            position: The desired position in rad
+            velocity: The desired velocity in rad/s
+            Kp: The position gain
+            Kd: The velocity gain
+            I: The additional current
+        """
         position_uint16 = CAN_Manager.float_to_uint(position, MIT_Params[motor_type]['P_min'], 
                                                     MIT_Params[motor_type]['P_max'], 16)
         velocity_uint12 = CAN_Manager.float_to_uint(velocity, MIT_Params[motor_type]['V_min'], 
@@ -195,7 +322,18 @@ class CAN_Manager(object):
         
     # convert data recieved from motor in byte format back into floating point numbers in real units
     def parse_MIT_message(self, data, motor_type):
-        
+        """
+        Takes a RAW MIT message and formats it into readable floating point numbers.
+
+        Args:
+            data: the bytes of data from a python-can message object to be parsed
+            motor_type: A string noting the type of motor, ie 'AK80-9'
+
+        Returns:
+            An MIT_Motor_State namedtuple that contains floating point values for the 
+            position, velocity, current, temperature, and error in rad, rad/s, amp, and *C.
+            0 means no error.
+        """
         assert len(data) == 8 or len(data) == 6, 'Tried to parse a CAN message that was not Motor State in MIT Mode'
         temp = None
         error = None

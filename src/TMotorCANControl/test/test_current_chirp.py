@@ -1,9 +1,6 @@
 from SoftRealtimeLoop import SoftRealtimeLoop
 from SysID import Chirp
-from sys import path
-path.append("/home/pi/TControl")
-from TControl import TMotorManager
-import numpy as np
+from TMotorCANControl.TMotorManager import TMotorManager
 
 def chirp_demo(dev, amp=1.0, dt=0.001):
     print("Chirping ActPackA. Press CTRL-C to finish.")
