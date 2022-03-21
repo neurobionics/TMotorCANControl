@@ -1,6 +1,5 @@
 from sys import path
-path.append("/home/pi/TControl")
-from TControl import TMotorManager
+from TMotorCANControl import TMotorManager
 from SoftRealtimeLoop import SoftRealtimeLoop
 from AdcManager import ADC_Manager
 import csv
