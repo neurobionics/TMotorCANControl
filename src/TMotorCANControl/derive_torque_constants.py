@@ -20,7 +20,7 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
-with open("src/TMotorCANControl/test/saved_logs/system_id_test_3-model_prediction/log_adc_and_motor.csv",'r') as fd:
+with open("src/TMotorCANControl/test/saved_logs/system_id_test_2/log_adc_and_motor.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -82,6 +82,43 @@ plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
 plt.savefig('src/TMotorCANControl/plots/ADC_Motor_Torque.png')
+plt.clf()
 
+# computing dynamics?
+# I = 9.0 # kg/m^2
 
+# t = 0.0
+# Δt = 0.01
+# i =1.0
+# torques = []
+# accels = []
+# speeds = []
+# times = []
+# ω_next = 0.0
+# α_old = 0.0
+# while t < 1.0:
+#     τ_next = a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(ω_next)*(np.abs(ω_next)/(ϵ + np.abs(ω_next)) ) - a_hat[4]*np.abs(i)*np.sign(ω_next)*(np.abs(ω_next)/(ϵ + np.abs(ω_next)) )
+#     α_next = τ_next/I
+#     ω_next = ω_next + (α_next-α_old)*Δt
+#     α_old = α_next
+#     if t < 0.01:
+#         print(α_next)
+#         print(τ_next)
+#         print(ω_next)
+#     torques.append(τ_next)
+#     accels.append(α_next)
+#     speeds.append(ω_next)
+#     times.append(t)
+#     t += Δt
+
+# plt.plot(times,torques,label="τ")
+# # plt.plot(time,torque_adc,label="τ_adc")
+# # plt.plot(time,τ_approx,label="τ_approx")
+# plt.title('Torque vs Time')
+# plt.ylabel('Torque [Nm]')
+# plt.xlabel('Time [s]')
+# plt.legend()
+# plt.show()
+# plt.savefig('src/TMotorCANControl/plots/ADC_Motor_Torque.png')
+# plt.clf()
 

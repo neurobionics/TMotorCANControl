@@ -12,3 +12,16 @@ src/TMotorCANControl.egg-info/PKG-INFO
 src/TMotorCANControl.egg-info/SOURCES.txt
 src/TMotorCANControl.egg-info/dependency_links.txt
 src/TMotorCANControl.egg-info/top_level.txt
+src/TMotorCANControl/test/measure_torque_performance.py
+src/TMotorCANControl/test/test_2_DOF.py
+src/TMotorCANControl/test/test_current_chirp.py
+src/TMotorCANControl/test/test_current_step.py
+src/TMotorCANControl/test/test_full_state_feedback.py
+src/TMotorCANControl/test/test_idle.py
+src/TMotorCANControl/test/test_mit_poscon.py
+src/TMotorCANControl/test/test_motor_connection.py
+src/TMotorCANControl/test/test_position_step.py
+src/TMotorCANControl/test/test_position_step_motorside.py
+src/TMotorCANControl/test/test_position_wraparound.py
+src/TMotorCANControl/test/test_torque_step.py
+src/TMotorCANControl/test/test_torque_step_motorside.py

@@ -35,7 +35,7 @@ class TMotorManager():
     used in the context of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES):
+    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES, use_torque_compensation=False):
         """
         Sets up the motor manager. Note the device will not be powered on by this method! You must
         call __enter__, mostly commonly by using a with block, before attempting to control the motor.
@@ -75,6 +75,7 @@ class TMotorManager():
         self._last_update_time = self._start_time
         self._last_command_time = None
         self._updated = False
+        self.use_torque_compensation = use_torque_compensation
         
         self.log_vars = log_vars
         self.LOG_FUNCTIONS = {
@@ -255,7 +256,7 @@ class TMotorManager():
         Returns:
             the most recently updated output torque in Nm
         """
-        if MIT_Params[self.type]['Use_derived_torque_constants']:
+        if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
             a_hat = MIT_Params[self.type]['a_hat']
             kt = MIT_Params[self.type]["NM_PER_AMP"]
             gr = MIT_Params[self.type]["GEAR_RATIO"]
@@ -358,7 +359,7 @@ class TMotorManager():
         Args:
             torque: The desired output torque in Nm.
         """
-        if MIT_Params[self.type]['Use_derived_torque_constants']:
+        if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
             self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
             a_hat = MIT_Params[self.type]['a_hat']
             kt = MIT_Params[self.type]["NM_PER_AMP"]
