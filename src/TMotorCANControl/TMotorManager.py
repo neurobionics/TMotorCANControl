@@ -433,7 +433,7 @@ class TMotorManager():
         Returns:
             The most recently updated motor-side torque in Nm.
         """
-        return self.get_motor_torque_newton_meters()*MIT_Params[self.type]["GEAR_RATIO"]
+        return self.get_output_torque_newton_meters()*MIT_Params[self.type]["GEAR_RATIO"]
 
     # Pretty stuff
     def __str__(self):

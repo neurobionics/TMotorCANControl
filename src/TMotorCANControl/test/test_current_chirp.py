@@ -1,8 +1,11 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from NeuroLocoMiddleware.SysID import Chirp
-from sys import path
-path.append("/home/pi/TMotorCANControl/src")
-from TMotorCANControl.TMotorManager import TMotorManager
+try:
+     from TMotorCANControl.TMotorManager import TMotorManager
+except ModuleNotFoundError:
+    from sys import path
+    path.append("/home/pi/TMotorCANControl/src")
+    from TMotorCANControl.TMotorManager import TMotorManager
 
 def chirp_demo(dev, amp=1.0, dt=0.001):
     print("Chirping ActPackA. Press CTRL-C to finish.")
@@ -18,7 +21,7 @@ def chirp_demo(dev, amp=1.0, dt=0.001):
 
 def main():
     with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
-        chirp_demo(dev, amp=1.0)
+        chirp_demo(dev, amp=3.0)
     print("done with chirp_demo()")
 
 if __name__ == '__main__':

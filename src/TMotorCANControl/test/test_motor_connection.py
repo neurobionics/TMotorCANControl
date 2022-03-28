@@ -1,6 +1,9 @@
-from sys import path
-path.append("/home/pi/TMotorCANControl/src")
-from TMotorCANControl.TMotorManager import TMotorManager
+try:
+     from TMotorCANControl.TMotorManager import TMotorManager
+except ModuleNotFoundError:
+    from sys import path
+    path.append("/home/pi/TMotorCANControl/src")
+    from TMotorCANControl.TMotorManager import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR dev!
 ID = 3

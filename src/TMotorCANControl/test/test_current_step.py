@@ -1,5 +1,10 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
-from TMotorCANControl.TMotorManager import TMotorManager
+try:
+     from TMotorCANControl.TMotorManager import TMotorManager
+except ModuleNotFoundError:
+    from sys import path
+    path.append("/home/pi/TMotorCANControl/src")
+    from TMotorCANControl.TMotorManager import TMotorManager
 import time
 
 with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
