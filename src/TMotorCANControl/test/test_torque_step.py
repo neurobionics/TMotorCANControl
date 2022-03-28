@@ -1,6 +1,6 @@
 from sys import path
 path.append("/home/pi/TMotorCANControl/src")
-from SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from TMotorCANControl.TMotorManager import TMotorManager
 import time
 

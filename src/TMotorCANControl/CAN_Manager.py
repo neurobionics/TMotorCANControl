@@ -20,7 +20,7 @@ MIT_Params = {
             'NM_PER_AMP': 0.146, # probably the same if its the same motor
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
-            'a_hat' : [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
+            'a_hat' : [7.35415941e-02,6.26896231e-01,2.65240487e-04,2.96032614e-01,7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
         }
 }
 

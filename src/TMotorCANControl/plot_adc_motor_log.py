@@ -9,6 +9,7 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
+test_dir= "src/TMotorCANControl/test/saved_logs/"
 with open("log_adc_and_motor.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
@@ -24,8 +25,11 @@ with open("log_adc_and_motor.csv",'r') as fd:
 
 torque_adc_adjusted = [-1*τ for τ in torque_adc]
 
-plt.plot(time,torque_adc_adjusted,label="τ_adc")
+
 plt.plot(time,torque_motor,label="τ_motor")
+plt.plot(time,torque_adc_adjusted,label="τ_adc")
+plt.plot(time,np.array(speed_motor) , label="speed")
+plt.plot(time,current_motor, label="current")
 # plt.plot(time,torque_adc_adjusted,label="τ_adc_adjusted")
 plt.title('Torque vs Time')
 plt.ylabel('Torque [Nm]')

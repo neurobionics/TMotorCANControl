@@ -56,6 +56,7 @@ class TMotorManager():
                     "motor_acceleration", 
                     "motor_torque"
                 ]
+            use_torque_compensation: Enables a more complex torque model to compensate for friction, if available
         """
         self.type = motor_type
         self.ID = motor_ID
@@ -76,6 +77,8 @@ class TMotorManager():
         self._last_command_time = None
         self._updated = False
         self.use_torque_compensation = use_torque_compensation
+        self.SF = 1.0
+        self.extra_plots = []
         
         self.log_vars = log_vars
         self.LOG_FUNCTIONS = {
@@ -182,7 +185,7 @@ class TMotorManager():
 
         # writing to log file
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
+            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + [data for data in self.extra_plots])
 
         self._updated = False
         
@@ -263,6 +266,7 @@ class TMotorManager():
             ϵ = 1.0
             i = self.get_current_qaxis_amps()
             v = self.get_motor_velocity_radians_per_second()
+
             return a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ) - a_hat[4]*np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )
         else:
             return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
@@ -360,16 +364,19 @@ class TMotorManager():
             torque: The desired output torque in Nm.
         """
         if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
-            self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
             a_hat = MIT_Params[self.type]['a_hat']
             kt = MIT_Params[self.type]["NM_PER_AMP"]
             gr = MIT_Params[self.type]["GEAR_RATIO"]
             ϵ = 1.0
             i = self.get_current_qaxis_amps()
             v = self.get_motor_velocity_radians_per_second()
-            SF = 0.8
-            Iq_des = (torque - a_hat[0] + np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i))*SF )/(gr*(a_hat[1]*kt - a_hat[2]*np.abs(i)))
+            bias = - a_hat[0]
+            friction = self.SF*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i)) 
+            torque_constant = (gr*(a_hat[1]*kt - a_hat[2]*np.abs(i)))
+            Iq_des = (torque - bias + friction )/torque_constant
+            self.extra_plots = [str(torque),str(bias),str(friction),str(torque_constant),str(Iq_des)]
             self.set_motor_current_qaxis_amps(Iq_des)
+
         else:
             self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 

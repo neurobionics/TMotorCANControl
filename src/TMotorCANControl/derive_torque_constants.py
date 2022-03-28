@@ -20,7 +20,7 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
-with open("src/TMotorCANControl/test/saved_logs/system_id_test_2/log_adc_and_motor.csv",'r') as fd:
+with open("src/TMotorCANControl/test/saved_logs/system_id_test_motor_drive_2/log_adc_and_motor_3V.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -46,7 +46,7 @@ v = np.array(speed_motor).reshape((t.shape[0],1))
 # 0.146 Nm per amp motor-side, with gear ratio of 1:9
 kt = 0.146
 gr = 9.0
-ϵ = 1.0
+ϵ = 0.1
 A = np.hstack((np.ones_like(t), gr*kt*i, -gr*np.abs(i)*i, -np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ), -np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )))
 
 print(A.shape)

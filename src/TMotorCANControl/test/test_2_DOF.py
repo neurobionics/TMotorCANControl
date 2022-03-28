@@ -1,8 +1,8 @@
-from SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from TMotorCANControl.TMotorManager import TMotorManager
 import numpy as np
 import time
-from SysID import Chirp
+from NeuroLocoMiddleware.SysID import Chirp
 
 
 # to use additional motors, simply add another with block

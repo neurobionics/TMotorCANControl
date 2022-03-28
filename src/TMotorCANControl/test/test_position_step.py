@@ -1,4 +1,4 @@
-from SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from TMotorCANControl.TMotorManager import TMotorManager
 import numpy as np
 import time
