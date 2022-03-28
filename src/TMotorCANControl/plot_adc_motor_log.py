@@ -10,7 +10,8 @@ current_motor = []
 speed_motor = []
 
 test_dir= "src/TMotorCANControl/test/saved_logs/"
-with open("log_adc_and_motor.csv",'r') as fd:
+log_dir= "system_id_torque_compensation_worked/"
+with open(test_dir + log_dir + "log_adc_and_motor.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -36,7 +37,7 @@ plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('src/TMotorCANControl/plots/ADC_Motor_Torque.png')
+# plt.savefig(test_dir + log_dir + "torque_vs_time.png")
 plt.clf()
 
 print("Average τ_adc: " + str(np.average(torque_adc)))
