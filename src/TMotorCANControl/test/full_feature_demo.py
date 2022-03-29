@@ -12,13 +12,15 @@ except ModuleNotFoundError:
     from TMotorCANControl.TMotorManager import TMotorManager
 
 
+
+
 with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
     dev.zero_position() # has a delay!
     time.sleep(1.75)
     dev.set_impedance_gains_real_unit_full_state_feedback(K=10,B=1)
     chirp_slow = Chirp(250, 200, 1)
     loop = SoftRealtimeLoop(dt = 0.001, report=True, fade=0)
-    amp = 1.0
+    amp = 2.0
     
     # start in current mode
     state = 0
@@ -61,7 +63,7 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
             t_next += delta
                 
         if state == 0:
-            dev.τ = 0.0
+            dev.i = 0.0
         elif state == 1:
             dev.τ = loop.fade*amp*chirp_slow.next(t)*3/3.7
         elif state == 2:

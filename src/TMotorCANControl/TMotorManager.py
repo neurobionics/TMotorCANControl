@@ -7,6 +7,7 @@ from collections import namedtuple
 from enum import Enum
 from math import isfinite
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.SysID import Chirp
 import numpy as np
 import warnings
 
@@ -371,12 +372,10 @@ class TMotorManager():
             i = self.get_current_qaxis_amps()
             v = self.get_motor_velocity_radians_per_second()
             bias = - a_hat[0]
-            friction = self.SF*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i)) 
+            friction = self.SF*(v/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i)) 
             torque_constant = (gr*(a_hat[1]*kt - a_hat[2]*np.abs(i)))
             Iq_des = (torque - bias + friction )/torque_constant
-            self.extra_plots = [str(torque),str(bias),str(friction),str(torque_constant),str(Iq_des)]
             self.set_motor_current_qaxis_amps(Iq_des)
-
         else:
             self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 
@@ -488,44 +487,6 @@ class TMotorManager():
     ϕd = property (get_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
     ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
     τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
-    
-
-# A sample program--should do nothing, then oscillate, then oscillate wider
-if __name__ == "__main__":
-    # use the with block to safely shut down
-    with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
-        # zero the position
-        dev.zero_position()
-
-        # wait to ensure the motor is zeroed before sending commands
-        time.sleep(1.2)
-
-        # set the gains for our controller, enter impedance only mode
-        dev.set_impedance_gains_real_unit(K=10,B=0.5)
-        
-        # Create a chirp sound to use
-        chirp = Chirp(250, 25, 1)
-
-        # create a soft realtime loop to ensure steady timing
-        loop = SoftRealtimeLoop(dt = 0.001, report=True, fade=0)
-        for t in loop:
-            # update motor state and send the current command (idle to start)
-            dev.update()
-            
-            if t < 3:
-                dev.τ = loop.fade*1.0*chirp.next(t)*3/3.7
-
-        # ensure the loop's destructor is called explicitly to show timing data
-        del loop
-
-        # store can manager for explicit destruction, not usually needed, since the CAN port
-        # will shut down when the Raspberry Pi does anyway.
-        canman = dev._canman
-
-    # shut down the CAN port
-    del canman
-
-        
 
 
         

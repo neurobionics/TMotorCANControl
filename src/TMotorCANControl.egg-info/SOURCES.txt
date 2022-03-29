@@ -7,11 +7,12 @@ src/TMotorCANControl/__init__.py
 src/TMotorCANControl/derive_torque_constants.py
 src/TMotorCANControl/plot_adc_motor_log.py
 src/TMotorCANControl/plot_log.py
-src/TMotorCANControl/shutoffMotor.py
 src/TMotorCANControl.egg-info/PKG-INFO
 src/TMotorCANControl.egg-info/SOURCES.txt
 src/TMotorCANControl.egg-info/dependency_links.txt
 src/TMotorCANControl.egg-info/top_level.txt
+src/TMotorCANControl/test/full_feature_demo.py
+src/TMotorCANControl/test/measure_torque_compensation.py
 src/TMotorCANControl/test/measure_torque_performance.py
 src/TMotorCANControl/test/test_2_DOF.py
 src/TMotorCANControl/test/test_current_chirp.py

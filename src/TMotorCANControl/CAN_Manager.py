@@ -17,11 +17,88 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.146, # probably the same if its the same motor
+            'NM_PER_AMP': 0.146,
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
-            'a_hat' : [7.35415941e-02,6.26896231e-01,2.65240487e-04,2.96032614e-01,7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
+            #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
+            'a_hat' : [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
+        },
+        'AK10-9':{
+            'P_min' : -12.5,
+            'P_max' : 12.5,
+            'V_min' : -50.0,
+            'V_max' : 50.0,
+            'I_min' : -65.0,
+            'I_max' : 65.0,
+            'Kp_min': 0.0,
+            'Kp_max': 500.0,
+            'Kd_min': 0.0,
+            'Kd_max': 5.0,
+            'NM_PER_AMP': 0.16*9.0, # UNTESTED CONSTANT!
+            'GEAR_RATIO': 9.0, 
+            'Use_derived_torque_constants': False, # true if you have a better model
+        },
+        'AK60-6':{
+            'P_min' : -12.5,
+            'P_max' : 12.5,
+            'V_min' : -50.0,
+            'V_max' : 50.0,
+            'I_min' : -15.0,
+            'I_max' : 15.0,
+            'Kp_min': 0.0,
+            'Kp_max': 500.0,
+            'Kd_min': 0.0,
+            'Kd_max': 5.0,
+            'NM_PER_AMP': 0.068*6.0, # UNTESTED CONSTANT!
+            'GEAR_RATIO': 6.0, 
+            'Use_derived_torque_constants': False, # true if you have a better model
+        },
+        'AK70-10':{
+            'P_min' : -12.5,
+            'P_max' : 12.5,
+            'V_min' : -50.0,
+            'V_max' : 50.0,
+            'I_min' : -25.0,
+            'I_max' : 25.0,
+            'Kp_min': 0.0,
+            'Kp_max': 500.0,
+            'Kd_min': 0.0,
+            'Kd_max': 5.0,
+            'NM_PER_AMP': 0.095*10.0, # UNTESTED CONSTANT!
+            'GEAR_RATIO': 10.0,
+            'Use_derived_torque_constants': False, # true if you have a better model
+        },
+        'AK80-6':{
+            'P_min' : -12.5,
+            'P_max' : 12.5,
+            'V_min' : -76.0,
+            'V_max' : 76.0,
+            'I_min' : -12.0,
+            'I_max' : 12.0,
+            'Kp_min': 0.0,
+            'Kp_max': 500.0,
+            'Kd_min': 0.0,
+            'Kd_max': 5.0,
+            'NM_PER_AMP': 0.091*6.0,  # UNTESTED CONSTANT!
+            'GEAR_RATIO': 6.0, 
+            'Use_derived_torque_constants': False, # true if you have a better model
+        },
+        'AK80-64':{
+            'P_min' : -12.5,
+            'P_max' : 12.5,
+            'V_min' : -8.0,
+            'V_max' : 8.0,
+            'I_min' : -144.0,
+            'I_max' : 144.0,
+            'Kp_min': 0.0,
+            'Kp_max': 500.0,
+            'Kd_min': 0.0,
+            'Kd_max': 5.0,
+            'NM_PER_AMP': 0.119*80.0, # UNTESTED CONSTANT!
+            'GEAR_RATIO': 80.0,
+            'Use_derived_torque_constants': False, # true if you have a better model
         }
+
 }
 
 
