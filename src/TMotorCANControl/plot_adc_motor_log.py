@@ -21,7 +21,7 @@ speed_motor = []
 
 test_dir= "test/saved_logs/"
 # log_dir="system_id_test_opposing_motor_2/"
-log_dir="system_id_torque_compensation_worked/"
+log_dir="high_torque_test_compensation_2/"
 
 with open(test_dir + log_dir + "log_adc_and_motor.csv",'r') as fd:
     reader = csv.reader(fd)
@@ -46,39 +46,33 @@ cutoff = 10.0  # desired cutoff frequency of the filter, Hz
 
 torque_adc_filtered = butter_lowpass_filter(torque_adc_adjusted, cutoff, fs, order).reshape(-1,)
 
+# torque_adc_filtered = np.array(torque_adc_filtered)
+torque_motor = np.array(torque_motor)
+current_motor = np.array(current_motor)
+
+print("Average τ_adc: " + str(np.average(torque_adc_filtered)))
+print("Std Dev τ_adc: " + str(np.std(torque_adc_filtered)))
+print("Max τ_adc: " + str(torque_adc_filtered.max()))
+
+print("Average τ_motor: " + str(np.average(torque_motor)))
+print("Std Dev τ_motor: " + str(np.std(torque_motor)))
+print("Max τ_motor: " + str(torque_motor.max()))
+
+print("Average i_motor: " + str(np.average(current_motor)))
+print("Std Dev i_motor: " + str(np.std(current_motor)))
+print("Max i_motor: " + str(current_motor.max()))
+
 # plt.subplot(2, 1, 1)
-plt.plot(np.array(time),torque_adc_filtered,label="τ_adc")
-plt.plot(time,torque_motor,label="τ_motor")
-plt.plot(time,og_torque,label="τ_unadjusted")
+plt.plot(np.array(time),torque_adc_filtered,label="τ_adc (max: " + str(round(torque_adc_filtered.max(),2)) + "Nm)")
+plt.plot(time,torque_motor,label="τ_motor (max: "+ str(round(torque_motor.max(),2)) + "Nm)")
+plt.plot(time,og_torque,label="τ_unadjusted" )
 plt.plot(np.array(time),speed_motor,label="v")
-plt.plot(np.array(time),current_motor,label="i_q")
+plt.plot(np.array(time),current_motor,label="i_q (max: " + str(round(current_motor.max(),2)) + "A)")
 plt.title('Torque vs Time')
 plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.legend()
 
-# plt.subplot(2, 1, 2)
-# plt.plot(np.array(time),speed_motor,label="v")
-# plt.title('Velocity vs Time')
-# plt.ylabel('Velocity  [rad/s]')
-# plt.xlabel('Time [s]')
-# plt.legend()
-
-
-# plt.subplot(2, 1, 2)
-# plt.plot(np.array(time),current_motor,label="i_q")
-# plt.title('Current vs Time')
-# plt.ylabel('Current  [A]')
-# plt.xlabel('Time [s]')
-# plt.legend()
-
 plt.show()
-# plt.savefig(test_dir + log_dir + "torque_vs_time.png")
+plt.savefig(test_dir + log_dir + "torque_vs_time.png")
 plt.clf()
-
-print("Average τ_adc: " + str(np.average(torque_adc)))
-print("Std Dev τ_adc: " + str(np.std(torque_adc)))
-
-print("Average τ_motor: " + str(np.average(torque_motor)))
-print("Std Dev τ_motor: " + str(np.std(torque_motor)))
-

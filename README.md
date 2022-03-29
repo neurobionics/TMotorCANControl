@@ -74,9 +74,10 @@ As such, it can be imported like this:
 from TMotorCANControl.TMotorManager import TMotorManager
 ```
 
-To instantiate a motor object, you need to specify the motor's type as a string, as well
-as it's CAN ID and an optional log file and set of logging parameters. The logger will
-always log a time stamp for each line in the log. By default, it will also log the 
+To instantiate a motor object, you need to specify the motor's type as a string (eg, "AK80-9"), as well
+as it's CAN ID and an optional log file and set of logging parameters. Note, with multiple motors 
+each log file must have a different name.  The logger will always log a time stamp for each line 
+in the log, starting from the instantiation of the TMotorManager object. By default, it will also log the 
 output position, output velocity, output acceleration, current, and output torque. To specify
 a different log format, you can pass in a list of parameters. The full list is shown below:
 

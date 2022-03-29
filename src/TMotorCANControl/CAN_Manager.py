@@ -259,9 +259,9 @@ class CAN_Manager(object):
             min: The lowest number allowed (inclusive) for value
             max: The highest number allowed (inclusive) for value
         """
-        if value > max:
+        if value >= max:
             return max
-        elif value < min:
+        elif value <= min:
             return min
         else:
             return value
@@ -280,10 +280,12 @@ class CAN_Manager(object):
             x_max: The maximum value for the floating point number
             num_bits: The number of bits for the unsigned integer
         """
-        x = CAN_Manager.limit_value(x,x_min,x_max)
         span = x_max-x_min
+        bitratio = float((1<<num_bits)/span)
+        x = CAN_Manager.limit_value(x,x_min,x_max-(2/bitratio))
         # (x - x_min)*(2^num_bits)/span
-        return int((x- x_min)*( float((1<<num_bits)/span)) )
+        
+        return CAN_Manager.limit_value(int((x- x_min)*( bitratio )),0,int((x_max-x_min)*bitratio) )
 
     # undoes the above method
     @staticmethod

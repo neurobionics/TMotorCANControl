@@ -68,9 +68,15 @@ class TMotorManager():
         self._motor_state_async = motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
         self._command = MIT_command(0.0,0.0,0.0,0.0,0.0)
         self._control_state = _TMotorManState.IDLE
-        self._times_past_limit = 0
+        self._times_past_position_limit = 0
+        self._times_past_current_limit = 0
+        self._times_past_velocity_limit = 0
         self._angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians, only really matters if the motor's going super fast
+        self._current_threshold = MIT_Params[self.type]['I_max'] - 2.0 # A, only really matters if the motor's going super fast
+        self._velocity_threshold = MIT_Params[self.type]['V_max'] - 2.0 # radians, only really matters if the motor's going super fast
         self._old_pos = 0.0
+        self._old_curr = 0.0
+        self._old_vel = 0.0
 
         self._entered = False
         self._start_time = time.time()
@@ -166,20 +172,46 @@ class TMotorManager():
             warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection. " + self.device_info_string(), RuntimeWarning)
         else:
             self._command_sent = False
-        # artificially extending the range of the position that we track
+
+        # artificially extending the range of the position, current, and velocity that we track
         P_max = MIT_Params[self.type]['P_max']
+        I_max =  MIT_Params[self.type]['I_max']
+        V_max =  MIT_Params[self.type]['V_max']
+
         old_pos = self._old_pos
+        old_curr = self._old_curr
+        old_vel = self._old_vel
+        
         new_pos = self._motor_state_async.position
-        thresh = self._angle_threshold
-        if (thresh <= new_pos and new_pos <= P_max) and (-P_max <= old_pos and old_pos <= -thresh):
-            self._times_past_limit -= 1
-        elif (thresh <= old_pos and old_pos <= P_max) and (-P_max <= new_pos and new_pos <= -thresh) :
-            self._times_past_limit += 1
+        new_curr = self._motor_state_async.current
+        new_vel = self._motor_state_async.velocity
+
+        thresh_pos = self._angle_threshold
+        thresh_curr = self._current_threshold
+        thresh_vel = self._velocity_threshold
+
+        if (thresh_pos <= new_pos and new_pos <= P_max) and (-P_max <= old_pos and old_pos <= -thresh_pos):
+            self._times_past_position_limit -= 1
+        elif (thresh_pos <= old_pos and old_pos <= P_max) and (-P_max <= new_pos and new_pos <= -thresh_pos) :
+            self._times_past_position_limit += 1
+        if (thresh_curr <= new_curr and new_curr <= I_max) and (-I_max <= old_curr and old_curr <= -thresh_curr):
+            self._times_past_current_limit -= 1
+        elif (thresh_curr <= old_curr and old_curr <= I_max) and (-I_max <= new_curr and new_curr <= -thresh_curr) :
+            self._times_past_current_limit += 1
+        if (thresh_vel <= new_vel and new_vel <= V_max) and (-V_max <= old_vel and old_vel <= -thresh_vel):
+            self._times_past_velocity_limit -= 1
+        elif (thresh_vel <= old_vel and old_vel <= V_max) and (-V_max <= new_vel and new_vel <= -thresh_vel) :
+            self._times_past_velocity_limit += 1
             
-        # update position
+        # update expanded state variables
         self._old_pos = new_pos
+        self._old_curr = new_curr
+        self._old_pos = new_pos
+
         self._motor_state.set_state_obj(self._motor_state_async)
-        self._motor_state.position += self._times_past_limit*2*P_max
+        self._motor_state.position += self._times_past_position_limit*2*P_max
+        self._motor_state.current += self._times_past_current_limit*2*I_max
+        self._motor_state.velocity += self._times_past_velocity_limit*2*V_max
         
         # send current motor command
         self._send_command()
