@@ -27,6 +27,7 @@ class _TMotorManState(Enum):
     IMPEDANCE = 1
     CURRENT = 2
     FULL_STATE = 3
+    SPEED = 4
 
 
 # the user-facing class that manages the motor.
@@ -236,6 +237,8 @@ class TMotorManager():
             self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current)
         elif self._control_state == _TMotorManState.IDLE:
             self._canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
+        elif self._control_state == _TMotorManState.SPEED:
+            self._canman.MIT_controller(self.ID,self.type,0.0,self._command.velocity,0.0,self._command.kd,0.0)
         else:
             raise RuntimeError("UNDEFINED STATE for device " + self.device_info_string())
         self._last_command_time = time.time()
@@ -320,6 +323,7 @@ class TMotorManager():
         assert(isfinite(B) and MIT_Params[self.type]["Kd_min"] <= B and B <= MIT_Params[self.type]["Kd_max"])
         self._command.kp = K
         self._command.kd = B
+        self._command.velocity = 0.0
         self._control_state = _TMotorManState.IMPEDANCE
     
     # uses full MIT mode, will send whatever current command is set. 
@@ -352,6 +356,16 @@ class TMotorManager():
         """
         self._control_state = _TMotorManState.CURRENT
 
+    def set_speed_gains(self, kd=1.0):
+        """
+        Uses plain speed mode, will send 0.0 for position gain and for feed forward current.
+        
+        Args:
+            kd: The gain for the speed controller. Control law will be (v_des - v_actual)*kd = iq
+        """
+        self._command.kd = kd
+        self._control_state = _TMotorManState.SPEED
+
     # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):
         """
@@ -371,6 +385,22 @@ class TMotorManager():
         if self._control_state not in [_TMotorManState.IMPEDANCE, _TMotorManState.FULL_STATE]:
             raise RuntimeError("Attempted to send position command without gains for device " + self.device_info_string()) 
         self._command.position = pos
+
+    def set_output_velocity_radians_per_second(self, vel):
+        """
+        Used for either speed or full state feedback mode to set output velocity command.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
+
+        Args:
+            vel: The desired output speed in rad/s
+        """
+        if np.abs(vel) >= MIT_Params[self.type]["V_max"]:
+            raise RuntimeError("Cannot control using speed mode for angles with magnitude greater than " + str(MIT_Params[self.type]["V_max"]) + "rad/s!")
+
+        if self._control_state not in [_TMotorManState.SPEED, _TMotorManState.FULL_STATE]:
+            raise RuntimeError("Attempted to send speed command without gains for device " + self.device_info_string()) 
+        self._command.velocity = vel
 
     # used for either current MIT mode to set current
     def set_motor_current_qaxis_amps(self, current):
@@ -429,6 +459,15 @@ class TMotorManager():
             pos: The desired motor-side position in rad.
         """
         self.set_output_angle_radians(pos/(MIT_Params[self.type]["GEAR_RATIO"]) )
+
+    def set_motor_velocity_radians_per_second(self, vel):
+        """
+        Wrapper for set_output_velocity that accounts for gear ratio to control motor-side velocity
+        
+        Args:
+            vel: The desired motor-side velocity in rad/s.
+        """
+        self.set_output_velocity_radians_per_second(vel/(MIT_Params[self.type]["GEAR_RATIO"]) )
 
     def get_motor_angle_radians(self):
         """
@@ -507,21 +546,33 @@ class TMotorManager():
 
     # electrical variables
     i = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps_current_only")
+    """Q-axis current in amps"""
 
     # output-side variables
     θ = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians_impedance_only")
-    θd = property (get_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    """Output angle in rad"""
+
+    θd = property (get_output_velocity_radians_per_second, set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    """Output velocity in rad/s"""
+
     θdd = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
+    """Output acceleration in rad/s/s"""
+
     τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
+    """Output torque in Nm"""
 
     # motor-side variables
     ϕ = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians_impedance_only")
-    ϕd = property (get_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    """Motor-side angle in rad"""
+    
+    ϕd = property (get_motor_velocity_radians_per_second, set_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    """Motor-side velocity in rad/s"""
+
     ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
+    """Motor-side acceleration in rad/s/s"""
+
     τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
-
-
-        
+    """Motor-side torque in Nm"""
 
 
 

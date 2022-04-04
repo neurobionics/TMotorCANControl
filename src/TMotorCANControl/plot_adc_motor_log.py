@@ -21,7 +21,7 @@ speed_motor = []
 
 test_dir= "test/saved_logs/"
 # log_dir="system_id_test_opposing_motor_2/"
-log_dir="high_torque_test_compensation_2/"
+log_dir="high_torque_test_7/"
 
 with open(test_dir + log_dir + "log_adc_and_motor.csv",'r') as fd:
     reader = csv.reader(fd)
@@ -76,3 +76,17 @@ plt.legend()
 plt.show()
 plt.savefig(test_dir + log_dir + "torque_vs_time.png")
 plt.clf()
+
+Kt = 0.146
+time = np.array(time)
+current_motor = current_motor[time < 12]
+torque_adc_filtered = torque_adc_filtered[time < 12]
+print(np.mean(current_motor - torque_adc_filtered))
+
+K = torque_adc_filtered/current_motor
+print(K)
+print(np.mean(K))
+
+print(0.091*9)
+
+
