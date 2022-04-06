@@ -75,7 +75,7 @@ class TMotorManager():
         self._angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians, only really matters if the motor's going super fast
         self._current_threshold = MIT_Params[self.type]['T_max'] - 2.0 # A, only really matters if the motor's going super fast
         self._velocity_threshold = MIT_Params[self.type]['V_max'] - 2.0 # radians, only really matters if the motor's going super fast
-        self._old_pos = 0.0
+        self._old_pos = None
         self._old_curr = 0.0
         self._old_vel = 0.0
 
@@ -144,6 +144,9 @@ class TMotorManager():
         
         Args:
             MIT_state: The MIT_Motor_State namedtuple with the most recent motor state.
+
+        Raises:
+            RuntimeError when device sends back an error code that is not 0 (0 meaning no error)
         """
         if MIT_state.error != 0:
             raise RuntimeError('Driver board error for device: ' + self.device_info_string() + ": " + MIT_Params['ERROR_CODES'][MIT_state.error])
@@ -183,6 +186,8 @@ class TMotorManager():
         I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
         V_max =  MIT_Params[self.type]['V_max']
 
+        if self._old_pos is None:
+            self._old_pos = self._motor_state_async.position
         old_pos = self._old_pos
         old_curr = self._old_curr
         old_vel = self._old_vel
@@ -229,8 +234,14 @@ class TMotorManager():
     
     # sends a command to the motor depending on whats controlm mode the motor is in
     def _send_command(self):
-        """Sends a command to the motor depending on whats controlm mode the motor is in. This method
-        is called by update(), and should only be called on its own if you don't want to update the motor state info."""
+        """
+        Sends a command to the motor depending on whats controlm mode the motor is in. This method
+        is called by update(), and should only be called on its own if you don't want to update the motor state info.
+
+        Notably, the current is converted to amps from the reported 'torque' value, which is i*Kt. 
+        This allows control based on actual q-axis current, rather than estimated torque, which 
+        doesn't account for friction losses.
+        """
         if self._control_state == _TMotorManState.FULL_STATE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
         elif self._control_state == _TMotorManState.IMPEDANCE:
@@ -267,14 +278,25 @@ class TMotorManager():
     def get_temperature_celsius(self):
         """
         Returns:
-        The most recently updated qaxis current in amps
+        The most recently updated motor temperature in degrees C.
         """
         return self._motor_state.temperature
     
     def get_motor_error_code(self):
         """
         Returns:
-        The most recently updated qaxis current in amps
+        The most recently updated motor error code.
+        Note the program should throw a runtime error before you get a chance to read
+        this value if it is ever anything besides 0.
+
+        Codes:
+        - 0 : 'No Error',
+        - 1 : 'Over temperature fault',
+        - 2 : 'Over current fault',
+        - 3 : 'Over voltage fault',
+        - 4 : 'Under voltage fault',
+        - 5 : 'Encoder fault',
+        - 6 : 'Phase current unbalance fault (The hardware may be damaged)'
         """
         return self._motor_state.error
 

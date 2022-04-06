@@ -17,9 +17,8 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
         dev.update()
         if t < 1.0:
             dev.θ = 0.0
-        elif t < 4:
-            dev.θ = 0.5*np.sin(np.pi*t)
         else:
-            dev.θ = 2*np.sin(0.5*np.pi*t)
+            dev.θ = 0.5*np.sin(np.pi*t)
+        
 
     del loop

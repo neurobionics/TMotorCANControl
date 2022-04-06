@@ -31,7 +31,7 @@ MIT_Params = {
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
             #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
-            'a_hat' : [0,  8.23741648e-01, 4.57963164e-04,     2.96032614e-01, 9.31279510e-02]# [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
+            'a_hat' : [0.0,  8.23741648e-01, 4.57963164e-04,     2.96032614e-01, 9.31279510e-02]# [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
         },
         'AK10-9':{
             'P_min' : -12.5,
@@ -59,7 +59,7 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.068*6.0, # UNTESTED CONSTANT!
+            'NM_PER_AMP': 0.068, # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -74,7 +74,7 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.095*10.0, # UNTESTED CONSTANT!
+            'NM_PER_AMP': 0.095, # UNTESTED CONSTANT!
             'GEAR_RATIO': 10.0,
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -89,7 +89,7 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.091*6.0,  # UNTESTED CONSTANT!
+            'NM_PER_AMP': 0.091,  # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -104,12 +104,36 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.119*80.0, # UNTESTED CONSTANT!
+            'NM_PER_AMP': 0.119, # UNTESTED CONSTANT!
             'GEAR_RATIO': 80.0,
             'Use_derived_torque_constants': False, # true if you have a better model
         }
 
 }
+"""
+A Dictionary containing the parameters of each type of motor, as well as the error
+code definitions for the AK-series TMotor actuators.
+You could use an optional torque model that accounts for friction losses if one is available.
+So far, such a model is only available for the AK80-9.
+
+This model comes from a linear regression with the following constants:
+    - a_hat[0] = bias
+    - a_hat[1] = standard torque constant multiplier
+    - a_hat[2] = nonlinear torque constant multiplier
+    - a_hat[3] = coloumb friction
+    - a_hat[4] = gearbox friction
+
+The model has the form:
+τ = a_hat[0] + gr*(a_hat[1]*kt - a_hat[2]*abs(i))*i - (v/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i))
+
+with the following values:
+    - τ = approximated torque
+    - gr = gear ratio
+    - kt = nominal torque constant
+    - i = current
+    - v = velocity
+    - ϵ = signum velocity threshold
+"""
 
 
 
@@ -209,7 +233,6 @@ class motorListener(can.Listener):
         ID = data[0]
         if ID == self.motor.ID:
             self.motor._update_state_async(self.canman.parse_MIT_message(data, self.motor.type))
-            
 
 # A class to manage the low level CAN communication protocols
 class CAN_Manager(object):
@@ -420,8 +443,12 @@ class CAN_Manager(object):
 
         Returns:
             An MIT_Motor_State namedtuple that contains floating point values for the 
-            position, velocity, current, temperature, and error in rad, rad/s, amp, and *C.
-            0 means no error.
+            position, velocity, current, temperature, and error in rad, rad/s, amps, and *C.
+            0 means no error. 
+            
+            Notably, the current is converted to amps from the reported 
+            'torque' value, which is i*Kt. This allows control based on actual q-axis current,
+            rather than estimated torque, which doesn't account for friction losses.
         """
         assert len(data) == 8 or len(data) == 6, 'Tried to parse a CAN message that was not Motor State in MIT Mode'
         temp = None
