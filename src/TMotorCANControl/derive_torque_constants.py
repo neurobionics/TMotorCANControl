@@ -20,7 +20,10 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
-with open("src/TMotorCANControl/test/saved_logs/system_id_test_motor_drive_2/log_adc_and_motor_3V.csv",'r') as fd:
+test_dir = "test/saved_logs/"
+log_dir = "SysID/system_id_test_opposing_motor_2/"
+log_name = "log_adc_and_motor.csv"
+with open(test_dir + log_dir + log_name,'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -35,17 +38,19 @@ with open("src/TMotorCANControl/test/saved_logs/system_id_test_motor_drive_2/log
 
 torque_adc = [-1*τ for τ in torque_adc]
 
+kt = 0.146
+gr = 9.0
+
 t = np.array(time)
 t = t.reshape((t.shape[0],1))
 τ_adc = np.array(torque_adc).reshape((t.shape[0],1))
 τ_motor = np.array(torque_motor).reshape((t.shape[0],1))
 τ_des =np.array(torque_command).reshape((t.shape[0],1))
-i = np.array(current_motor).reshape((t.shape[0],1))
+i = np.array(current_motor).reshape((t.shape[0],1))/(kt*gr)
 v = np.array(speed_motor).reshape((t.shape[0],1))
 
 # 0.146 Nm per amp motor-side, with gear ratio of 1:9
-kt = 0.146
-gr = 9.0
+
 ϵ = 0.1
 A = np.hstack((np.ones_like(t), gr*kt*i, -gr*np.abs(i)*i, -np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ), -np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )))
 
@@ -76,11 +81,12 @@ print(rmse)
 plt.plot(time,torque_motor,label="τ_motor")
 plt.plot(time,torque_adc,label="τ_adc")
 plt.plot(time,τ_approx,label="τ_approx")
+plt.plot(time,current_motor,label="i_q")
 plt.title('Torque vs Time')
 plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('src/TMotorCANControl/plots/ADC_Motor_Torque.png')
+plt.savefig('plots/ADC_Motor_Torque.png')
 plt.clf()
 

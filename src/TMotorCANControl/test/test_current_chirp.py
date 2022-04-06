@@ -20,7 +20,7 @@ def chirp_demo(dev, amp=1.0, dt=0.001):
         # print(t, des_τ)
 
 def main():
-    with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
+    with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv",use_torque_compensation=False) as dev:
         chirp_demo(dev, amp=3.0)
     print("done with chirp_demo()")
 

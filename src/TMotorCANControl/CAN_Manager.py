@@ -5,36 +5,46 @@ from math import isfinite
 
 # Parameter dictionary for each specific motor that can be controlled with this library
 # Thresholds are in the datasheet for the motor on cubemars.com
+
 MIT_Params = {
+        'ERROR_CODES':{
+            0 : 'No Error',
+            1 : 'Over temperature fault',
+            2 : 'Over current fault',
+            3 : 'Over voltage fault',
+            4 : 'Under voltage fault',
+            5 : 'Encoder fault',
+            6 : 'Phase current unbalance fault (The hardware may be damaged)'
+        },
         'AK80-9':{
             'P_min' : -12.5,
             'P_max' : 12.5,
             'V_min' : -50.0,
             'V_max' : 50.0,
-            'I_min' : -18.0,
-            'I_max' : 18.0,
+            'T_min' : -18.0,
+            'T_max' : 18.0,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.146,
+            'NM_PER_AMP': 0.091, # Need to use their constant for current conversion -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
             #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
-            'a_hat' : [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
+            'a_hat' : [0,  8.23741648e-01, 4.57963164e-04,     2.96032614e-01, 9.31279510e-02]# [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
         },
         'AK10-9':{
             'P_min' : -12.5,
             'P_max' : 12.5,
             'V_min' : -50.0,
             'V_max' : 50.0,
-            'I_min' : -65.0,
-            'I_max' : 65.0,
+            'T_min' : -65.0,
+            'T_max' : 65.0,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.16*9.0, # UNTESTED CONSTANT!
+            'NM_PER_AMP': 0.16, # UNTESTED CONSTANT!
             'GEAR_RATIO': 9.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -43,8 +53,8 @@ MIT_Params = {
             'P_max' : 12.5,
             'V_min' : -50.0,
             'V_max' : 50.0,
-            'I_min' : -15.0,
-            'I_max' : 15.0,
+            'T_min' : -15.0,
+            'T_max' : 15.0,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -58,8 +68,8 @@ MIT_Params = {
             'P_max' : 12.5,
             'V_min' : -50.0,
             'V_max' : 50.0,
-            'I_min' : -25.0,
-            'I_max' : 25.0,
+            'T_min' : -25.0,
+            'T_max' : 25.0,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -73,8 +83,8 @@ MIT_Params = {
             'P_max' : 12.5,
             'V_min' : -76.0,
             'V_max' : 76.0,
-            'I_min' : -12.0,
-            'I_max' : 12.0,
+            'T_min' : -12.0,
+            'T_max' : 12.0,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -88,8 +98,8 @@ MIT_Params = {
             'P_max' : 12.5,
             'V_min' : -8.0,
             'V_max' : 8.0,
-            'I_min' : -144.0,
-            'I_max' : 144.0,
+            'T_min' : -144.0,
+            'T_max' : 144.0,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -383,8 +393,8 @@ class CAN_Manager(object):
                                                     MIT_Params[motor_type]['Kp_max'], 12)
         Kd_uint12 = CAN_Manager.float_to_uint(Kd, MIT_Params[motor_type]['Kd_min'], 
                                                     MIT_Params[motor_type]['Kd_max'], 12)
-        I_uint12 = CAN_Manager.float_to_uint(I, MIT_Params[motor_type]['I_min'], 
-                                                    MIT_Params[motor_type]['I_max'], 12)
+        I_uint12 = CAN_Manager.float_to_uint(I, MIT_Params[motor_type]['T_min'], 
+                                                    MIT_Params[motor_type]['T_max'], 12)
 
         data = [
             position_uint16 >> 8,
@@ -428,8 +438,8 @@ class CAN_Manager(object):
                                             MIT_Params[motor_type]['P_max'], 16)
         velocity = CAN_Manager.uint_to_float(velocity_uint, MIT_Params[motor_type]['V_min'], 
                                             MIT_Params[motor_type]['V_max'], 12)
-        current = CAN_Manager.uint_to_float(current_uint, MIT_Params[motor_type]['I_min'], 
-                                            MIT_Params[motor_type]['I_max'], 12)
+        current = CAN_Manager.uint_to_float(current_uint, MIT_Params[motor_type]['T_min'], 
+                                            MIT_Params[motor_type]['T_max'], 12)
 
         if self.debug:
             print('  Position: ' + str(position))
@@ -439,4 +449,4 @@ class CAN_Manager(object):
                 print('  Temp: ' + str(temp))
                 print('  Error: ' + str(error))
 
-        return MIT_motor_state(position, velocity, current, temp, error)
+        return MIT_motor_state(position, velocity, current/(MIT_Params[motor_type]['NM_PER_AMP']*MIT_Params[motor_type]['GEAR_RATIO']), temp, error)

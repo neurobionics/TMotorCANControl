@@ -10,7 +10,7 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 import time
 
 
-with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
+with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv",use_torque_compensation=True) as dev:
     dev.zero_position() # has a delay!
     time.sleep(1.5)
     dev.set_current_gains()
@@ -21,6 +21,6 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
         if t < 1.0:
             dev.τ = 0.0
         else:
-            dev.τ = 1.0
+            dev.τ = 18.0
 
     del loop

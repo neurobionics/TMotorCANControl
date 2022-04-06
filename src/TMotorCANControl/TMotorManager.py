@@ -73,7 +73,7 @@ class TMotorManager():
         self._times_past_current_limit = 0
         self._times_past_velocity_limit = 0
         self._angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians, only really matters if the motor's going super fast
-        self._current_threshold = MIT_Params[self.type]['I_max'] - 2.0 # A, only really matters if the motor's going super fast
+        self._current_threshold = MIT_Params[self.type]['T_max'] - 2.0 # A, only really matters if the motor's going super fast
         self._velocity_threshold = MIT_Params[self.type]['V_max'] - 2.0 # radians, only really matters if the motor's going super fast
         self._old_pos = 0.0
         self._old_curr = 0.0
@@ -145,11 +145,15 @@ class TMotorManager():
         Args:
             MIT_state: The MIT_Motor_State namedtuple with the most recent motor state.
         """
+        if MIT_state.error != 0:
+            raise RuntimeError('Driver board error for device: ' + self.device_info_string() + ": " + MIT_Params['ERROR_CODES'][MIT_state.error])
+
         now = time.time()
         dt = self._last_update_time - now
         self._last_update_time = now
         acceleration = (MIT_state.velocity - self._motor_state_async.velocity)/dt
 
+        # The "Current" supplied by the controller is actually current*Kt, which approximates torque.
         self._motor_state_async.set_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
         self._updated = True
 
@@ -176,7 +180,7 @@ class TMotorManager():
 
         # artificially extending the range of the position, current, and velocity that we track
         P_max = MIT_Params[self.type]['P_max']
-        I_max =  MIT_Params[self.type]['I_max']
+        I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
         V_max =  MIT_Params[self.type]['V_max']
 
         old_pos = self._old_pos
@@ -222,19 +226,17 @@ class TMotorManager():
             self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + [data for data in self.extra_plots])
 
         self._updated = False
-        
-        
-
+    
     # sends a command to the motor depending on whats controlm mode the motor is in
     def _send_command(self):
         """Sends a command to the motor depending on whats controlm mode the motor is in. This method
         is called by update(), and should only be called on its own if you don't want to update the motor state info."""
         if self._control_state == _TMotorManState.FULL_STATE:
-            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current)
+            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
         elif self._control_state == _TMotorManState.IMPEDANCE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, 0.0)
         elif self._control_state == _TMotorManState.CURRENT:
-            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current)
+            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
         elif self._control_state == _TMotorManState.IDLE:
             self._canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
         elif self._control_state == _TMotorManState.SPEED:
@@ -262,6 +264,20 @@ class TMotorManager():
         self._last_command_time = time.time()
 
     # getters for motor state
+    def get_temperature_celsius(self):
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
+        return self._motor_state.temperature
+    
+    def get_motor_error_code(self):
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
+        return self._motor_state.error
+
     def get_current_qaxis_amps(self):
         """
         Returns:
@@ -543,6 +559,13 @@ class TMotorManager():
     #  to use the UnicodeMath plugin for sublime-text, "Fast Unicode Math
     #  Characters" in VS Code, or the like to allow easy typing of ϕ, θ, and
     #  τ.
+
+    # controller variables
+    T = property(get_temperature_celsius, doc="temperature_degrees_C")
+    """Temperature in Degrees Celsius"""
+
+    e = property(get_motor_error_code, doc="temperature_degrees_C")
+    """Motor error code. 0 means no error."""
 
     # electrical variables
     i = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps_current_only")
