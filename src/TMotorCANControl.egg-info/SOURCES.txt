@@ -14,6 +14,7 @@ src/TMotorCANControl.egg-info/top_level.txt
 src/TMotorCANControl/test/full_feature_demo.py
 src/TMotorCANControl/test/measure_torque_compensation.py
 src/TMotorCANControl/test/measure_torque_performance.py
+src/TMotorCANControl/test/measure_torque_performance_ramp.py
 src/TMotorCANControl/test/test_2_DOF.py
 src/TMotorCANControl/test/test_current_chirp.py
 src/TMotorCANControl/test/test_current_step.py
@@ -24,5 +25,6 @@ src/TMotorCANControl/test/test_motor_connection.py
 src/TMotorCANControl/test/test_position_step.py
 src/TMotorCANControl/test/test_position_step_motorside.py
 src/TMotorCANControl/test/test_position_wraparound.py
+src/TMotorCANControl/test/test_speed_step.py
 src/TMotorCANControl/test/test_torque_step.py
 src/TMotorCANControl/test/test_torque_step_motorside.py
