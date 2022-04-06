@@ -549,7 +549,7 @@ class TMotorManager():
         success = True
         time.sleep(0.1)
         for i in range(10):
-            if Listener.get_message(timeout=0.0) is None:
+            if Listener.get_message(timeout=0.1) is None:
                 success = False
         self._canman.notifier.remove_listener(Listener)
         return success
