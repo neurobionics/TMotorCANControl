@@ -67,6 +67,12 @@ current for the field-oriented controller on the motor control chip, given by th
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="TMotorCANControl.CAN_Manager.CAN_Manager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TMotorCANControl.CAN_Manager.CAN_Manager.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>ALl initialization happens in __new__</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="TMotorCANControl.CAN_Manager.CAN_Manager.add_motor">
 <span class="sig-name descname"><span class="pre">add_motor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">motor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TMotorCANControl.CAN_Manager.CAN_Manager.add_motor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Subscribe a motor object to the CAN bus to be updated upon message reception</p>
@@ -80,7 +86,8 @@ current for the field-oriented controller on the motor control chip, given by th
 <dl class="py attribute">
 <dt class="sig sig-object py" id="TMotorCANControl.CAN_Manager.CAN_Manager.debug">
 <span class="sig-name descname"><span class="pre">debug</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#TMotorCANControl.CAN_Manager.CAN_Manager.debug" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Set to true to display every message sent and recieved for debugging.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="TMotorCANControl.CAN_Manager.CAN_Manager.float_to_uint">
@@ -261,7 +268,7 @@ So far, such a model is only available for the AK80-9.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="TMotorCANControl.CAN_Manager.MIT_motor_state">
 <span class="sig-prename descclassname"><span class="pre">TMotorCANControl.CAN_Manager.</span></span><span class="sig-name descname"><span class="pre">MIT_motor_state</span></span><a class="headerlink" href="#TMotorCANControl.CAN_Manager.MIT_motor_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="#TMotorCANControl.CAN_Manager.motor_state" title="TMotorCANControl.CAN_Manager.motor_state"><code class="xref py py-class docutils literal notranslate"><span class="pre">TMotorCANControl.CAN_Manager.motor_state</span></code></a></p>
+<dd><p>Motor state from the controller, uneditable named tuple</p>
 </dd></dl>
 
 <dl class="py class">
@@ -375,21 +382,16 @@ call __enter__, mostly commonly by using a with block, before attempting to cont
 <li><p><strong>motor_type</strong> – The type of motor being controlled, ie AK80-9.</p></li>
 <li><p><strong>motor_ID</strong> – The CAN ID of the motor.</p></li>
 <li><p><strong>CSV_file</strong> – A CSV file to output log info to. If None, no log will be recorded.</p></li>
-<li><p><strong>log_vars</strong> – <p>The variables to log as a python list. The full list of possibilities is:
-[</p>
-<blockquote>
-<div><p>”output_angle”,
-“output_velocity”,
-“output_acceleration”,
-“current”,
-“output_torque”,
-“motor_angle”,
-“motor_velocity”,
-“motor_acceleration”,
-“motor_torque”</p>
-</div></blockquote>
-<p>]</p>
-</p></li>
+<li><p><strong>log_vars</strong> – The variables to log as a python list. The full list of possibilities is</p></li>
+<li><p><strong>&quot;output_angle&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;output_velocity&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;output_acceleration&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;current&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;output_torque&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;motor_angle&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;motor_velocity&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;motor_acceleration&quot;</strong> (<em>-</em>) – </p></li>
+<li><p><strong>&quot;motor_torque&quot;</strong> (<em>-</em>) – </p></li>
 <li><p><strong>use_torque_compensation</strong> – Enables a more complex torque model to compensate for friction, if available</p></li>
 </ul>
 </dd>
@@ -790,7 +792,7 @@ use the motor again. This responsibility is on the user!!</p>
 <dt class="sig sig-object py" id="TMotorCANControl.TMotorManager._TMotorManState">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">TMotorCANControl.TMotorManager.</span></span><span class="sig-name descname"><span class="pre">_TMotorManState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TMotorCANControl.TMotorManager._TMotorManState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
-<p>An enumeration.</p>
+<p>An Enum to keep track of different control states</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="TMotorCANControl.TMotorManager._TMotorManState.CURRENT">
 <span class="sig-name descname"><span class="pre">CURRENT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#TMotorCANControl.TMotorManager._TMotorManState.CURRENT" title="Permalink to this definition">¶</a></dt>

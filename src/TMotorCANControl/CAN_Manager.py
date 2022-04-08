@@ -206,6 +206,9 @@ class MIT_command:
 
 # motor state from the controller, uneditable named tuple
 MIT_motor_state = namedtuple('motor_state', 'position velocity current temperature error')
+"""
+Motor state from the controller, uneditable named tuple
+"""
 
 # python-can listener object, with handler to be called upon reception of a message on the CAN bus
 class motorListener(can.Listener):
@@ -238,9 +241,16 @@ class motorListener(can.Listener):
 class CAN_Manager(object):
     """A class to manage the low level CAN communication protocols"""
     debug = False
+    """
+    Set to true to display every message sent and recieved for debugging.
+    """
     # Note, defining singletons in this way means that you cannot inherit
     # from this class, as apparently __init__ for the subclass will be called twice
     _instance = None
+    """
+    Used to keep track of one instantation of the class to make a singleton object
+    """
+    
     def __new__(cls):
         """
         Makes a singleton object to manage a socketcan_native CAN bus.
@@ -261,6 +271,9 @@ class CAN_Manager(object):
         return cls._instance
 
     def __init__(self):
+        """
+        ALl initialization happens in __new__
+        """
         pass
         
     def __del__(self):

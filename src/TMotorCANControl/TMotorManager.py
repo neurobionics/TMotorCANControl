@@ -49,18 +49,16 @@ class TMotorManager():
             motor_type: The type of motor being controlled, ie AK80-9.
             motor_ID: The CAN ID of the motor.
             CSV_file: A CSV file to output log info to. If None, no log will be recorded.
-            log_vars: The variables to log as a python list. The full list of possibilities is:
-                [
-                    "output_angle", 
-                    "output_velocity", 
-                    "output_acceleration", 
-                    "current",
-                    "output_torque",
-                    "motor_angle", 
-                    "motor_velocity", 
-                    "motor_acceleration", 
-                    "motor_torque"
-                ]
+            log_vars: The variables to log as a python list. The full list of possibilities is
+            - "output_angle"
+            - "output_velocity"
+            - "output_acceleration"
+            - "current"
+            - "output_torque"
+            - "motor_angle"
+            - "motor_velocity"
+            - "motor_acceleration"
+            - "motor_torque"
             use_torque_compensation: Enables a more complex torque model to compensate for friction, if available
         """
         self.type = motor_type
