@@ -23,6 +23,9 @@ LOG_VARIABLES = [
 
 # possible states for the controller
 class _TMotorManState(Enum):
+    """
+    An Enum to keep track of different control states
+    """
     IDLE = 0
     IMPEDANCE = 1
     CURRENT = 2
