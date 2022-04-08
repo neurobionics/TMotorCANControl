@@ -20,9 +20,10 @@ current_motor = []
 speed_motor = []
 
 test_dir= "test/saved_logs/"
-log_dir="testing_0_torque_comp/"
+log_dir="torque_lower_baud_rate/"
+name="log_adc_and_motor_with_rotation"
 
-with open(test_dir + log_dir + "log_adc_and_motor.csv",'r') as fd:
+with open(test_dir + log_dir + name + ".csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
@@ -63,7 +64,7 @@ print("Std Dev i_motor: " + str(np.std(current_motor)))
 print("Max i_motor: " + str(current_motor.max()))
 
 # plt.subplot(2, 1, 1)
-
+plt.plot(np.array(time),torque_adc_adjusted.flatten(),label="τ_adc_raw (max: " + str(round(torque_adc_adjusted.max(),2)) + "Nm)")
 plt.plot(time,torque_motor,label="τ_motor (max: "+ str(round(torque_motor.max(),2)) + "Nm)")
 plt.plot(time,og_torque,label="τ_unadjusted (max: "+ str(round(og_torque.max(),2)) + "Nm)" )
 plt.plot(np.array(time),speed_motor,label="v")
@@ -75,7 +76,7 @@ plt.xlabel('Time [s]')
 plt.legend()
 
 plt.show()
-plt.savefig(test_dir + log_dir + "torque_vs_time.png")
+plt.savefig(test_dir + log_dir + name + ".png")
 plt.clf()
 
 Kt = 0.146*9

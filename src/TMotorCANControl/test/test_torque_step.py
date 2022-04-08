@@ -21,6 +21,6 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv",use_torqu
         if t < 1.0:
             dev.τ = 0.0
         else:
-            dev.τ = 18.0
+            dev.τ = 1.0
 
     del loop

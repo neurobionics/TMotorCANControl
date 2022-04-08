@@ -120,6 +120,8 @@ class TMotorManager():
         self.power_on()
         self._send_command()
         self._entered = True
+        if not self.check_can_connection():
+            raise RuntimeError("Device not connected: " + str(self.device_info_string()))
         return self
 
     def __exit__(self, etype, value, tb):
