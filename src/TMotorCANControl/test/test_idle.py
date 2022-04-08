@@ -11,8 +11,8 @@ import time
 with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
     dev.zero_position() # has a delay!
     time.sleep(1.5)
-    dev.set_current_gains()
+    # dev.set_current_gains()
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
     for t in loop:
         dev.update()
-        print("\rTemp: " + str(dev.T) + "C   Error: " + str(dev.get_motor_error_code()),end='')
+        print("\r" + str(dev) + "    Temp: " + str(dev.T) + "C   Error: " + str(dev.get_motor_error_code()),end='')

@@ -340,7 +340,7 @@ class TMotorManager():
             a_hat = MIT_Params[self.type]['a_hat']
             kt = MIT_Params[self.type]["NM_PER_AMP"]
             gr = MIT_Params[self.type]["GEAR_RATIO"]
-            ϵ = 1.0
+            ϵ = 0.1
             i = self.get_current_qaxis_amps()
             v = self.get_motor_velocity_radians_per_second()
 

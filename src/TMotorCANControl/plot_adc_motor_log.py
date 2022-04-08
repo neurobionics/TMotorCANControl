@@ -20,8 +20,8 @@ current_motor = []
 speed_motor = []
 
 test_dir= "test/saved_logs/"
-log_dir="torque_lower_baud_rate/"
-name="log_adc_and_motor_with_rotation"
+log_dir="no_torque_tests/"
+name="no_torque_training_data"
 
 with open(test_dir + log_dir + name + ".csv",'r') as fd:
     reader = csv.reader(fd)
@@ -64,10 +64,10 @@ print("Std Dev i_motor: " + str(np.std(current_motor)))
 print("Max i_motor: " + str(current_motor.max()))
 
 # plt.subplot(2, 1, 1)
-plt.plot(np.array(time),torque_adc_adjusted.flatten(),label="τ_adc_raw (max: " + str(round(torque_adc_adjusted.max(),2)) + "Nm)")
+# plt.plot(np.array(time),torque_adc_adjusted.flatten(),label="τ_adc_raw (max: " + str(round(torque_adc_adjusted.max(),2)) + "Nm)")
 plt.plot(time,torque_motor,label="τ_motor (max: "+ str(round(torque_motor.max(),2)) + "Nm)")
-plt.plot(time,og_torque,label="τ_unadjusted (max: "+ str(round(og_torque.max(),2)) + "Nm)" )
-plt.plot(np.array(time),speed_motor,label="v")
+# plt.plot(time,og_torque,label="τ_unadjusted (max: "+ str(round(og_torque.max(),2)) + "Nm)" )
+# plt.plot(np.array(time),speed_motor,label="v")
 plt.plot(np.array(time),current_motor,label="i_q (max: " + str(round(current_motor.max(),2)) + "A)")
 plt.plot(np.array(time),torque_adc_filtered,label="τ_adc (max: " + str(round(torque_adc_filtered.max(),2)) + "Nm)")
 plt.title('Torque vs Time')
