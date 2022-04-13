@@ -1,18 +1,19 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
-try:
-     from TMotorCANControl.TMotorManager import TMotorManager
-except ModuleNotFoundError:
-    from sys import path
-    path.append("/home/pi/TMotorCANControl/src")
-    from TMotorCANControl.TMotorManager import TMotorManager
 import numpy as np
 import time
+from TMotorCANControl.TMotorManager import TMotorManager
 
-with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
+# CHANGE THESE TO MATCH YOUR DEVICE!
+Type = 'AK80-9'
+ID = 3
+
+def position_step(dev):
     dev.zero_position() # has a delay!
     time.sleep(1.5)
     dev.set_impedance_gains_real_unit(K=10,B=0.5)
     
+    print("Starting position step demo. Press ctrl+C to quit.")
+
     loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
     for t in loop:
         dev.update()
@@ -22,3 +23,7 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
             dev.θ = np.pi/2.0
 
     del loop
+
+if __name__ == '__main__':
+    with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+        position_step(dev)

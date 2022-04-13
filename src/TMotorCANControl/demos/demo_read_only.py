@@ -1,18 +1,23 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
-try:
-     from TMotorCANControl.TMotorManager import TMotorManager
-except ModuleNotFoundError:
-    from sys import path
-    path.append("/home/pi/TMotorCANControl/src")
-    from TMotorCANControl.TMotorManager import TMotorManager
 import time
+from TMotorCANControl.TMotorManager import TMotorManager
 
+# CHANGE THESE TO MATCH YOUR DEVICE!
+Type = 'AK80-9'
+ID = 3
 
-with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv") as dev:
-    dev.zero_position() # has a delay!
-    time.sleep(1.5)
-    # dev.set_current_gains()
+def read_only(dev):
+    dev.zero_position()
+    time.sleep(1.5) # wait for the motor to zero (~1 second)
+    
+    print("Starting read only demo. Press ctrl+C to quit.")
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
+    
     for t in loop:
         dev.update()
-        print("\r" + str(dev) + "    Temp: " + str(dev.T) + "C   Error: " + str(dev.get_motor_error_code()),end='')
+        print("\r" + str(dev), end='')
+
+
+if __name__ == '__main__':
+    with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+        read_only(dev)

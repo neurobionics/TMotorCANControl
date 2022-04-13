@@ -1,15 +1,10 @@
-try:
-     from TMotorCANControl.TMotorManager import TMotorManager
-except ModuleNotFoundError:
-    from sys import path
-    path.append("/home/pi/TMotorCANControl/src")
-    from TMotorCANControl.TMotorManager import TMotorManager
+from TMotorCANControl.TMotorManager import TMotorManager
 
-# CHANGE THESE TO MATCH YOUR dev!
-ID = 3
+# CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK80-9'
+ID = 3
 
-with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file=None) as dev:
     if dev.check_can_connection():
         print("\nmotor is successfully connected!\n")
     else:

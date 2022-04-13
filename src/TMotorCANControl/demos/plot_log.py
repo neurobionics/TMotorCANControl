@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import csv
 import numpy as np
 
+# pre-declare lists for the data
 time = []
 position = []
 velocity = []
@@ -15,9 +16,11 @@ Macceleration = []
 Mtorque = []
 
 motorside = False
+save_figures = False
 
 test_dir= "test/"
 
+# use the csv module to parse the file
 with open(test_dir + "log.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
@@ -36,6 +39,7 @@ with open(test_dir + "log.csv",'r') as fd:
                 Mtorque.append(float(row[9]))
         i += 1
 
+# plot the data, and label the figures
 plt.plot(time,position,label="θ")
 if motorside:
     plt.plot(time,Mposition,label="ϕ")
@@ -44,7 +48,8 @@ plt.ylabel('Position [rad]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/position.png')
+if save_figures:
+    plt.savefig('plots/position.png')
 plt.clf()
 
 plt.plot(time,velocity,label="θd")
@@ -55,7 +60,8 @@ plt.ylabel('Velocity [rad/s]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/velocity.png')
+if save_figures:
+    plt.savefig('plots/velocity.png')
 plt.clf()
 
 plt.plot(time,acceleration,label="θdd")
@@ -66,7 +72,8 @@ plt.ylabel('Acceleration [rad/s/s]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/acceleration.png')
+if save_figures:
+    plt.savefig('plots/acceleration.png')
 plt.clf()
 
 plt.plot(time,current,label="i")
@@ -75,7 +82,8 @@ plt.ylabel('Current [A]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/current.png')
+if save_figures:
+    plt.savefig('plots/current.png')
 plt.clf()
 
 plt.plot(time,torque,label="τ")
@@ -86,9 +94,11 @@ plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/torque.png')
+if save_figures:
+    plt.savefig('plots/torque.png')
 plt.clf()
 
+# You could also print out some sample statistics
 print("Average current: " + str(np.average(current)))
 print("Std Dev current: " + str(np.std(current)))
         

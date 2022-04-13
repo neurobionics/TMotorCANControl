@@ -6,22 +6,23 @@ from TMotorCANControl.TMotorManager import TMotorManager
 Type = 'AK80-9'
 ID = 3
 
-def speed_step(dev):
+def current_step(dev):
     dev.zero_position()
     time.sleep(1.5) # wait for the motor to zero (~1 second)
-    dev.set_speed_gains(kd=3.0)
+    dev.set_current_gains()
     
-    print("Starting speed step demo. Press ctrl+C to quit.")
+    print("Starting current step demo. Press ctrl+C to quit.")
+
     loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
     for t in loop:
         dev.update()
         if t < 1.0:
-            dev.θd = 0.0
+            dev.i = 0.0
         else:
-            dev.θd = 1.0
-            
+            dev.i = 0.5
+
     del loop
 
 if __name__ == '__main__':
     with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
-        speed_step(dev)
+        current_step(dev)
