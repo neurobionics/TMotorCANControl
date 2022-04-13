@@ -16,8 +16,7 @@ Mtorque = []
 
 motorside = False
 
-
-with open("log.csv",'r') as fd:
+with open(test_dir + "log.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
