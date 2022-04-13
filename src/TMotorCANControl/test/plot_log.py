@@ -16,8 +16,6 @@ Mtorque = []
 
 motorside = False
 
-test_dir= "test/"
-
 with open(test_dir + "log.csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0

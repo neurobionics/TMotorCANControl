@@ -186,7 +186,7 @@ class TMotorManager():
 
         # artificially extending the range of the position, current, and velocity that we track
         P_max = MIT_Params[self.type]['P_max']
-        I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
+        I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['Kt_TMotor']*MIT_Params[self.type]['GEAR_RATIO'])
         V_max =  MIT_Params[self.type]['V_max']
 
         if self._old_pos is None:
@@ -246,11 +246,11 @@ class TMotorManager():
         doesn't account for friction losses.
         """
         if self._control_state == _TMotorManState.FULL_STATE:
-            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
+            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['Kt_TMotor']*MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Current_Factor'])
         elif self._control_state == _TMotorManState.IMPEDANCE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, 0.0)
         elif self._control_state == _TMotorManState.CURRENT:
-            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
+            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current*MIT_Params[self.type]['Kt_TMotor']*MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Current_Factor'])
         elif self._control_state == _TMotorManState.IDLE:
             self._canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
         elif self._control_state == _TMotorManState.SPEED:

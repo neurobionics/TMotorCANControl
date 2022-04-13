@@ -27,7 +27,9 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
-            'NM_PER_AMP': 0.091, # Need to use their constant for current conversion -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
+            'Kt_TMotor' : 0.091, # from website
+            'Current_Factor' : 0.84852813742, # 1.2/sqrt(2)
+            'NM_PER_AMP': 0.11, # Need to use their constant for current conversion -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
             #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
@@ -488,5 +490,6 @@ class CAN_Manager(object):
             if (temp is not None) and (error is not None):
                 print('  Temp: ' + str(temp))
                 print('  Error: ' + str(error))
-
-        return MIT_motor_state(position, velocity, current/(MIT_Params[motor_type]['NM_PER_AMP']*MIT_Params[motor_type]['GEAR_RATIO']), temp, error)
+                
+        # adjust the current to match the actual q axis current rather than TMotor's torque representation
+        return MIT_motor_state(position, velocity, current/(MIT_Params[motor_type]['Kt_TMotor']*MIT_Params[motor_type]['GEAR_RATIO'])*MIT_Params[self.type]['Current_Factor'], temp, error)
