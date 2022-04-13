@@ -20,8 +20,8 @@ current_motor = []
 speed_motor = []
 
 test_dir= "saved_logs/"
-log_dir="no_torque_tests/"
-name="no_torque_training_data"
+log_dir="current_fixed/"
+name="current_comp_test_9"
 
 with open(test_dir + log_dir + name + ".csv",'r') as fd:
     reader = csv.reader(fd)
@@ -37,7 +37,7 @@ with open(test_dir + log_dir + name + ".csv",'r') as fd:
         i += 1
 
 torque_adc_adjusted = [-1*τ for τ in torque_adc]
-og_torque = [0.091*9*i for i in current_motor]
+# og_torque = [0.091*9*i for i in current_motor]
 
 torque_adc_adjusted = np.array([torque_adc_adjusted])
 order = 6
@@ -49,7 +49,7 @@ torque_adc_filtered = butter_lowpass_filter(torque_adc_adjusted, cutoff, fs, ord
 # torque_adc_filtered = np.array(torque_adc_filtered)
 torque_motor = np.array(torque_motor)
 current_motor = np.array(current_motor)
-og_torque = np.array(og_torque)
+# og_torque = np.array(og_torque)
 
 print("Average τ_adc: " + str(np.average(torque_adc_filtered)))
 print("Std Dev τ_adc: " + str(np.std(torque_adc_filtered)))
@@ -78,21 +78,5 @@ plt.legend()
 plt.show()
 plt.savefig(test_dir + log_dir + name + ".png")
 # plt.clf()
-
-Kt = 0.146*9
-time = np.array(time)
-# current_motor = current_motor[time < 12]
-# torque_adc_filtered = torque_adc_filtered[time < 12]
-# print(np.mean(current_motor - torque_adc_filtered))
-
-i_est = torque_adc_filtered/Kt
-print(np.max(i_est))
-
-Kt_them = (0.091*9)
-
-print(Kt_them)
-print(Kt)
-
-print(np.average(current_motor/i_est))
 
 

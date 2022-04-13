@@ -7,13 +7,13 @@ import csv
 
 
 bias = 0.5896742308538513 # Nm
-test_time = 30.0 # s
+test_time = 10.0 # s
 torque = 0.0 # Nm (starting torque)
-max_torque = 30.0 # Nm
+max_torque = 25.0 # Nm
 
 τ_per_sec = max_torque/test_time
 
-csv_file_name = "log_adc_and_motor.csv"
+csv_file_name = "current_comp_test_1.csv"
 with ADC_Manager(csv_file_name="dummyLog") as adc:
     with TMotorManager(motor_ID=3,CSV_file=None,use_torque_compensation=False) as dev:
         with open(csv_file_name,'w') as fd:

@@ -74,7 +74,7 @@ class TMotorManager():
         self._times_past_current_limit = 0
         self._times_past_velocity_limit = 0
         self._angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians, only really matters if the motor's going super fast
-        self._current_threshold = MIT_Params[self.type]['T_max'] - 2.0 # A, only really matters if the motor's going super fast
+        self._current_threshold = MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor']) - 4.0 # A, only really matters if the current changes quick
         self._velocity_threshold = MIT_Params[self.type]['V_max'] - 2.0 # radians, only really matters if the motor's going super fast
         self._old_pos = None
         self._old_curr = 0.0
@@ -185,9 +185,9 @@ class TMotorManager():
             self._command_sent = False
 
         # artificially extending the range of the position, current, and velocity that we track
-        P_max = MIT_Params[self.type]['P_max']
-        I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
-        V_max =  MIT_Params[self.type]['V_max']
+        P_max = MIT_Params[self.type]['P_max']+ 0.01
+        I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor']) + 0.01
+        V_max =  MIT_Params[self.type]['V_max']+ 0.01
 
         if self._old_pos is None:
             self._old_pos = self._motor_state_async.position
@@ -246,11 +246,11 @@ class TMotorManager():
         doesn't account for friction losses.
         """
         if self._control_state == _TMotorManState.FULL_STATE:
-            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
+            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor'])
         elif self._control_state == _TMotorManState.IMPEDANCE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, 0.0)
         elif self._control_state == _TMotorManState.CURRENT:
-            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current*MIT_Params[self.type]['NM_PER_AMP']*MIT_Params[self.type]['GEAR_RATIO'])
+            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current*MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor'])
         elif self._control_state == _TMotorManState.IDLE:
             self._canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
         elif self._control_state == _TMotorManState.SPEED:
@@ -549,7 +549,7 @@ class TMotorManager():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + str(round(self.θ,3)) + " rad | Velocity: " + str(round(self.θd ,3)) + " rad/s | current: " + str(round(self.i,3)) + " A | torque: " + str(round(self.τ,3)) + " Nm"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | torque: " + '{: 1f}'.format(round(self.τ,3)) + " Nm"
 
     def device_info_string(self):
         """Prints the motor's ID and device type."""

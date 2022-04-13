@@ -8,7 +8,7 @@ import csv
 
 bias = 0.5896742308538513 # Nm
 delay = 5.0 # s
-test_torques = [0.0, 0.25,-0.25, 1.0,-1.0,5.0,-5.0,10.0,-10.0] # Nm
+test_torques = [20.0] # [0.0, 0.25,-0.25, 1.0,-1.0,5.0,-5.0,10.0,-10.0] # Nm
 torque = test_torques[0] # Nm
 
 csv_file_name = "log_adc_and_motor.csv"
