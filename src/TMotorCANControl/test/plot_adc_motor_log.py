@@ -19,7 +19,7 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
-test_dir= "test/saved_logs/"
+test_dir= "saved_logs/"
 log_dir="no_torque_tests/"
 name="no_torque_training_data"
 
@@ -77,7 +77,7 @@ plt.legend()
 
 plt.show()
 plt.savefig(test_dir + log_dir + name + ".png")
-plt.clf()
+# plt.clf()
 
 Kt = 0.146*9
 time = np.array(time)
