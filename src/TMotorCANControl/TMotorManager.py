@@ -6,8 +6,6 @@ import traceback
 from collections import namedtuple
 from enum import Enum
 from math import isfinite
-from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
-from NeuroLocoMiddleware.SysID import Chirp
 import numpy as np
 import warnings
 
