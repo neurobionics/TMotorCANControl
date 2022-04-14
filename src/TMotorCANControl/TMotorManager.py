@@ -40,7 +40,7 @@ class TMotorManager():
     used in the context of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES, use_current_compensation=True, use_torque_compensation=False):
+    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES, use_torque_compensation=False):
         """
         Sets up the motor manager. Note the device will not be powered on by this method! You must
         call __enter__, mostly commonly by using a with block, before attempting to control the motor.
@@ -74,7 +74,7 @@ class TMotorManager():
         self._times_past_current_limit = 0
         self._times_past_velocity_limit = 0
         self._angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians, only really matters if the motor's going super fast
-        self._current_threshold = MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor']) - 4.0 # A, only really matters if the current changes quick
+        self._current_threshold = self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) - 4.0 # A, only really matters if the current changes quick
         self._velocity_threshold = MIT_Params[self.type]['V_max'] - 2.0 # radians, only really matters if the motor's going super fast
         self._old_pos = None
         self._old_curr = 0.0
@@ -85,7 +85,6 @@ class TMotorManager():
         self._last_update_time = self._start_time
         self._last_command_time = None
         self._updated = False
-        self.use_current_compensation = use_current_compensation
         self.use_torque_compensation = use_torque_compensation
         self.SF = 1.0
         self.extra_plots = []
@@ -168,7 +167,8 @@ class TMotorManager():
         acceleration = (MIT_state.velocity - self._motor_state_async.velocity)/dt
 
         # The "Current" supplied by the controller is actually current*Kt, which approximates torque.
-        self._motor_state_async.set_state(MIT_state.position, MIT_state.velocity, MIT_state.current, MIT_state.temperature, MIT_state.error, acceleration)
+        self._motor_state_async.set_state(MIT_state.position, MIT_state.velocity, self.TMotor_current_to_qaxis_current(MIT_state.current), MIT_state.temperature, MIT_state.error, acceleration)
+        
         self._updated = True
 
     # this method is called by the user to synchronize the current state used by the controller
@@ -194,7 +194,7 @@ class TMotorManager():
 
         # artificially extending the range of the position, current, and velocity that we track
         P_max = MIT_Params[self.type]['P_max']+ 0.01
-        I_max =  MIT_Params[self.type]['T_max']/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor']) + 0.01
+        I_max =  self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) + 0.01
         V_max =  MIT_Params[self.type]['V_max']+ 0.01
 
         if self._old_pos is None:
@@ -254,11 +254,11 @@ class TMotorManager():
         doesn't account for friction losses.
         """
         if self._control_state == _TMotorManState.FULL_STATE:
-            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self._command.current*MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor'])
+            self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, self.qaxis_current_to_TMotor_current(self._command.current))
         elif self._control_state == _TMotorManState.IMPEDANCE:
             self._canman.MIT_controller(self.ID,self.type, self._command.position, self._command.velocity, self._command.kp, self._command.kd, 0.0)
         elif self._control_state == _TMotorManState.CURRENT:
-            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self._command.current*MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor']/MIT_Params[self.type]['Current_Factor'])
+            self._canman.MIT_controller(self.ID, self.type, 0.0, 0.0, 0.0, 0.0, self.qaxis_current_to_TMotor_current(self._command.current))
         elif self._control_state == _TMotorManState.IDLE:
             self._canman.MIT_controller(self.ID,self.type, 0.0, 0.0, 0.0, 0.0, 0.0)
         elif self._control_state == _TMotorManState.SPEED:

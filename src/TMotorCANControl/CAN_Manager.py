@@ -29,7 +29,7 @@ MIT_Params = {
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.11, # Need to use their constant for current conversion -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
+            'NM_PER_AMP': 0.11, # Need to use the right constant -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
             #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
@@ -46,6 +46,8 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
+            'Kt_TMotor' : 0.16, # from TMotor website (actually 1/Kvll)
+            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
             'NM_PER_AMP': 0.16, # UNTESTED CONSTANT!
             'GEAR_RATIO': 9.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
@@ -61,6 +63,8 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
+            'Kt_TMotor' : 0.068, # from TMotor website (actually 1/Kvll)
+            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
             'NM_PER_AMP': 0.068, # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
@@ -76,6 +80,8 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
+            'Kt_TMotor' : 0.095, # from TMotor website (actually 1/Kvll)
+            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
             'NM_PER_AMP': 0.095, # UNTESTED CONSTANT!
             'GEAR_RATIO': 10.0,
             'Use_derived_torque_constants': False, # true if you have a better model
@@ -91,6 +97,8 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
+            'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
+            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
             'NM_PER_AMP': 0.091,  # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
@@ -106,6 +114,8 @@ MIT_Params = {
             'Kp_max': 500.0,
             'Kd_min': 0.0,
             'Kd_max': 5.0,
+            'Kt_TMotor' : 0.119, # from TMotor website (actually 1/Kvll)
+            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
             'NM_PER_AMP': 0.119, # UNTESTED CONSTANT!
             'GEAR_RATIO': 80.0,
             'Use_derived_torque_constants': False, # true if you have a better model
@@ -446,12 +456,6 @@ class CAN_Manager(object):
         ]
         # print(data)
         self.send_MIT_message(motor_id, data)
-
-    def TMotor_current_to_qaxis_current(self, iTM, motor_type):
-        return MIT_Params[motor_type]['Current_Factor']*iTM/(MIT_Params[motor_type]['GEAR_RATIO']*MIT_Params[motor_type]['Kt_TMotor'])
-    
-    def qaxis_current_to_TMotor_current(self, iq, motor_type):
-        return iq*(MIT_Params[motor_type]['GEAR_RATIO']*MIT_Params[motor_type]['Kt_TMotor'])/MIT_Params[motor_type]['Current_Factor']
 
     # convert data recieved from motor in byte format back into floating point numbers in real units
     def parse_MIT_message(self, data, motor_type):
