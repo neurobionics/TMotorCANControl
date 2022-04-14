@@ -40,7 +40,7 @@ class TMotorManager():
     used in the context of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES, use_torque_compensation=False):
+    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES, use_current_compensation=True, use_torque_compensation=False):
         """
         Sets up the motor manager. Note the device will not be powered on by this method! You must
         call __enter__, mostly commonly by using a with block, before attempting to control the motor.
@@ -85,6 +85,7 @@ class TMotorManager():
         self._last_update_time = self._start_time
         self._last_command_time = None
         self._updated = False
+        self.use_current_compensation = use_current_compensation
         self.use_torque_compensation = use_torque_compensation
         self.SF = 1.0
         self.extra_plots = []
@@ -137,6 +138,13 @@ class TMotorManager():
 
         if not (etype is None):
             traceback.print_exception(etype, value, tb)
+
+    def TMotor_current_to_qaxis_current(self, iTM):
+        return MIT_Params[self.type]['Current_Factor']*iTM/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])
+    
+    def qaxis_current_to_TMotor_current(self, iq):
+        return iq*(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])/MIT_Params[self.type]['Current_Factor']
+
 
     # this method is called by the handler every time a message is recieved on the bus
     # from this motor, to store the most recent state information for later

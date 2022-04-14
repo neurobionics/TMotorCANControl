@@ -446,7 +446,13 @@ class CAN_Manager(object):
         ]
         # print(data)
         self.send_MIT_message(motor_id, data)
-        
+
+    def TMotor_current_to_qaxis_current(self, iTM, motor_type):
+        return MIT_Params[motor_type]['Current_Factor']*iTM/(MIT_Params[motor_type]['GEAR_RATIO']*MIT_Params[motor_type]['Kt_TMotor'])
+    
+    def qaxis_current_to_TMotor_current(self, iq, motor_type):
+        return iq*(MIT_Params[motor_type]['GEAR_RATIO']*MIT_Params[motor_type]['Kt_TMotor'])/MIT_Params[motor_type]['Current_Factor']
+
     # convert data recieved from motor in byte format back into floating point numbers in real units
     def parse_MIT_message(self, data, motor_type):
         """
@@ -491,4 +497,5 @@ class CAN_Manager(object):
                 print('  Temp: ' + str(temp))
                 print('  Error: ' + str(error))
 
-        return MIT_motor_state(position, velocity, MIT_Params[motor_type]['Current_Factor']*current/(MIT_Params[motor_type]['GEAR_RATIO']*MIT_Params[motor_type]['Kt_TMotor']), temp, error)
+        # returns the Tmotor "current" which is really a torque estimate
+        return MIT_motor_state(position, velocity, current, temp, error)
