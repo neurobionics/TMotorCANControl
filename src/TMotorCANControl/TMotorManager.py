@@ -137,7 +137,7 @@ class TMotorManager():
             traceback.print_exception(etype, value, tb)
 
     def TMotor_current_to_qaxis_current(self, iTM):
-        return MIT_Params[self.type]['Current_Factor']*iTM/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])
+        return -MIT_Params[self.type]['Current_Factor']*iTM/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])
     
     def qaxis_current_to_TMotor_current(self, iq):
         return iq*(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])/MIT_Params[self.type]['Current_Factor']
@@ -192,7 +192,7 @@ class TMotorManager():
 
         # artificially extending the range of the position, current, and velocity that we track
         P_max = MIT_Params[self.type]['P_max']+ 0.01
-        I_max =  self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) + 0.01
+        I_max =  self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) + 0.05
         V_max =  MIT_Params[self.type]['V_max']+ 0.01
 
         if self._old_pos is None:

@@ -37,6 +37,21 @@ with open(test_dir + log_dir + name + ".csv",'r') as fd:
             speed_motor.append(float(row[5]))
         i += 1
 
+time_dephy = []
+angle_dephy = []
+dephy_name = "log_mitry_dephy"
+with open(test_dir + log_dir + dephy_name + ".csv",'r') as fd:
+    reader = csv.reader(fd)
+    i = 0
+    for row in reader:
+        if i > 1:
+            time_dephy.append(float(row[0]))
+            angle_dephy.append(float(row[1]))
+        i += 1
+
+time_dephy = np.array(time_dephy)
+angle_dephy = np.array(angle_dephy)
+
 torque_adc_adjusted = -np.array(torque_adc)
 # og_torque = [0.091*9*i for i in current_motor]
 
@@ -88,7 +103,7 @@ plt.legend()
 
 plt.show()
 
-plt.savefig(test_dir + log_dir + name + ".png")
+plt.savefig(test_dir + log_dir + name + "_combined.png")
 # plt.clf()
 
 
