@@ -28,8 +28,8 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.11, # Need to use the right constant -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
+            'Current_Factor' : 1, # 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
+            'NM_PER_AMP': 0.091,# 0.11, # Need to use the right constant -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
             #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
