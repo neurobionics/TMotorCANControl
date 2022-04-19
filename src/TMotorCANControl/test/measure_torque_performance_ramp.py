@@ -13,7 +13,7 @@ max_torque = 25.0 # Nm
 
 τ_per_sec = max_torque/test_time
 
-csv_file_name = "current_comp_test_1.csv"
+csv_file_name = "saved_logs/sys_ID_final/trial.csv"
 with ADC_Manager(csv_file_name="dummyLog") as adc:
     with TMotorManager(motor_ID=3,CSV_file=None,use_torque_compensation=False) as dev:
         with open(csv_file_name,'w') as fd:

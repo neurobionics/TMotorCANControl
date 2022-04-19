@@ -20,32 +20,16 @@ torque_motor = []
 current_motor = []
 speed_motor = []
 
-test_dir = "test/saved_logs/"
-log_dir = "SysID/system_id_test_opposing_motor_2/"
-log_name = "log_adc_and_motor.csv"
-with open(test_dir + log_dir + log_name,'r') as fd:
+test_dir= "saved_logs/"
+log_dir="sys_ID_final/"
+name="trial8"
+
+with open(test_dir + log_dir + name + ".csv",'r') as fd:
     reader = csv.reader(fd)
     i = 0
     for row in reader:
         if i > 1:
             time.append(float(row[0]))
-            torque_command.append(float(row[1]))
-            torque_adc.append(float(row[2]))
-            torque_motor.append(float(row[3]))
-            current_motor.append(float(row[4]))
-            speed_motor.append(float(row[5]))
-        i += 1
-
-test_dir = "test/saved_logs/"
-log_dir = "no_torque_tests/"
-log_name = "no_torque_training_data.csv"
-prev_end_time = time[-1]
-with open(test_dir + log_dir + log_name,'r') as fd:
-    reader = csv.reader(fd)
-    i = 0
-    for row in reader:
-        if i > 1:
-            time.append(float(row[0]) + prev_end_time)
             torque_command.append(float(row[1]))
             torque_adc.append(float(row[2]))
             torque_motor.append(float(row[3]))
@@ -104,6 +88,6 @@ plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.legend()
 plt.show()
-plt.savefig('plots/ADC_Motor_Torque.png')
+plt.savefig('ADC_Motor_Torque.png')
 plt.clf()
 
