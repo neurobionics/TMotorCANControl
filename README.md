@@ -48,8 +48,9 @@ And motor control could be entered as such for an AK80-9 motor with CAN ID 3:
 with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars=logvars) as dev:
 ```
 
-The motor can be controlled in current/torque or impedance mode. Additionally, both a
-current/torque and a position could be specified, in what we call "Full State Feedback" mode.
+The motor can be controlled in current/torque, velocity, or impedance mode. Additionally, a
+current/torque, a velocity, and a position could be specified, in what we call "Full State Feedback" mode, 
+which makes full use of the functionality of the controller on the TMotor driver board.
 Before using any of these control modes, the mode must be entered by calling the appropriate 
 function, as follows:
 
