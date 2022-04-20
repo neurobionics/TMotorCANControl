@@ -21,7 +21,7 @@ current_motor = []
 speed_motor = []
 
 test_dir= "saved_logs/"
-log_dir="torque_vary_with_angle/synchronized_trial_8/"
+log_dir="torque_vary_with_angle/synchronized_trial_7/"
 name="test-opposing-motor"
 
 
@@ -62,7 +62,11 @@ time = time[time>threshold1]
 # time = time[time<threshold2]
 
 time_dephy = np.array(time_dephy) + threshold1
-angle_dephy = ((np.array(angle_dephy)/50)*9*21)
+
+num_pole_pairs = 21
+tmotor_gear_ratio = 9
+gearbox_gear_ratio = 50
+angle_dephy = ((np.array(angle_dephy)/gearbox_gear_ratio)*tmotor_gear_ratio*num_pole_pairs)
 
 angle_dephy_func = interpolate.interp1d(time_dephy,angle_dephy, kind='linear',fill_value="extrapolate")
 angle_dephy_adjusted = angle_dephy_func(time)
@@ -74,7 +78,7 @@ cutoff = 10.0  # desired cutoff frequency of the filter, Hz
 
 torque_adc_filtered = butter_lowpass_filter(torque_adc_adjusted, cutoff, fs, order).reshape(-1,)
 
-torque_flucuation_magnitude = (torque_adc_adjusted.max() - torque_adc_adjusted.min())/2
+torque_flucuation_magnitude = (torque_adc_adjusted[time < 30].max() - torque_adc_adjusted[time < 30].min())/2
 print("Torque fluctuation: +-" + str(torque_flucuation_magnitude) + "Nm")
 
 print("Average τ_adc: " + str(np.average(torque_adc_filtered)))
@@ -95,21 +99,21 @@ plt.legend()
 
 plt.show()
 
-plt.savefig(test_dir + log_dir + name + ".png")
+# plt.savefig(test_dir + log_dir + name + ".png")
 plt.clf()
-
-plt.plot(angle_dephy_adjusted[angle_dephy_adjusted < 21*2],torque_adc_adjusted[angle_dephy_adjusted < 21*2],label="(worst torque fluctuation: +/- " + str(round(torque_flucuation_magnitude,2)) + "Nm)")
+num_cycles= 5
+plt.plot(angle_dephy_adjusted[angle_dephy_adjusted < 3.14*2*num_cycles],torque_adc_adjusted[angle_dephy_adjusted < 3.14*2*num_cycles],label="(worst torque fluctuation: +/- " + str(round(torque_flucuation_magnitude,2)) + "Nm)")
 
 plt.title('Torque vs Angle')
 plt.ylabel('Torque [Nm]')
-plt.xlabel('Phase-Angle [rad]')
+plt.xlabel('Phase Angle [rad]')
 plt.grid(True)
 plt.legend()
 
 
 plt.show()
 
-plt.savefig(test_dir + log_dir + dephy_name + "_combined.png")
+# plt.savefig(test_dir + log_dir + dephy_name + "_combined.png")
 # plt.clf()
 
 
