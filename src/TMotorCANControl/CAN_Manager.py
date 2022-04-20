@@ -47,8 +47,8 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.16, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'Kt_actual': 0.16, # UNTESTED CONSTANT!
+            'Current_Factor' : 0.59, # UNTESTED CONSTANT!
+            'Kt_actual': 0.206, # UNTESTED CONSTANT!
             'GEAR_RATIO': 9.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -64,8 +64,8 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.068, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'Kt_actual': 0.068, # UNTESTED CONSTANT!
+            'Current_Factor' : 0.59, # # UNTESTED CONSTANT!
+            'Kt_actual': 0.087, # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -81,8 +81,8 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.095, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'Kt_actual': 0.095, # UNTESTED CONSTANT!
+            'Current_Factor' : 0.59, # # UNTESTED CONSTANT!
+            'Kt_actual': 0.122, # UNTESTED CONSTANT!
             'GEAR_RATIO': 10.0,
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -98,8 +98,8 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'Kt_actual': 0.091,  # UNTESTED CONSTANT!
+            'Current_Factor' : 0.59, # # UNTESTED CONSTANT!
+            'Kt_actual': 0.017,  # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -115,12 +115,11 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.119, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'Kt_actual': 0.119, # UNTESTED CONSTANT!
+            'Current_Factor' : 0.59, # # UNTESTED CONSTANT!
+            'Kt_actual': 0.153, # UNTESTED CONSTANT!
             'GEAR_RATIO': 80.0,
             'Use_derived_torque_constants': False, # true if you have a better model
         }
-
 }
 """
 A Dictionary containing the parameters of each type of motor, as well as the error
