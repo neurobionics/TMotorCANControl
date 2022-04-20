@@ -28,12 +28,12 @@ MIT_Params = {
             'Kd_min': 0.0,
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
-            'Current_Factor' : 1, # 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.091,# 0.11, # Need to use the right constant -- 0.146 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
+            'Current_Factor' : 0.59, # to correct the qaxis current 
+            'Kt_actual': 0.115,# Need to use the right constant -- 0.115 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.
             'GEAR_RATIO': 9.0, # hence the 9 in the name
             'Use_derived_torque_constants': True, # true if you have a better model
-            #         bias            nonlinear torque const multipliers  coulomb friction   gear friction
-            'a_hat' : [0.0,  8.23741648e-01, 4.57963164e-04,     2.96032614e-01, 9.31279510e-02]# [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
+            'a_hat' : [0.0, 1.15605006e+00, 4.17389589e-04, 2.68556072e-01, 4.90424140e-02]
+            #'a_hat' : [0.0,  8.23741648e-01, 4.57963164e-04,     2.96032614e-01, 9.31279510e-02]# [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]
         },
         'AK10-9':{
             'P_min' : -12.5,
@@ -48,7 +48,7 @@ MIT_Params = {
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.16, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.16, # UNTESTED CONSTANT!
+            'Kt_actual': 0.16, # UNTESTED CONSTANT!
             'GEAR_RATIO': 9.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -65,7 +65,7 @@ MIT_Params = {
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.068, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.068, # UNTESTED CONSTANT!
+            'Kt_actual': 0.068, # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -82,7 +82,7 @@ MIT_Params = {
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.095, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.095, # UNTESTED CONSTANT!
+            'Kt_actual': 0.095, # UNTESTED CONSTANT!
             'GEAR_RATIO': 10.0,
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -99,7 +99,7 @@ MIT_Params = {
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.091,  # UNTESTED CONSTANT!
+            'Kt_actual': 0.091,  # UNTESTED CONSTANT!
             'GEAR_RATIO': 6.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
@@ -116,7 +116,7 @@ MIT_Params = {
             'Kd_max': 5.0,
             'Kt_TMotor' : 0.119, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.58925565098, # to correct the qaxis current (1/(1.2*sqrt(2)))
-            'NM_PER_AMP': 0.119, # UNTESTED CONSTANT!
+            'Kt_actual': 0.119, # UNTESTED CONSTANT!
             'GEAR_RATIO': 80.0,
             'Use_derived_torque_constants': False, # true if you have a better model
         }

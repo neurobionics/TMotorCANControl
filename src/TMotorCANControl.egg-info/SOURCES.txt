@@ -26,10 +26,12 @@ src/TMotorCANControl/test/full_feature_demo.py
 src/TMotorCANControl/test/measure_torque_compensation.py
 src/TMotorCANControl/test/measure_torque_performance.py
 src/TMotorCANControl/test/measure_torque_performance_ramp.py
+src/TMotorCANControl/test/measure_torque_performance_step.py
 src/TMotorCANControl/test/plot_adc_motor_dephy_log.py
 src/TMotorCANControl/test/plot_adc_motor_log.py
 src/TMotorCANControl/test/plot_log.py
 src/TMotorCANControl/test/test_2_DOF.py
+src/TMotorCANControl/test/test_canman.py
 src/TMotorCANControl/test/test_current_chirp.py
 src/TMotorCANControl/test/test_current_step.py
 src/TMotorCANControl/test/test_full_state_feedback.py

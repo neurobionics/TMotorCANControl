@@ -72,11 +72,12 @@ class TMotorManager():
         self._times_past_current_limit = 0
         self._times_past_velocity_limit = 0
         self._angle_threshold = MIT_Params[self.type]['P_max'] - 2.0 # radians, only really matters if the motor's going super fast
-        self._current_threshold = self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) - 4.0 # A, only really matters if the current changes quick
+        self._current_threshold = self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) - 3.0 # A, only really matters if the current changes quick
         self._velocity_threshold = MIT_Params[self.type]['V_max'] - 2.0 # radians, only really matters if the motor's going super fast
         self._old_pos = None
         self._old_curr = 0.0
         self._old_vel = 0.0
+        self._old_current_zone = 0
 
         self._entered = False
         self._start_time = time.time()
@@ -137,7 +138,7 @@ class TMotorManager():
             traceback.print_exception(etype, value, tb)
 
     def TMotor_current_to_qaxis_current(self, iTM):
-        return -MIT_Params[self.type]['Current_Factor']*iTM/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])
+        return MIT_Params[self.type]['Current_Factor']*iTM/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])
     
     def qaxis_current_to_TMotor_current(self, iq):
         return iq*(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])/MIT_Params[self.type]['Current_Factor']
@@ -169,6 +170,7 @@ class TMotorManager():
         
         self._updated = True
 
+    
     # this method is called by the user to synchronize the current state used by the controller
     # with the most recent message recieved
     def update(self):
@@ -192,9 +194,9 @@ class TMotorManager():
 
         # artificially extending the range of the position, current, and velocity that we track
         P_max = MIT_Params[self.type]['P_max']+ 0.01
-        I_max =  self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) + 0.05
+        I_max =  self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max']) + 1.0
         V_max =  MIT_Params[self.type]['V_max']+ 0.01
-
+        
         if self._old_pos is None:
             self._old_pos = self._motor_state_async.position
         old_pos = self._old_pos
@@ -208,15 +210,44 @@ class TMotorManager():
         thresh_pos = self._angle_threshold
         thresh_curr = self._current_threshold
         thresh_vel = self._velocity_threshold
+        
+        curr_command = self._command.current
 
+        actual_current = new_curr
+
+        # The TMotor will wrap around to -max at the limits for all values it returns!! Account for this
         if (thresh_pos <= new_pos and new_pos <= P_max) and (-P_max <= old_pos and old_pos <= -thresh_pos):
             self._times_past_position_limit -= 1
         elif (thresh_pos <= old_pos and old_pos <= P_max) and (-P_max <= new_pos and new_pos <= -thresh_pos) :
             self._times_past_position_limit += 1
+
+        # current is basically the same as position, but if you instantly command a switch it can actually change fast enough
+        # to throw this off, so that is accounted for too. We just put a hard limit on the current to solve current jitter problems.
         if (thresh_curr <= new_curr and new_curr <= I_max) and (-I_max <= old_curr and old_curr <= -thresh_curr):
-            self._times_past_current_limit -= 1
-        elif (thresh_curr <= old_curr and old_curr <= I_max) and (-I_max <= new_curr and new_curr <= -thresh_curr) :
-            self._times_past_current_limit += 1
+            # self._old_current_zone = -1
+            # if (thresh_curr <= curr_command and curr_command <= I_max):
+            #     self._times_past_current_limit -= 1
+            if curr_command > 0:
+                actual_current = self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max'])
+            elif curr_command < 0:
+                actual_current = -self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max'])
+            else:
+                actual_current = -self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max'])
+            new_curr = actual_current
+        elif (thresh_curr <= old_curr and old_curr <= I_max) and (-I_max <= new_curr and new_curr <= -thresh_curr):
+            # self._old_current_zone = 1
+            # if not (-I_max <= curr_command and curr_command <= -thresh_curr):
+            #     self._times_past_current_limit += 1
+            if curr_command > 0:
+                actual_current = self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max'])
+            elif curr_command < 0:
+                actual_current = -self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max'])
+            else:
+                actual_current = self.TMotor_current_to_qaxis_current(MIT_Params[self.type]['T_max'])
+            new_curr = actual_current
+            
+
+        # velocity should work the same as position
         if (thresh_vel <= new_vel and new_vel <= V_max) and (-V_max <= old_vel and old_vel <= -thresh_vel):
             self._times_past_velocity_limit -= 1
         elif (thresh_vel <= old_vel and old_vel <= V_max) and (-V_max <= new_vel and new_vel <= -thresh_vel) :
@@ -225,19 +256,19 @@ class TMotorManager():
         # update expanded state variables
         self._old_pos = new_pos
         self._old_curr = new_curr
-        self._old_pos = new_pos
+        self._old_vel = new_vel
 
         self._motor_state.set_state_obj(self._motor_state_async)
-        self._motor_state.position += self._times_past_position_limit*2*P_max
-        self._motor_state.current += self._times_past_current_limit*2*I_max
-        self._motor_state.velocity += self._times_past_velocity_limit*2*V_max
+        self._motor_state.position += self._times_past_position_limit*2*MIT_Params[self.type]['P_max']
+        self._motor_state.current = actual_current
+        self._motor_state.velocity += self._times_past_velocity_limit*2*MIT_Params[self.type]['V_max']
         
         # send current motor command
         self._send_command()
 
         # writing to log file
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + [data for data in self.extra_plots])
+            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + self._times_past_current_limit +[data for data in self.extra_plots])
 
         self._updated = False
     
@@ -344,7 +375,7 @@ class TMotorManager():
         """
         if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
             a_hat = MIT_Params[self.type]['a_hat']
-            kt = MIT_Params[self.type]["NM_PER_AMP"]
+            kt = MIT_Params[self.type]["Kt_actual"]
             gr = MIT_Params[self.type]["GEAR_RATIO"]
             ϵ = 0.1
             i = self.get_current_qaxis_amps()
@@ -352,7 +383,7 @@ class TMotorManager():
 
             return a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ) - a_hat[4]*np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )
         else:
-            return self.get_current_qaxis_amps()*MIT_Params[self.type]["NM_PER_AMP"]*MIT_Params[self.type]["GEAR_RATIO"]
+            return self.get_current_qaxis_amps()*MIT_Params[self.type]["Kt_actual"]*MIT_Params[self.type]["GEAR_RATIO"]
 
     # uses plain impedance mode, will send 0.0 for current command.
     def set_impedance_gains_real_unit(self, kp=0, ki=0, K=0.08922, B=0.0038070, ff=0):
@@ -475,7 +506,7 @@ class TMotorManager():
         """
         if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
             a_hat = MIT_Params[self.type]['a_hat']
-            kt = MIT_Params[self.type]["NM_PER_AMP"]
+            kt = MIT_Params[self.type]["Kt_actual"]
             gr = MIT_Params[self.type]["GEAR_RATIO"]
             ϵ = 1.0
             i = self.get_current_qaxis_amps()
@@ -486,7 +517,7 @@ class TMotorManager():
             Iq_des = (torque - bias + friction )/torque_constant
             self.set_motor_current_qaxis_amps(Iq_des)
         else:
-            self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["NM_PER_AMP"]/MIT_Params[self.type]["GEAR_RATIO"]) )
+            self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["Kt_actual"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
@@ -496,7 +527,7 @@ class TMotorManager():
         Args:
             torque: The desired motor-side torque in Nm.
         """
-        self.set_output_torque_newton_meters(torque*MIT_Params[self.type]["NM_PER_AMP"])
+        self.set_output_torque_newton_meters(torque*MIT_Params[self.type]["Kt_actual"])
 
     def set_motor_angle_radians(self, pos):
         """
