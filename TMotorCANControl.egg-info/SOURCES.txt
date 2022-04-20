@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-setup.cfg
-TMotorCANControl.egg-info/PKG-INFO
-TMotorCANControl.egg-info/SOURCES.txt
-TMotorCANControl.egg-info/dependency_links.txt
-TMotorCANControl.egg-info/requires.txt
-TMotorCANControl.egg-info/top_level.txt

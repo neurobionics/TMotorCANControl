@@ -21,7 +21,7 @@ current_motor = []
 speed_motor = []
 
 test_dir= "saved_logs/"
-log_dir="torque_vary_with_angle/synchronized_trial_7/"
+log_dir="torque_vary_with_angle/synchronized_trial_3/"
 name="test-opposing-motor"
 
 
@@ -78,7 +78,7 @@ cutoff = 10.0  # desired cutoff frequency of the filter, Hz
 
 torque_adc_filtered = butter_lowpass_filter(torque_adc_adjusted, cutoff, fs, order).reshape(-1,)
 
-torque_flucuation_magnitude = (torque_adc_adjusted[time < 30].max() - torque_adc_adjusted[time < 30].min())/2
+torque_flucuation_magnitude = (torque_adc_adjusted[time < 30].max() - torque_adc_adjusted[time < 30].min())/np.average(torque_adc_filtered)
 print("Torque fluctuation: +-" + str(torque_flucuation_magnitude) + "Nm")
 
 print("Average τ_adc: " + str(np.average(torque_adc_filtered)))
@@ -96,21 +96,18 @@ plt.ylabel('Torque [Nm]')
 plt.xlabel('Time [s]')
 plt.grid(True)
 plt.legend()
-
 plt.show()
 
 # plt.savefig(test_dir + log_dir + name + ".png")
 plt.clf()
 num_cycles= 5
-plt.plot(angle_dephy_adjusted[angle_dephy_adjusted < 3.14*2*num_cycles],torque_adc_adjusted[angle_dephy_adjusted < 3.14*2*num_cycles],label="(worst torque fluctuation: +/- " + str(round(torque_flucuation_magnitude,2)) + "Nm)")
+plt.plot(angle_dephy_adjusted[angle_dephy_adjusted < 3.14*2*num_cycles],torque_adc_adjusted[angle_dephy_adjusted < 3.14*2*num_cycles],label="(worst torque fluctuation: " + str(round(torque_flucuation_magnitude,2)) + "%)")
 
 plt.title('Torque vs Angle')
 plt.ylabel('Torque [Nm]')
-plt.xlabel('Phase Angle [rad]')
+plt.xlabel('Phase Angle (5 cycles) [rad]')
 plt.grid(True)
 plt.legend()
-
-
 plt.show()
 
 # plt.savefig(test_dir + log_dir + dephy_name + "_combined.png")
