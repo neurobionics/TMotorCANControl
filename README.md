@@ -56,16 +56,19 @@ function, as follows:
 - set_impedance_gains_real_unit(K=stiffness,B=damping): Used to enter impedance control only mode.
 - set_current_gains(): Used to enter current control only mode, for current or torque control.
 - set_impedance_gains_real_unit_full_state_feedback(K=stiffness,B=damping): Used to enter full state feedback mode.
+- set_speed_gains(kd=velocity proportional gain): Used to enter velocity control only mode. This uses the "damping" gain for the impedance controller as a "P" gain for velocity commands.
 
 Once entered, the motor can be controlled in any of these modes by setting the TMotorManager's
 internal command, and then calling the update() method to send the command. The values of the
 internal command can be set with the following methods:
 
-- set_output_angle_radians(pos): Sets the position command to "pos" radians
-- set_motor_current_qaxis_amps(current): Sets the current command to "current" amps
-- set_output_torque_newton_meters(torque): Sets the current command based on the torque supplied
+- set_output_angle_radians(pos): Sets the position command to "pos" radians.
+- set_motor_current_qaxis_amps(current): Sets the current command to "current" amps.
+- set_output_torque_newton_meters(torque): Sets the current command based on the torque supplied.
+- set_output_velocity_radians_per_second(vel): Sets velocity command to "vel" rad/s.
 - set_motor_torque_newton_meters(torque): Sets torque command based on the torque specified, adjusted for the gear ratio to control motor-side torque.
 - set_motor_angle_radians(pos): Sets position command based on the position specified, adjusted for the gear ratio to control motor-side position.
+- set_motor_velocity_radians_per_second(vel): Sets velocity command based on the velocity specified, adjusted for the gear ratio to control motor-side velocity.
 
 Furthermore, the motor state can be accessed with the following methods. The state is updated
 every time the update() method is called, which are pretty self explanitory.
