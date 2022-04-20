@@ -121,7 +121,7 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars
         dev.θ = 3.14
 ```
 
-For more examples, see the src/TMotorCANControl/test folder. Have fun controlling some TMotors!
+For more examples, see the src/TMotorCANControl/demo folder. Have fun controlling some TMotors!
 
 ## Other Resources
 1. [Setup Instructions on the OSL Website](https://opensourceleg.com/TMotorCANControl/)
