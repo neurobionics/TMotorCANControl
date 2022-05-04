@@ -139,5 +139,4 @@ Yoyo's youtube channel has some tutorials on how to use the RLink software.
 This is another, more low-level library for controlling these motors that functions simillarly to
 our CAN_Manager class.
 
-This work is performed under the [Neurobionics Laboratory](https://neurobionics.robotics.umich.edu/)
-under Drs. Elliott Rouse, and Gray Thomas.
+For questions, please contact Mitry Anderson or Vamsi Peddinti. 
