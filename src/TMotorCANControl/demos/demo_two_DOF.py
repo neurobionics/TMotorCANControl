@@ -7,8 +7,8 @@ from TMotorCANControl.TMotorManager import TMotorManager
 ID_1 = 3
 ID_2 = 2
 
-Type_1 = 'AK80-9'
-Type_2 = 'AK80-9'
+Type_1 = 'AK10-9'
+Type_2 = 'AK10-9'
 
 
 def two_DOF(dev1,dev2):

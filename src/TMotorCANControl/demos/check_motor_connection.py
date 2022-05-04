@@ -1,7 +1,7 @@
 from TMotorCANControl.TMotorManager import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK80-9'
+Type = 'AK10-9'
 ID = 3
 
 with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file=None) as dev:

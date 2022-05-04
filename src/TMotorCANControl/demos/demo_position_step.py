@@ -4,7 +4,7 @@ import time
 from TMotorCANControl.TMotorManager import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK80-9'
+Type = 'AK10-9'
 ID = 3
 
 def position_step(dev):
