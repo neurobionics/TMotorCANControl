@@ -68,6 +68,21 @@ Servo_Params = {
             'GEAR_RATIO': 9.0, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
+        'AK80-9':{
+            'P_min' : -32000,#-3200 deg
+            'P_max' : 32000,#3200 deg
+            'V_min' : -32000,#-320000 rpm electrical speed
+            'V_max' : 32000,# 320000 rpm electrical speed
+            'Curr_min':-1500,#-60A is the acutal limit but set to -15A
+            'Curr_max':1500,#60A is the acutal limit but set to 15A
+            'T_min' : -30,#NM
+            'T_max' : 30,#NM
+            'Kt_TMotor' : 0.091, # from TMotor website (actually 1/Kvll)
+            'Current_Factor' : 0.59,
+            'Kt_actual': 0.115,
+            'GEAR_RATIO': 9.0, 
+            'Use_derived_torque_constants': False, # true if you have a better model
+        },
         'CAN_PACKET_ID':{
 
             'CAN_PACKET_SET_DUTY':0, #Motor runs in duty cycle mode
@@ -126,10 +141,11 @@ class servo_motor_state:
         self.temperature = other_motor_state.temperature
         self.error = other_motor_state.error
         self.acceleration = other_motor_state.acceleration
+
 # Data structure to store MIT_command that will be sent upon update
 class servo_command:
     """Data structure to store MIT_command that will be sent upon update"""
-    def __init__(self, position, velocity, current):
+    def __init__(self, position, velocity, current, duty):
         """
         Sets the motor state to the input.
 
@@ -143,12 +159,13 @@ class servo_command:
         self.position = position
         self.velocity = velocity
         self.current = current
+        self.duty = duty
 
-# motor state from the controller, uneditable named tuple
-servo_motor_state = namedtuple('motor_state', 'position velocity current temperature error')
-"""
-Motor state from the controller, uneditable named tuple
-"""
+# # motor state from the controller, uneditable named tuple
+# servo_motor_state = namedtuple('motor_state', 'position velocity current temperature error')
+# """
+# Motor state from the controller, uneditable named tuple
+# """
 
 # python-can listener object, with handler to be called upon reception of a message on the CAN bus
 class motorListener(can.Listener):
@@ -374,7 +391,7 @@ class CAN_Manager_servo(object):
                 print("    Message NOT sent")
 
     # send the power on code
-    def run_motor(self, motor_id):
+    def power_on(self, motor_id):
         """
         Sends the power on code to motor_id.
 
@@ -383,7 +400,7 @@ class CAN_Manager_servo(object):
             Data: This is obtained from the datasheet.
         """
 
-        self.send_servo_message(motor_id, [ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0XFC])
+        self.send_servo_message(motor_id, [ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0XFC], 0)
         
     # send the power off code
     def power_off(self, motor_id):
@@ -393,7 +410,7 @@ class CAN_Manager_servo(object):
         Args:
             motor_id: The CAN ID of the motor to send the message to.
         """
-        self.send_servo_message(motor_id, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0XFD])
+        self.send_servo_message(motor_id, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0XFD], 0)
 
 
 #* Code for the working of different modes in servo mode. 
@@ -405,7 +422,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_duty(self, controller_id, duty):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, duty * 100000.0, send_index)
+        self.buffer_append_int32(buffer, int(duty * 100000.0), send_index)
         self.send_servo_message(controller_id|self.CAN_PACKET_SET_DUTY << 8, buffer, send_index)
 
     # Send Servo control message for current loop mode
@@ -413,7 +430,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_current(self,controller_id, current):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, current * 1000.0, send_index)
+        self.buffer_append_int32(buffer, int(current * 1000.0), send_index)
         self.send_servo_message(controller_id|self.CAN_PACKET_SET_CURRENT << 8, buffer, send_index)
 
     # Send Servo control message for current brake mode
@@ -421,7 +438,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_cb(self, controller_id, current):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, current * 1000.0, send_index)
+        self.buffer_append_int32(buffer, int(current * 1000.0), send_index)
         self.send_servo_message(controller_id| self.CAN_PACKET_SET_CURRENT_BRAKE << 8, buffer, send_index)
         
     # Send Servo control message for Velocity mode
@@ -429,7 +446,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_rpm(self,controller_id, rpm):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, rpm, send_index)
+        self.buffer_append_int32(buffer, int(rpm), send_index)
         self.send_servo_message(controller_id| self.CAN_PACKET_SET_RPM << 8, buffer, send_index)
     
     # Send Servo control message for Position Loop mode
@@ -437,7 +454,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_pos(self, controller_id, pos):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, pos * 1000000.0, send_index)
+        self.buffer_append_int32(buffer, int(pos * 1000000.0), send_index)
         self.send_servo_message(controller_id|self.CAN_PACKET_SET_POS << 8, buffer, send_index)
     
     #Set origin mode

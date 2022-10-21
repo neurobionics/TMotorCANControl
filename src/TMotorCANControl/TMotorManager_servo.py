@@ -67,7 +67,7 @@ class TMotorManager_servo():
 
         self._motor_state = servo_motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
         self._motor_state_async = servo_motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
-        self._command = servo_command(0.0,0.0,0.0)
+        self._command = servo_command(0.0,0.0,0.0,0.0)
         self._control_state = _TMotorManState_Servo.DUTY_CYCLE
         self._times_past_position_limit = 0
         self._times_past_current_limit = 0
@@ -222,15 +222,15 @@ class TMotorManager_servo():
         doesn't account for friction losses.
         """
         if self._control_state == _TMotorManState_Servo.DUTY_CYCLE:
-            self._canman.comm_can_set_duty(self._control_state,duty=0.2)
+            self._canman.comm_can_set_duty(self.ID,self._command.duty)
         elif self._control_state == _TMotorManState_Servo.CURRENT_LOOP:
-            self._canman.comm_can_set_current(self._control_state,current=1)
+            self._canman.comm_can_set_current(self.ID,self._command.current)
         elif self._control_state == _TMotorManState_Servo.CURRENT_BRAKE:
-            self._canman.comm_can_set_cb(self._control_state,current=1)
+            self._canman.comm_can_set_cb(self.ID,self._command.current)
         elif self._control_state == _TMotorManState_Servo.VELOCITY:
-            self._canman.comm_can_set_rpm(self,self._control_state, rpm=100)
+            self._canman.comm_can_set_rpm(self.ID, self._command.velocity)
         elif self._control_state == _TMotorManState_Servo.POSITION:
-            self._canman.comm_can_set_rpm(self,self._control_state, pos=100)
+            self._canman.comm_can_set_rpm(self.ID, self._command.position)
 
 
         #TODO:Add other modes
