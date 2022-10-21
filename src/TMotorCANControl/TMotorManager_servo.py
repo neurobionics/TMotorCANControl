@@ -193,8 +193,6 @@ class TMotorManager_servo():
         new_curr = self._motor_state_async.current
         new_vel = self._motor_state_async.velocity
 
-        
-            
         # update expanded state variables
         self._old_pos = new_pos
         self._old_curr = new_curr
@@ -468,6 +466,7 @@ class TMotorManager_servo():
             The most recently updated motor-side torque in Nm.
         """
         return self.get_output_torque_newton_meters()*Servo_Params[self.type]["GEAR_RATIO"]
+
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
