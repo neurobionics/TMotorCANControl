@@ -91,10 +91,10 @@ class TMotorManager_servo():
         
         self.log_vars = log_vars
         self.LOG_FUNCTIONS = {
-            "motor_position" : 0, 
-            "motor_speed" : 0, 
-            "motor_current" : 0, 
-            "motor_temperature" : 0,
+            "motor_position" : self.get_motor_angle_radians, 
+            "motor_speed" : self.get_motor_velocity_radians_per_second, 
+            "motor_current" : self.get_current_qaxis_amps, 
+            "motor_temperature" : self.get_temperature_celsius,
         }
         
         self._canman = CAN_Manager_servo()
@@ -208,7 +208,7 @@ class TMotorManager_servo():
 
         # writing to log file
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + self._times_past_current_limit +[data for data in self.extra_plots])
+            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
         self._updated = False
     # sends a command to the motor depending on whats controlm mode the motor is in
@@ -493,11 +493,11 @@ class TMotorManager_servo():
             self.power_on()
             time.sleep(0.001)
         success = True
-        time.sleep(0.1)
-        for i in range(10):
-            if Listener.get_message(timeout=0.1) is None:
-                success = False
-        self._canman.notifier.remove_listener(Listener)
+        # time.sleep(0.1)
+        # for i in range(10):
+        #     if Listener.get_message(timeout=0.1) is None:
+        #         success = False
+        # self._canman.notifier.remove_listener(Listener)
         return success
 
    

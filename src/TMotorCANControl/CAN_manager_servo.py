@@ -197,7 +197,7 @@ class motorListener(can.Listener):
 # A class to manage the low level CAN communication protocols
 class CAN_Manager_servo(object):
     """A class to manage the low level CAN communication protocols"""
-    debug = False
+    debug = True
     """
     Set to true to display every message sent and recieved for debugging.
     """
@@ -219,6 +219,8 @@ class CAN_Manager_servo(object):
             os.system( 'sudo /sbin/ip link set can0 down' )
             # start the CAN bus back up
             os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' )
+            # # increase transmit buffer length
+            # os.system( 'sudo ifconfig can0 txqueuelen 1000')
             # create a python-can bus object
             cls._instance.bus = can.interface.Bus(channel='can0', bustype='socketcan')# bustype='socketcan_native')
             # create a python-can notifier object, which motors can later subscribe to
@@ -292,10 +294,10 @@ class CAN_Manager_servo(object):
             number: value.
             index: Size of the buffer.
         """
-        buffer[(index)+1] = number >> 24
-        buffer[(index)+1] = number >> 16
-        buffer[(index)+1] = number >> 8
-        buffer[(index)+1] = number
+        buffer.append((number >> 24)&(0x000000FF))
+        buffer.append((number >> 16)&(0x000000FF))
+        buffer.append((number >> 8)&(0x000000FF))
+        buffer.append((number)&(0x000000FF))
 
     # Buffer allocation for 32 bit
     @staticmethod
@@ -386,9 +388,9 @@ class CAN_Manager_servo(object):
             self.bus.send(message)
             if self.debug:
                 print("    Message sent on " + str(self.bus.channel_info) )
-        except can.CanError:
+        except can.CanError as e:
             if self.debug:
-                print("    Message NOT sent")
+                print("    Message NOT sent: " + e.message)
 
     # send the power on code
     def power_on(self, motor_id):
@@ -423,7 +425,7 @@ class CAN_Manager_servo(object):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, int(duty * 100000.0), send_index)
-        self.send_servo_message(controller_id|self.CAN_PACKET_SET_DUTY << 8, buffer, send_index)
+        self.send_servo_message(controller_id|Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_DUTY'] << 8, buffer, send_index)
 
     # Send Servo control message for current loop mode
     #*Current loop mode: given the Iq current specified by the motor, the motor output torque = Iq *KT, so it can be used as a torque loop
@@ -480,7 +482,7 @@ class CAN_Manager_servo(object):
  
 
 #*****************Parsing message data********************************#
-    def parse_servo_message(self, data, motor_type):
+    def parse_servo_message(self, data):
         pos_int = data[0] << 8 | data[1]
         spd_int = data[2] << 8 | data[3]
         cur_int = data[4] << 8 | data[5]
