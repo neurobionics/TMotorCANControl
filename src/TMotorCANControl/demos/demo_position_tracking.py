@@ -5,7 +5,7 @@ from TMotorCANControl.TMotorManager import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
-ID = 3
+ID = 1
 
 def position_tracking(dev):
     dev.zero_position() # has a delay!

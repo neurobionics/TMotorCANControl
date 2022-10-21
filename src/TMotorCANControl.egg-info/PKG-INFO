@@ -1,10 +1,12 @@
 Metadata-Version: 2.1
 Name: TMotorCANControl
-Version: 1.1.11
+Version: 1.1.9
 Summary: A package to manage AK series T Motors over CAN
-Home-page: https://github.com/UM-LoCoLab/LocoLeg/tree/main/Code/TMotorCANControl
+Home-page: https://github.com/neurobionics/TMotorCANControl
 Author: Mitry Anderson
 Author-email: mitryand@umich.edu
+License: UNKNOWN
+Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: POSIX :: Linux
@@ -152,4 +154,7 @@ Yoyo's youtube channel has some tutorials on how to use the RLink software.
 This is another, more low-level library for controlling these motors that functions simillarly to
 our CAN_Manager class.
 
-For questions, please contact Mitry Anderson or Vamsi Peddinti. 
+This work is performed under the [Neurobionics Laboratory](https://neurobionics.robotics.umich.edu/)
+under Drs. Elliott Rouse, and Gray Thomas.
+
+

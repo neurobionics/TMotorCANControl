@@ -4,7 +4,7 @@ import time
 from TMotorCANControl.TMotorManager import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-ID_1 = 3
+ID_1 = 1
 ID_2 = 2
 
 Type_1 = 'AK10-9'

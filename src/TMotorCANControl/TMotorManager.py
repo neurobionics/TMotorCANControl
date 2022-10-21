@@ -268,7 +268,7 @@ class TMotorManager():
 
         # writing to log file
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
+            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + self._times_past_current_limit +[data for data in self.extra_plots])
 
         self._updated = False
     
