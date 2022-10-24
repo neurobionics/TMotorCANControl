@@ -190,9 +190,9 @@ class motorListener(can.Listener):
             msg: A python-can CAN message
         """
         data = bytes(msg.data)
-        ID = data[0]
+        ID = msg.arbitration_id & 0x00000FF
         if ID == self.motor.ID:
-            self.motor._update_state_async(self.canman.parse_servo_message(data, self.motor.type))
+            self.motor._update_state_async(self.canman.parse_servo_message(data))
 
 # A class to manage the low level CAN communication protocols
 class CAN_Manager_servo(object):
@@ -266,8 +266,8 @@ class CAN_Manager_servo(object):
             number: value.
             index: Size of the buffer.
         """
-        buffer[(index)+1] = number >> 8
-        buffer[(index)+1] = number
+        buffer.append((number >> 8)&(0x00FF))
+        buffer.append((number)&(0x00FF))
     
     # Buffer allocation for unsigned 16 bit
     @staticmethod
@@ -280,8 +280,8 @@ class CAN_Manager_servo(object):
             number: value.
             index: Size of the buffer.
         """
-        buffer[(index)+1] = number >> 8
-        buffer[(index)+1] = number
+        buffer.append((number >> 8)&(0x00FF))
+        buffer.append((number)&(0x00FF))
        
     # Buffer allocation for 32 bit
     @staticmethod
@@ -310,10 +310,10 @@ class CAN_Manager_servo(object):
             number: value.
             index: Size of the buffer.
         """
-        buffer[(index)+1] = number >> 24
-        buffer[(index)+1] = number >> 16
-        buffer[(index)+1] = number >> 8
-        buffer[(index)+1] = number
+        buffer.append((number >> 24)&(0x000000FF))
+        buffer.append((number >> 16)&(0x000000FF))
+        buffer.append((number >> 8)&(0x000000FF))
+        buffer.append((number)&(0x000000FF))
 
     # Buffer allocation for 64 bit
     @staticmethod
@@ -326,14 +326,14 @@ class CAN_Manager_servo(object):
             number: value.
             index: Size of the buffer.
         """
-        buffer[(index)+1] = number >> 56
-        buffer[(index)+1] = number >> 48
-        buffer[(index)+1] = number >> 40
-        buffer[(index)+1] = number >> 32
-        buffer[(index)+1] = number >> 24
-        buffer[(index)+1] = number >> 16
-        buffer[(index)+1] = number >> 8
-        buffer[(index)+1] = number
+        buffer.append((number >> 56)&(0x00000000000000FF))
+        buffer.append((number >> 48)&(0x00000000000000FF))
+        buffer.append((number >> 40)&(0x00000000000000FF))
+        buffer.append((number >> 31)&(0x00000000000000FF))
+        buffer.append((number >> 24)&(0x00000000000000FF))
+        buffer.append((number >> 16)&(0x00000000000000FF))
+        buffer.append((number >> 8)&(0x00000000000000FF))
+        buffer.append((number)&(0x00000000000000FF))
 
     # Buffer allocation for Unsigned 64 bit
     @staticmethod
@@ -346,14 +346,14 @@ class CAN_Manager_servo(object):
             number: value.
             index: Size of the buffer.
         """
-        buffer[(index)+1] = number >> 56
-        buffer[(index)+1] = number >> 48
-        buffer[(index)+1] = number >> 40
-        buffer[(index)+1] = number >> 32
-        buffer[(index)+1] = number >> 24
-        buffer[(index)+1] = number >> 16
-        buffer[(index)+1] = number >> 8
-        buffer[(index)+1] = number
+        buffer.append((number >> 56)&(0x00000000000000FF))
+        buffer.append((number >> 48)&(0x00000000000000FF))
+        buffer.append((number >> 40)&(0x00000000000000FF))
+        buffer.append((number >> 31)&(0x00000000000000FF))
+        buffer.append((number >> 24)&(0x00000000000000FF))
+        buffer.append((number >> 16)&(0x00000000000000FF))
+        buffer.append((number >> 8)&(0x00000000000000FF))
+        buffer.append((number)&(0x00000000000000FF))
 
 
 #******************END****************************#
@@ -370,7 +370,7 @@ class CAN_Manager_servo(object):
     # sends a message to the motor (when the motor is in Servo mode)
     def send_servo_message(self, motor_id, data,data_len):
         """
-        Sends an MIT Mode message to the motor, with a header of motor_id and data array of data
+        Sends a Servo Mode message to the motor, with a header of motor_id and data array of data
 
         Args:
             motor_id: The CAN ID of the motor to send to.
@@ -425,7 +425,7 @@ class CAN_Manager_servo(object):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, int(duty * 100000.0), send_index)
-        self.send_servo_message(controller_id|Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_DUTY'] << 8, buffer, send_index)
+        self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_DUTY'] << 8), buffer, send_index)
 
     # Send Servo control message for current loop mode
     #*Current loop mode: given the Iq current specified by the motor, the motor output torque = Iq *KT, so it can be used as a torque loop
@@ -433,7 +433,7 @@ class CAN_Manager_servo(object):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, int(current * 1000.0), send_index)
-        self.send_servo_message(controller_id|self.CAN_PACKET_SET_CURRENT << 8, buffer, send_index)
+        self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_CURRENT'] << 8), buffer, send_index)
 
     # Send Servo control message for current brake mode
     #*Current brake mode: the motor is fixed at the current position by the specified brake current given by the motor (pay attention to the motor temperature when using)
@@ -441,7 +441,7 @@ class CAN_Manager_servo(object):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, int(current * 1000.0), send_index)
-        self.send_servo_message(controller_id| self.CAN_PACKET_SET_CURRENT_BRAKE << 8, buffer, send_index)
+        self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_CURRENT_BRAKE'] << 8), buffer, send_index)
         
     # Send Servo control message for Velocity mode
     #*Velocity mode: the speed specified by the given motor
@@ -449,7 +449,7 @@ class CAN_Manager_servo(object):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, int(rpm), send_index)
-        self.send_servo_message(controller_id| self.CAN_PACKET_SET_RPM << 8, buffer, send_index)
+        self.send_servo_message(controller_id| (Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_RPM'] << 8), buffer, send_index)
     
     # Send Servo control message for Position Loop mode
     #*Position mode: Given the specified position of the motor, the motor will run to the specified position, (default speed 12000erpm acceleration 40000erpm)
@@ -457,14 +457,14 @@ class CAN_Manager_servo(object):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, int(pos * 1000000.0), send_index)
-        self.send_servo_message(controller_id|self.CAN_PACKET_SET_POS << 8, buffer, send_index)
+        self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_POS'] << 8), buffer, send_index)
     
     #Set origin mode
     #*0 means setting the temporary origin (power failure elimination), 1 means setting the permanent zero point (automatic parameter saving), 2means restoring the default zero point (automatic parameter saving)
     def comm_can_set_origin(self, controller_id, set_origin_mode) :
         send_index=0
         buffer=[]
-        self.send_servo_message(controller_id | self.CAN_PACKET_SET_ORIGIN_HERE << 8, buffer, send_index)
+        self.send_servo_message(controller_id |(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_ORIGIN_HERE'] << 8), buffer, send_index)
 
     #Position and Velocity Loop Mode
     #* Check documentation
@@ -475,11 +475,12 @@ class CAN_Manager_servo(object):
         self.buffer_append_int32(buffer, (pos * 10000.0), send_index)
         self.buffer_append_int16(buffer,spd, send_index1)
         self.buffer_append_int16(buffer,RPA, send_index1)
-        self.send_servo_message(controller_id |self.CAN_PACKET_SET_POS_SPD << 8, buffer, send_index)
+        self.send_servo_message(controller_id |(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_POS_SPD'] << 8), buffer, send_index)
 
    # TODO: Servo control mode for Setting origin and postion+velocity modes.
     #* **************************END************************************************#
  
+
 
 #*****************Parsing message data********************************#
     def parse_servo_message(self, data):
@@ -499,3 +500,10 @@ class CAN_Manager_servo(object):
                 print('  Temp: ' + str(motor_temp))
                 print('  Error: ' + str(motor_error))
         return servo_motor_state(motor_pos, motor_spd,motor_cur,motor_temp, motor_error)
+
+
+
+if __name__ == '__main__':
+    buff1 = []
+    CAN_Manager_servo.buffer_append_int32(buff1,-900,0)
+    print('{}'.format(', '.join(hex(d) for d in buff1)) )

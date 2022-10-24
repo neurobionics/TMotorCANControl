@@ -145,7 +145,7 @@ class TMotorManager_servo():
         from this motor, to store the most recent state information for later
         
         Args:
-            MIT_state: The MIT_Motor_State namedtuple with the most recent motor state.
+            servo_state: the servo_state object with the updated motor state
 
         Raises:
             RuntimeError when device sends back an error code that is not 0 (0 meaning no error)
@@ -154,12 +154,12 @@ class TMotorManager_servo():
             raise RuntimeError('Driver board error for device: ' + self.device_info_string() + ": " + Servo_Params['ERROR_CODES'][servo_state.error])
 
         now = time.time()
-        dt = self._last_update_time - now
         self._last_update_time = now
-        acceleration = (servo_state.velocity - self._motor_state_async.velocity)/dt
+        # dt = self._last_update_time - now
+        # acceleration = (servo_state.velocity - self._motor_state_async.velocity)/dt
 
         # The "Current" supplied by the controller is actually current*Kt, which approximates torque.
-        self._motor_state_async.set_state(servo_state.position, servo_state.velocity, self.TMotor_current_to_qaxis_current(servo_state.current),servo_state.temperature,servo_state.error, acceleration)
+        self._motor_state_async.set_state_obj(servo_state)
         
         self._updated = True
 
@@ -168,7 +168,7 @@ class TMotorManager_servo():
     # with the most recent message recieved
     def update(self):
         """
-        This method is called by the user to synchronize the current state used by the controller
+        This method is called by the user to synchronize the current state used by the controller/logger
         with the most recent message recieved, as well as to send the current command.
         """
 
@@ -185,23 +185,10 @@ class TMotorManager_servo():
         else:
             self._command_sent = False
 
-        
         if self._old_pos is None:
             self._old_pos = self._motor_state_async.position
-        
-        new_pos = self._motor_state_async.position
-        new_curr = self._motor_state_async.current
-        new_vel = self._motor_state_async.velocity
-
-        # update expanded state variables
-        self._old_pos = new_pos
-        self._old_curr = new_curr
-        self._old_vel = new_vel
 
         self._motor_state.set_state_obj(self._motor_state_async)
-        self._motor_state.position += self._times_past_position_limit*2*Servo_Params[self.type]['P_max']/10
-        self._motor_state.current = new_curr
-        self._motor_state.velocity += self._times_past_velocity_limit*2*Servo_Params[self.type]['V_max']/0.01
         
         # send current motor command
         self._send_command()
@@ -230,9 +217,7 @@ class TMotorManager_servo():
         elif self._control_state == _TMotorManState_Servo.VELOCITY:
             self._canman.comm_can_set_rpm(self.ID, self._command.velocity)
         elif self._control_state == _TMotorManState_Servo.POSITION:
-            self._canman.comm_can_set_rpm(self.ID, self._command.position)
-
-
+            self._canman.comm_can_set_pos(self.ID, self._command.position)
         #TODO:Add other modes
         else:
             raise RuntimeError("UNDEFINED STATE for device " + self.device_info_string())
@@ -315,17 +300,7 @@ class TMotorManager_servo():
         Returns:
             the most recently updated output torque in Nm
         """
-        if Servo_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
-            a_hat = Servo_Params[self.type]['a_hat']
-            kt = Servo_Params[self.type]["Kt_actual"]
-            gr = Servo_Params[self.type]["GEAR_RATIO"]
-            ϵ = 0.1
-            i = self.get_current_qaxis_amps()
-            v = self.get_motor_velocity_radians_per_second()
-
-            return a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ) - a_hat[4]*np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )
-        else:
-            return self.get_current_qaxis_amps()*Servo_Params[self.type]["Kt_actual"]*Servo_Params[self.type]["GEAR_RATIO"]
+        return self.get_current_qaxis_amps()*Servo_Params[self.type]["Kt_actual"]*Servo_Params[self.type]["GEAR_RATIO"]
 
 
 
@@ -339,9 +314,6 @@ class TMotorManager_servo():
         Args:
             pos: The desired output position in rads
         """
-        # position commands must be within a certain range :/
-        # pos = (np.abs(pos) % MIT_Params[self.type]["P_max"])*np.sign(pos) # this doesn't work because it will unwind itself!
-        # CANNOT Control using impedance mode for angles greater than 12.5 rad!!
         if np.abs(pos) >= Servo_Params[self.type]["P_max"]:
             raise RuntimeError("Cannot control using impedance mode for angles with magnitude greater than " + str(Servo_Params[self.type]["P_max"]) + "rad!")
         self._command.position = pos
@@ -372,7 +344,7 @@ class TMotorManager_servo():
         Args:
             current: the desired current in amps.
         """
-        if self._control_state not in [_TMotorManState_Servo.CURRENT_LOOP, _TMotorManState_Servo.DUTY_CYCLE]:
+        if self._control_state not in [_TMotorManState_Servo.CURRENT_LOOP, _TMotorManState_Servo.CURRENT_BRAKE]:
             raise RuntimeError("Attempted to send current command before entering current mode for device " + self.device_info_string()) 
         self._command.current = current
 
@@ -386,22 +358,7 @@ class TMotorManager_servo():
         Args:
             torque: The desired output torque in Nm.
         """
-        if Servo_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
-            a_hat = Servo_Params[self.type]['a_hat']
-            kt = Servo_Params[self.type]["Kt_actual"]
-            gr = Servo_Params[self.type]["GEAR_RATIO"]
-            ϵ = 0.1
-            i = self.get_current_qaxis_amps()
-            v = self.get_motor_velocity_radians_per_second()
-            bias = - a_hat[0]
-            friction = self.SF*(v/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i)) 
-            torque_constant = (gr*(a_hat[1]*kt - a_hat[2]*np.abs(i)))
-            Iq_des = (torque - bias + friction )/torque_constant
-            self.set_motor_current_qaxis_amps(Iq_des)
-        else:
-            self.set_motor_current_qaxis_amps((torque/Servo_Params[self.type]["Kt_actual"]/Servo_Params[self.type]["GEAR_RATIO"]) )
-
-
+        self.set_motor_current_qaxis_amps((torque/Servo_Params[self.type]["Kt_actual"]/Servo_Params[self.type]["GEAR_RATIO"]) )
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
