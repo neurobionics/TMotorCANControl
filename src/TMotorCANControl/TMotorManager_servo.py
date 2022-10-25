@@ -63,6 +63,7 @@ class TMotorManager_servo():
         self.type = motor_type
         self.ID = motor_ID
         self.csv_file_name = CSV_file
+        self.max_temp = 80 # max temp in deg C, can update later
         print("Initializing device: " + self.device_info_string())
 
         self._motor_state = servo_motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
@@ -176,6 +177,8 @@ class TMotorManager_servo():
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
 
+        if self.get_temperature_celsius() > self.max_temp:
+            raise RuntimeError("Temperature greater than {}C for device: {}".format(self.max_temp, self.device_info_string()))
         # check that the motor data is recent
         # print(self._command_sent)
         now = time.time()
@@ -185,10 +188,8 @@ class TMotorManager_servo():
         else:
             self._command_sent = False
 
-        if self._old_pos is None:
-            self._old_pos = self._motor_state_async.position
-
         self._motor_state.set_state_obj(self._motor_state_async)
+        self._motor_state.position = self._motor_state.position/Servo_Params[self.type]["GEAR_RATIO"]
         
         # send current motor command
         self._send_command()
@@ -221,6 +222,7 @@ class TMotorManager_servo():
         #TODO:Add other modes
         else:
             raise RuntimeError("UNDEFINED STATE for device " + self.device_info_string())
+
         self._last_command_time = time.time()
 
     # Basic Motor Utility Commands
@@ -279,7 +281,7 @@ class TMotorManager_servo():
         Returns:
         The most recently updated output angle in radians
         """
-        return self._motor_state.position
+        return self._motor_state.position*np.pi/180
 
     def get_output_velocity_radians_per_second(self):
         """
@@ -302,7 +304,8 @@ class TMotorManager_servo():
         """
         return self.get_current_qaxis_amps()*Servo_Params[self.type]["Kt_actual"]*Servo_Params[self.type]["GEAR_RATIO"]
 
-
+    def enter_current_control(self):
+        self._control_state = _TMotorManState_Servo.CURRENT_LOOP
 
     # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):
@@ -316,7 +319,7 @@ class TMotorManager_servo():
         """
         if np.abs(pos) >= Servo_Params[self.type]["P_max"]:
             raise RuntimeError("Cannot control using impedance mode for angles with magnitude greater than " + str(Servo_Params[self.type]["P_max"]) + "rad!")
-        self._command.position = pos
+        self._command.position = pos*np.pi/180
 
     def set_output_velocity_radians_per_second(self, vel):
         """
@@ -395,7 +398,7 @@ class TMotorManager_servo():
         Returns:
             The most recently updated motor-side angle in rad.
         """
-        return self._motor_state.position*Servo_Params[self.type]["GEAR_RATIO"]
+        return self._motor_state.position*np.pi/180*Servo_Params[self.type]["GEAR_RATIO"]
 
     def get_motor_velocity_radians_per_second(self):
         """
@@ -427,7 +430,7 @@ class TMotorManager_servo():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | torque: " + '{: 1f}'.format(round(self.τ,3)) + " Nm"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | temp: " + '{: 1f}'.format(round(self.T,0)) + " C"
 
     def device_info_string(self):
         """Prints the motor's ID and device type."""

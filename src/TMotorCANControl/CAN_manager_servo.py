@@ -2,6 +2,7 @@ import can
 import os
 from collections import namedtuple
 from math import isfinite
+import numpy as np
 # Control mode contain {0,1,2,3,4,5,6,7} Seven eigenvalues correspond to seven control modes
 # respectively
 # Duty cycle mode: 0
@@ -88,8 +89,8 @@ Servo_Params = {
             'CAN_PACKET_SET_DUTY':0, #Motor runs in duty cycle mode
             'CAN_PACKET_SET_CURRENT':1, #Motor runs in current loop mode
             'CAN_PACKET_SET_CURRENT_BRAKE':2, #Motor current brake mode operation
-            'COMM_PACKET_SET_RPM':3, #Motor runs in current loop mode
-            'COMM_PACKET_SET_POS':4, #Motor runs in position loop mode
+            'CAN_PACKET_SET_RPM':3, #Motor runs in current loop mode
+            'CAN_PACKET_SET_POS':4, #Motor runs in position loop mode
             'CAN_PACKET_SET_ORIGIN_HERE':5, #Set origin mode
             'CAN_PACKET_SET_POS_SPD':6, #Position velocity loop mode
         },
@@ -141,6 +142,9 @@ class servo_motor_state:
         self.temperature = other_motor_state.temperature
         self.error = other_motor_state.error
         self.acceleration = other_motor_state.acceleration
+
+    def __str__(self):
+        return 'Position: {} | Velocity: {} | Current: {} | Temperature: {} | Error: {}'.format(self.position, self.velocity, self.current, self.temperature, self.error)
 
 # Data structure to store MIT_command that will be sent upon update
 class servo_command:
@@ -197,7 +201,7 @@ class motorListener(can.Listener):
 # A class to manage the low level CAN communication protocols
 class CAN_Manager_servo(object):
     """A class to manage the low level CAN communication protocols"""
-    debug = True
+    debug = False
     """
     Set to true to display every message sent and recieved for debugging.
     """
@@ -218,7 +222,7 @@ class CAN_Manager_servo(object):
             # verify the CAN bus is currently down
             os.system( 'sudo /sbin/ip link set can0 down' )
             # start the CAN bus back up
-            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' )
+            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 500000' )
             # # increase transmit buffer length
             # os.system( 'sudo ifconfig can0 txqueuelen 1000')
             # create a python-can bus object
@@ -484,22 +488,24 @@ class CAN_Manager_servo(object):
 
 #*****************Parsing message data********************************#
     def parse_servo_message(self, data):
-        pos_int = data[0] << 8 | data[1]
-        spd_int = data[2] << 8 | data[3]
-        cur_int = data[4] << 8 | data[5]
-        motor_pos= (float)( pos_int * 0.1)
+        # using numpy to convert signed/unsigned integers
+        pos_int = np.int16(data[0] << 8 | data[1])
+        spd_int = np.int16(data[2] << 8 | data[3])
+        cur_int = np.int16(data[4] << 8 | data[5])
+        motor_pos= ( pos_int * 0.1)
         motor_spd= (float)( spd_int * 10.0) #motor speed
-        motor_cur= (float) ( cur_int * 0.01) #motor current
+        motor_cur= (float)( cur_int * 0.01) #motor current
         motor_temp= data[6]  #motor temperature
         motor_error= data[7] #motor error mode
         if self.debug:
+            print(data)
             print('  Position: ' + str(motor_pos))
             print('  Velocity: ' + str(motor_spd))
             print('  Current: ' + str(motor_cur))
-            if (motor_temp is not None) and (motor_error is not None):
-                print('  Temp: ' + str(motor_temp))
-                print('  Error: ' + str(motor_error))
-        return servo_motor_state(motor_pos, motor_spd,motor_cur,motor_temp, motor_error)
+            print('  Temp: ' + str(motor_temp))
+            print('  Error: ' + str(motor_error))
+            
+        return servo_motor_state(motor_pos, motor_spd,motor_cur,motor_temp, motor_error, 0)
 
 
 
@@ -507,3 +513,9 @@ if __name__ == '__main__':
     buff1 = []
     CAN_Manager_servo.buffer_append_int32(buff1,-900,0)
     print('{}'.format(', '.join(hex(d) for d in buff1)) )
+
+    # b'\x83\x00\x00\x00\xff\xff\x1d\x00' looks like 600A but really small amount of negative cause 2's compliment
+    test_data = [0x83,0x00,0x00,0x00,0xff,0xff,0x1d,0x00]
+    canman = CAN_Manager_servo()
+    testState = canman.parse_servo_message(test_data)
+    print(testState)
