@@ -26,7 +26,7 @@ avg_volt = np.mean(np.array(voltage_cal))
 bias = avg_volt - 2.5
 print("Bias: {} V".format(bias))
 
-loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
+loop = SoftRealtimeLoop(dt = 0.005, report=True, fade=0)
 torque_init = volt_to_torque(adc.volts,bias)
 
 time_array = []
@@ -36,15 +36,15 @@ current_array = []
 velocity_array = []
 temperature_array = []
 
-iq_des = 8.0# Amps
+iq_des = 0 # Amps
 
 with TMotorManager_servo('AK80-9',0) as dev:
     dev.enter_current_control()
     for t in loop:
-        if t > 5:
+        if t > 10:
             break
         else:
-            dev.i = iq_des    
+            dev.i = iq_des
         time_array.append(t)
         
         adc.update()
