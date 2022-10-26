@@ -63,6 +63,6 @@ plt.savefig("torque_test_script_{}_A.png".format(iq_des))
 with open("torque_test_script_{}_A.csv".format(iq_des),'w') as fd:
     writer = csv.writer(fd)
     for i in range(len(voltage_array)):
-        writer.writerow([voltage_array[i], torque_array[i], current_array[i], velocity_array[i], temperature_array[i]])
+        writer.writerow([time_array[i], voltage_array[i], torque_array[i], current_array[i], velocity_array[i], temperature_array[i]])
 
 
