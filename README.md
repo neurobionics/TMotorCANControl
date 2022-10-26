@@ -2,24 +2,20 @@
 A Python API for controlling the AK-series Tmotor Actuators from CubeMars over the CAN bus.
 The project is geared towards the control of the AK80-9 actuator using a raspberry pi CAN hat, but
 could eaisly be adapted for use with a different CAN interface. The API files are in the src/TMotorCANControl
-folder in this repository. The main interface is in the file TMotorManager.py. The CAN_Manager file contains
-a low-level CAN interface for interacting with the motor, which is used by the TMotorManager class to 
-control the motor in a more user-friendly way. Sample scripts can be found in the src/TMotorCANControl/demos folder.
-For help setting up the motor using a Raspberry Pi 4 and with the PiCAN hat, see [these instructions](https://opensourceleg.com/TMotorCANControl/)
-on the Open Source Leg website. This page will walk you through all the setup.
+folder in this repository. The main interface is in the file TMotorManager.py for MIT mode and TMotorManager_servo.py for Servo mode. The CAN_Manager file contains a low-level CAN interface for interacting with the motor, which is used by the TMotorManager class to control the motor in a more user-friendly way. Sample scripts can be found in the src/TMotorCANControl/demos folder. For help setting up the motor using a Raspberry Pi 4 and with the PiCAN hat, see [these instructions](https://opensourceleg.com/TMotorCANControl/) on the Open Source Leg website. This page will walk you through all the setup.
 
 ## API usage
 For some code examples, see the src/TMotorCANControl/demos folder in this repository.
 These examples make use of the soft_real_timeloop class from the [NeuroLocoMiddleware library](https://pypi.org/project/NeuroLocoMiddleware/) 
 for the control loops, in order to ensure safe exiting of the loop when the program is terminated.
 
-The intended use case would be to declare a TMotorManager object in a with block, and then
+The intended use case would be to declare a TMotorManager object or TMotorManager_servo in a block, and then
 write your controller within that block, in order to ensure the motor is powered on when in use
-and powered off afterwards. The TMotorManager class is in the TMotorManager module in the TMotorCANControl package.
+and powered off afterwards. Note that one is  used for MIT mode and the other is for Servo mode. The TMotorManager  and TMotorManager_servo classes is in the TMotorManager module in the TMotorCANControl package.
 As such, it can be imported like this:
 
 ```python
-from TMotorCANControl.TMotorManager import TMotorManager
+from TMotorCANControl.TMotorManager import TMotorManager/TmotorManger_servo
 ```
 
 To instantiate a motor object, you need to specify the motor's type as a string (eg, "AK80-9"), as well
@@ -42,8 +38,19 @@ logvars = [
     "motor_torque"
 ]
 ```
+However, this logger is slightly different for Servo mode:
 
-And motor control could be entered as such for an AK80-9 motor with CAN ID 3:
+```python
+logvars=[
+    "motor_position" , 
+    "motor_speed" , 
+    "motor_current", 
+    "motor_temperature" 
+]
+
+```
+
+And motor control could be entered as such for an AK80-9 motor with CAN ID 3 for MIT and 1 for Servo Mode:
 ```python
 with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars=logvars) as dev:
 ```
@@ -120,8 +127,7 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars
         dev.update()
         dev.θ = 3.14
 ```
-
-For more examples, see the src/TMotorCANControl/demo folder. Have fun controlling some TMotors!
+Note: Most of these functions are similar in both modes. However, they have different controller states. Keep an eye out for the class enum in the respective python file. For more examples, see the src/TMotorCANControl/demo folder. Have fun controlling some TMotors!
 
 ## Other Resources
 1. [Setup Instructions on the OSL Website](https://opensourceleg.com/TMotorCANControl/)
@@ -139,4 +145,4 @@ Yoyo's youtube channel has some tutorials on how to use the RLink software.
 This is another, more low-level library for controlling these motors that functions simillarly to
 our CAN_Manager class.
 
-For questions, please contact Mitry Anderson or Vamsi Peddinti. 
+This work is performed by Mitry Anderson and Vamsi Peddinti.

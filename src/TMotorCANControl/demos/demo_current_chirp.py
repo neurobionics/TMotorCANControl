@@ -4,7 +4,7 @@ from TMotorCANControl.TMotorManager import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
-ID = 3
+ID = 1
 
 
 def chirp_demo(dev, amp=1.0, dt=0.001):
