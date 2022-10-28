@@ -333,6 +333,12 @@ class TMotorManager_servo():
             raise RuntimeError("Cannot control using impedance mode for angles with magnitude greater than " + str(Servo_Params[self.type]["P_max"]) + "rad!")
         self._command.position = pos*np.pi/180
 
+    def set_duty_cycle(self, duty):
+        if self._control_state not in [_TMotorManState_Servo.DUTY_CYCLE]:
+            raise RuntimeError("Attempted to send duty cycle command without gains for device " + self.device_info_string()) 
+        else:
+            self._command.duty = duty
+
     def set_output_velocity_radians_per_second(self, vel):
         """
         Used for either speed or full state feedback mode to set output velocity command.

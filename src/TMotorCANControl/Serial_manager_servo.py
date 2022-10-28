@@ -341,7 +341,7 @@ def parse_motor_parameters(data):
     if data[0] != Servo_Params_Serial['COMM_PACKET_ID']['COMM_GET_VALUES']:
         # print("Trying to parse wrong message type")
         # print(data)
-        return
+        return servo_motor_serial_state()
     else:
         state = servo_motor_serial_state()
         i = 1
@@ -409,6 +409,7 @@ def stream_serial_data(end_time=5):
                 # print(bytearray(cmd))
                 ser.write(bytearray(cmd))
         
+
                 
 
 if __name__ == '__main__':
