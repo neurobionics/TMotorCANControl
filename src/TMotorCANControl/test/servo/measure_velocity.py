@@ -1,4 +1,5 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.AdcManager import ADC_Manager
 import csv
 import time
 from sys import path
@@ -13,17 +14,36 @@ import serial
 # num_iters = int(v_max/v_step)+1
 # v_test_array = [i*v_step for i in range(num_iters)]
 
-v_test_array = [5000]
+# adc = ADC_Manager()
+# torque_rating = 100  # 100 Nm = 5 V
+# def volt_to_torque(volt, bias=0):
+#     return (volt-2.5-bias)/2.5*torque_rating
+# voltage_cal = []
+# print("Calibrating Loadcell!!!")
+# for i in range(500):
+#     adc.update()
+#     voltage_cal.append(adc.volts)
+# avg_volt = np.mean(np.array(voltage_cal))
+# bias = avg_volt - 2.5
+# print("Bias: {} V".format(bias))
+
+# duty_test_array = [0.1]
+# num_iters = len(duty_test_array)
+
+v_test_array = [1000]
 num_iters = len(v_test_array)
 
-step_duration = 3.0 # seconds
+v_arr = []
+
+step_duration = 2.0 # seconds
+
 
 print("Measuring velocities: {}".format(v_test_array))
 with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd:
     writer = csv.writer(fd)
     writer.writerow(['timestamp (epoch)', 'loop_time (s)', 'velocity (ERPM)'])
     with TMotorManager_servo(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
-        with serial.Serial("/dev/ttyUSB4", 961200, timeout=100) as ser:
+        with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
             params = servo_motor_serial_state()
             ser.write(bytearray(startup_sequence()))
             ser.write(bytearray(set_motor_parameter_return_format_all()))
@@ -31,22 +51,32 @@ with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd
             dev.enter_velocity_control()
             i = 0
             t_next = step_duration
-            print("driving at: {}ERPM".format(v_test_array[i]))
+            print("driving at: {} ERPM".format(v_test_array[i]))
+            ser.flushInput()
             for t in loop:
                 if t >= t_next:
-                    t_next += step_duration
+                    print("θd_avg: {} ERPM".format(np.mean(np.array(v_arr[5:]))))
                     i += 1
+                    if (i >= num_iters):
+                        break
+                    t_next += step_duration
+                    v_arr = []
                     print("driving at: {}ERPM".format(v_test_array[i]))
-
-                dev.θd = v_test_array[i]
+                
+                # radians per second is a misnomer
+                dev.θd = (v_test_array[i])
                 dev.update()
                 data = read_packet(ser)
                 if len(data):
-                    params = parse_motor_parameters(data)
-                    
+                    p = parse_motor_parameters(data)
+                    if p.initialized:
+                        params = p
                 ser.write(bytearray(get_motor_parameters()))
-                writer.writerow([time.time(), t, dev.θd, params.input_current, params.input_voltage])
+                v_arr.append(dev.θd)
+                # adc.update()
+                writer.writerow([time.time(), t, dev.θd, params.input_current, params.input_voltage,  dev.get_motor_error_code(), params.error]) # adc.volts, volt_to_torque(adc.volts, bias=bias),
                 # print("\r" + str(dev) + 'i_bus: ' + str(round(params.input_current)), end='')
+            
 
 
 

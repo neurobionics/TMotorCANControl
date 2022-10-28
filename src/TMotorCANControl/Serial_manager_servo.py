@@ -213,6 +213,7 @@ def buffer_get_int32(data, ind):
 
 class servo_motor_serial_state:
     def __init__(self):
+        self.initialized = False
         self.mos_temperature = 0
         self.motor_temperature = 0
         self.output_current = 0
@@ -331,19 +332,20 @@ def read_packet(ser):
         # print(crc2)
         # print(footer)
         if not (footer == 0x03):
-            raise RuntimeWarning("Got wrong serial packet footer")
+            return []
         else:
             return data
             
             
 
 def parse_motor_parameters(data):
-    if data[0] != Servo_Params_Serial['COMM_PACKET_ID']['COMM_GET_VALUES']:
+    if (data[0] != Servo_Params_Serial['COMM_PACKET_ID']['COMM_GET_VALUES']) or (len(data) < 0x49):
         # print("Trying to parse wrong message type")
         # print(data)
         return servo_motor_serial_state()
     else:
         state = servo_motor_serial_state()
+        state.initialized = True
         i = 1
         state.mos_temperature = float(buffer_get_int16(data,i))/10.0
         i+=2
@@ -381,14 +383,12 @@ def hex_print(arr):
 
 
 def stream_serial_data(end_time=5):
-    with serial.Serial("/dev/ttyUSB4", 961200, timeout=100) as ser:
+    with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
         loop = SoftRealtimeLoop(dt=0.1, report=True, fade=0.0)
         ser.write(bytearray(startup_sequence()))
         
         # not sure how to get position out of -360 to 360 degrees
-        ser.write(bytearray(set_multi_turn()))
         ser.write(bytearray(set_motor_parameter_return_format_all()))
-        ser.write(bytearray(set_multi_turn()))
         
         print("\n\n\n\n\n\n\n\n\n")
         for t in loop:
