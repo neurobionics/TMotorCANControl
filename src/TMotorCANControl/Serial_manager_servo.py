@@ -226,6 +226,7 @@ class servo_motor_serial_state:
         self.controlID = 0
         self.Vd = 0
         self.Vq = 0
+        self.error = 0
     
     def __str__(self):
         s = f'Mos Temp: {self.mos_temperature}'
@@ -298,29 +299,49 @@ def set_speed(speed):
     data = [Servo_Params_Serial['COMM_PACKET_ID']['COMM_SET_RPM']] + buffer
     return create_frame(data)
 
+def startup_sequence():
+    return [0x40, 0x80, 0x20, 0x02, 0x21, 0xc0]
+
 def set_current(current):
     buffer=[]
     buffer_append_int32(buffer, int(current*1000.0))
     data = [Servo_Params_Serial['COMM_PACKET_ID']['COMM_SET_CURRENT']] + buffer
     return create_frame(data)
 
+def set_multi_turn():
+    return [0x02 ,0x05 ,0x5C ,0x00 ,0x00 ,0x00 ,0x00 ,0x9E ,0x19 ,0x03]
+
 def read_packet(ser):
-    header = ser.read(1)
-    if header != 0x02:
-        raise RuntimeWarning("Got wrong serial packet header")
+    if ser.inWaiting() < 1:
+        return []
     else:
-        DL = ser.read(1)
-        data = ser.read(DL)
-        crc = ser.read(2)
-        footer = ser.read(1)
-        if footer != 0x03:
+        header = ser.read(1)
+        DL = int.from_bytes(ser.read(1), byteorder="big")
+        i = 0
+        data = []
+        # print(DL)
+        while (i < DL and ser.inWaiting() > 0):
+            data.append(int.from_bytes(ser.read(1),byteorder="big"))
+            i+=1
+        crc1 = int.from_bytes(ser.read(1),byteorder='big') # check this later
+        crc2 = int.from_bytes(ser.read(1),byteorder='big')
+        footer = int.from_bytes(ser.read(1),byteorder='big')
+        # print(data)
+        # print(crc1)
+        # print(crc2)
+        # print(footer)
+        if not (footer == 0x03):
             raise RuntimeWarning("Got wrong serial packet footer")
         else:
             return data
+            
+            
 
 def parse_motor_parameters(data):
     if data[0] != Servo_Params_Serial['COMM_PACKET_ID']['COMM_GET_VALUES']:
-        raise RuntimeWarning("Trying to parse wrong message type")
+        # print("Trying to parse wrong message type")
+        # print(data)
+        return
     else:
         state = servo_motor_serial_state()
         i = 1
@@ -342,6 +363,8 @@ def parse_motor_parameters(data):
         i+=4
         state.input_voltage = float(buffer_get_int16(data,i))/10.0
         i+=2 + 24
+        state.error = float(np.uint(data[i]))
+        i+=1
         state.position = float(buffer_get_int32(data,i))/1000000.0
         i+=4
         state.controlID = np.uint(data[i])
@@ -355,17 +378,38 @@ def parse_motor_parameters(data):
 def hex_print(arr):
     print([hex(d) for d in arr])
 
+
+
 def stream_serial_data(end_time=5):
-    with serial.Serial("/dev/ttyS0", 961200) as ser:
-        ser.write(set_motor_parameter_return_format_all())
-        loop = SoftRealtimeLoop(dt=0.05, report=True, fade=0.0)
+    with serial.Serial("/dev/ttyUSB4", 961200, timeout=100) as ser:
+        loop = SoftRealtimeLoop(dt=0.1, report=True, fade=0.0)
+        ser.write(bytearray(startup_sequence()))
+        
+        # not sure how to get position out of -360 to 360 degrees
+        ser.write(bytearray(set_multi_turn()))
+        ser.write(bytearray(set_motor_parameter_return_format_all()))
+        ser.write(bytearray(set_multi_turn()))
+        
+        print("\n\n\n\n\n\n\n\n\n")
         for t in loop:
             if t > end_time:
-                break
+                # print(["\n"]*14)
+                return
             else:
-                ser.write(get_motor_parameters())
                 data = read_packet(ser)
-                print(parse_motor_parameters(data))
+                if len(data):
+                    # print(data)
+                    # hex_print(data)
+                    print()
+                    print(parse_motor_parameters(data),end='')
+                    print('\x1B[13A',end='')
+                    
+                cmd = get_motor_parameters()
+                # hex_print(cmd)
+                # print(bytearray(cmd))
+                ser.write(bytearray(cmd))
+        
+                
 
 if __name__ == '__main__':
     # print(hex(crc16([14],1)))
@@ -375,23 +419,24 @@ if __name__ == '__main__':
     # print([hex(f) for f in F])
     # P = parse_frame(F)
     # print([hex(p) for p in P])
-    hex_print(set_motor_parameter_return_format_all())
-    hex_print(get_motor_parameters())
-    frame = [0x02 , 0x49 , 0x04 , 0x01 , 0x66 , 0xFC , 0xD0 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
-            0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
-            0x00 , 0xFF , 0xFF , 0xFF , 0xF3 , 0x00 , 0xF6 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
-            0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0xFF,
-            0xFF , 0xFF , 0xFF , 0x00 , 0x16 , 0xD7 , 0xAD , 0x00 , 0x0A , 0x6F , 0x19 , 0x40 , 
-            0x7E , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
-            0x00 , 0x00 , 0x04 , 0x4D , 0x53 , 0x03 , 0x02,0x05 , 0x16 , 0x00 , 0x1A , 0xB6 , 
-            0x03 , 0xC9 , 0xB5 , 0x03] # from manual
-    print(parse_motor_parameters(parse_frame(frame)))
-    hex_print(set_duty(0.2))
-    hex_print(set_duty(-0.2))
-    hex_print(set_current(5))
-    hex_print(set_current(-5))
-    hex_print(set_speed(1000))
-    hex_print(set_speed(-1000))
+    # hex_print(set_motor_parameter_return_format_all())
+    # hex_print(get_motor_parameters())
+    # frame = [0x02 , 0x49 , 0x04 , 0x01 , 0x66 , 0xFC , 0xD0 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
+    #         0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
+    #         0x00 , 0xFF , 0xFF , 0xFF , 0xF3 , 0x00 , 0xF6 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
+    #         0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0xFF,
+    #         0xFF , 0xFF , 0xFF , 0x00 , 0x16 , 0xD7 , 0xAD , 0x00 , 0x0A , 0x6F , 0x19 , 0x40 , 
+    #         0x7E , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 , 
+    #         0x00 , 0x00 , 0x04 , 0x4D , 0x53 , 0x03 , 0x02,0x05 , 0x16 , 0x00 , 0x1A , 0xB6 , 
+    #         0x03 , 0xC9 , 0xB5 , 0x03] # from manual
+    # print(parse_motor_parameters(parse_frame(frame)))
+    # hex_print(set_duty(0.2))
+    # hex_print(set_duty(-0.2))
+    # hex_print(set_current(5))
+    # hex_print(set_current(-5))
+    # hex_print(set_speed(1000))
+    # hex_print(set_speed(-1000))
+    stream_serial_data(100)
     
 
 
