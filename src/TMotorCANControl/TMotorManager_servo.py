@@ -304,8 +304,20 @@ class TMotorManager_servo():
         """
         return self.get_current_qaxis_amps()*Servo_Params[self.type]["Kt_actual"]*Servo_Params[self.type]["GEAR_RATIO"]
 
+    def enter_duty_cycle_control(self):
+        self._control_state = _TMotorManState_Servo.DUTY_CYCLE
+
     def enter_current_control(self):
         self._control_state = _TMotorManState_Servo.CURRENT_LOOP
+
+    def enter_current_brake_control(self):
+        self._control_state = _TMotorManState_Servo.CURRENT_BRAKE
+
+    def enter_velocity_control(self):
+        self._control_state = _TMotorManState_Servo.VELOCITY
+
+    def enter_position_control(self):
+        self._control_state = _TMotorManState_Servo.POSITION
 
     # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):

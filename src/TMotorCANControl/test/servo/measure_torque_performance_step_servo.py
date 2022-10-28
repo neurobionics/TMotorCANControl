@@ -16,7 +16,6 @@ def volt_to_torque(volt, bias=0):
     return (volt-2.5-bias)/2.5*torque_rating
 
 
-
 voltage_cal = []
 print("Calibrating Loadcell!!!")
 for i in range(500):
