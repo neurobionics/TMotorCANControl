@@ -1,1 +1,0 @@
-timestamp (epoch),loop time (s),velocity (ERPM),velocity (Rad/S),ADC Voltage (V),Futek Torque (Nm),Antagonist Q-Current (A),i_bus,v_bus,v_q,i_q,duty,mosfet_temp

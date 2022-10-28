@@ -30,9 +30,14 @@ with ADC_Manager('ADC_backup_log.csv') as adc:
 
 # v_min always 0
 # duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
-duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+pre_duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+duty_test_array = []
+for d in pre_duty_test_array:
+    duty_test_array.append(d)
+    duty_test_array.append(0.0)
+
 num_iters = len(duty_test_array)
-step_duration = 3.0 # seconds
+step_duration = 1.0 # seconds
 
 ERPM_to_RadPs = (2/21)*9*(1/60)*(np.pi/180)
 
@@ -50,13 +55,15 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                 ser.write(bytearray(startup_sequence()))
                 ser.write(bytearray(set_motor_parameter_return_format_all()))
 
-                loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
+                loop = SoftRealtimeLoop(dt=0.1, report=True, fade=0.0)
                 dev.enter_duty_cycle_control()
                 i = 0
                 t_next = step_duration
                 print("testing with: {} V".format(duty_test_array[i]))
                 time.sleep(0.1)
                 for t in loop:
+                    adc.update()
+
                     if t >= t_next:
                         t_next += step_duration
                         i += 1
@@ -64,8 +71,6 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                             print("testing with: {} V".format(duty_test_array[i]))
                         else:
                             break
-
-                    adc.update()
 
                     dev.set_duty_cycle(duty_test_array[i])
                     dev.update()
