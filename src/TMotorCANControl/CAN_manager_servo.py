@@ -58,8 +58,8 @@ Servo_Params = {
         'AK10-9':{
             'P_min' : -32000,#-3200 deg
             'P_max' : 32000,#3200 deg
-            'V_min' : -32000,#-320000 rpm electrical speed
-            'V_max' : 32000,# 320000 rpm electrical speed
+            'V_min' : -100000,#-100000 rpm electrical speed
+            'V_max' : 100000,# 100000 rpm electrical speed
             'Curr_min':-1500,#-60A is the acutal limit but set to -15A
             'Curr_max':1500,#60A is the acutal limit but set to 15A
             'T_min' : -15,#NM

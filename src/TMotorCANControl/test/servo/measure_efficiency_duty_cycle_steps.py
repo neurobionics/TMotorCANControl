@@ -32,14 +32,14 @@ with ADC_Manager('ADC_backup_log.csv') as adc:
 # duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
 pre_duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
 duty_test_array = []
-for d in pre_duty_test_array:
-    duty_test_array.append(d)
-    duty_test_array.append(0.0)
+# for d in pre_duty_test_array:
+#     duty_test_array.append(d)
+#     duty_test_array.append(0.0)
 
 num_iters = len(duty_test_array)
 step_duration = 1.0 # seconds
 
-ERPM_to_RadPs = (2/21)*9*(1/60)*(np.pi/180)
+ERPM_to_RadPs = 2*np.pi/180/60 # (2/21)*9*(1/60)*(np.pi/180)
 
 iq_antagonist = 0
  

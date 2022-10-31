@@ -35,8 +35,7 @@ num_iters = len(v_test_array)
 
 v_arr = []
 
-step_duration = 2.0 # seconds
-
+step_duration = 10.0 # seconds
 
 print("Measuring velocities: {}".format(v_test_array))
 with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd:
@@ -47,6 +46,8 @@ with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd
             params = servo_motor_serial_state()
             ser.write(bytearray(startup_sequence()))
             ser.write(bytearray(set_motor_parameter_return_format_all()))
+            ser.write(bytearray(set_multi_turn()))
+
             loop = SoftRealtimeLoop(dt=0.005, report=True, fade=0.0)
             dev.enter_velocity_control()
             i = 0
@@ -55,7 +56,7 @@ with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd
             ser.flushInput()
             for t in loop:
                 if t >= t_next:
-                    print("θd_avg: {} ERPM".format(np.mean(np.array(v_arr[5:]))))
+                    print("θd_avg: {} ERPM".format(np.mean(np.array(v_arr[100:]))))
                     i += 1
                     if (i >= num_iters):
                         break
