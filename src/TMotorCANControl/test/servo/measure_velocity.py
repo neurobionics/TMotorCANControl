@@ -30,19 +30,19 @@ import serial
 # duty_test_array = [0.1]
 # num_iters = len(duty_test_array)
 
-v_test_array = [1000]
+v_test_array = [1]
 num_iters = len(v_test_array)
 
 v_arr = []
 
-step_duration = 10.0 # seconds
+step_duration = 20.0 # seconds
 
 print("Measuring velocities: {}".format(v_test_array))
-with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd:
+with open("Measuring_velocities_{}_rps.csv".format(v_test_array[-1]),'w') as fd:
     writer = csv.writer(fd)
     writer.writerow(['timestamp (epoch)', 'loop_time (s)', 'velocity (ERPM)'])
     with TMotorManager_servo(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
-        with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
+        with serial.Serial("/dev/ttyUSB1", 961200, timeout=100) as ser:
             params = servo_motor_serial_state()
             ser.write(bytearray(startup_sequence()))
             ser.write(bytearray(set_motor_parameter_return_format_all()))
@@ -52,17 +52,17 @@ with open("Measuring_velocities_{}_ERPM.csv".format(v_test_array[-1]),'w') as fd
             dev.enter_velocity_control()
             i = 0
             t_next = step_duration
-            print("driving at: {} ERPM".format(v_test_array[i]))
+            print("driving at: {} rad/s".format(v_test_array[i]))
             ser.flushInput()
             for t in loop:
                 if t >= t_next:
-                    print("θd_avg: {} ERPM".format(np.mean(np.array(v_arr[100:]))))
+                    print("θd_avg: {} rad/s".format(np.mean(np.array(v_arr[-int(0.5*t):]))))
                     i += 1
                     if (i >= num_iters):
                         break
                     t_next += step_duration
                     v_arr = []
-                    print("driving at: {}ERPM".format(v_test_array[i]))
+                    print("driving at: {} rad/s".format(v_test_array[i]))
                 
                 # radians per second is a misnomer
                 dev.θd = (v_test_array[i])

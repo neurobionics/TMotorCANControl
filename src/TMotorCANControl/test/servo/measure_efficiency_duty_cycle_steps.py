@@ -45,7 +45,7 @@ iq_antagonist = 0
  
 with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time.time()),'w') as fd:
     writer = csv.writer(fd)
-    writer.writerow(["timestamp (epoch)", "loop time (s)", "velocity (ERPM)", "velocity (Rad/S)", "ADC Voltage (V)", "Futek Torque (Nm)", "Antagonist Q-Current (A)", "i_bus", "v_bus", "v_q", "i_q", "duty", "mosfet_temp"])
+    writer.writerow(["timestamp (epoch)", "loop time (s)", "velocity (ERPM)", "velocity (Rad/S)", "ADC Voltage (V)", "Futek Torque (Nm)", "Antagonist Q-Current (A)", "i_bus", "v_bus", "v_q", "i_q", "duty", "mosfet_temp","i_d","v_d"])
     
     with TMotorManager_servo(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
         with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
@@ -83,7 +83,7 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                             params = p
                     ser.write(bytearray(get_motor_parameters()))
 
-                    writer.writerow([time.time(), t, dev.θd, dev.θd*ERPM_to_RadPs, adc.volts, volt_to_torque(adc.volts, bias=bias), iq_antagonist, params.input_current, params.input_voltage, params.Vq, params.iq_current, params.duty, params.mos_temperature])
+                    writer.writerow([time.time(), t, dev.θd, dev.θd*ERPM_to_RadPs, adc.volts, volt_to_torque(adc.volts, bias=bias), iq_antagonist, params.input_current, params.input_voltage, params.Vq, params.iq_current, params.duty, params.mos_temperature, params.id_current, params.Vd])
                     # print("\r" + str(dev), end='')
 
 

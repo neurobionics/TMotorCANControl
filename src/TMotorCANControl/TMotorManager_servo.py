@@ -80,6 +80,7 @@ class TMotorManager_servo():
         self._old_curr = 0.0
         self._old_vel = 0.0
         self._old_current_zone = 0
+        self.radps_per_ERPM = 5.82E-04
 
         self._entered = False
         self._start_time = time.time()
@@ -288,7 +289,7 @@ class TMotorManager_servo():
         Returns:
             The most recently updated output velocity in radians per second
         """
-        return self._motor_state.velocity
+        return self._motor_state.velocity*self.radps_per_ERPM
 
     def get_output_acceleration_radians_per_second_squared(self):
         """
@@ -353,7 +354,7 @@ class TMotorManager_servo():
 
         if self._control_state not in [_TMotorManState_Servo.VELOCITY]:
             raise RuntimeError("Attempted to send speed command without gains for device " + self.device_info_string()) 
-        self._command.velocity = vel
+        self._command.velocity = vel/self.radps_per_ERPM
 
     # used for either current MIT mode to set current
     def set_motor_current_qaxis_amps(self, current):
