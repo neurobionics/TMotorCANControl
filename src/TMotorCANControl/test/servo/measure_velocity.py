@@ -35,7 +35,7 @@ num_iters = len(v_test_array)
 
 v_arr = []
 
-step_duration = 20.0 # seconds
+step_duration = 2 # seconds
 
 print("Measuring velocities: {}".format(v_test_array))
 with open("Measuring_velocities_{}_rps.csv".format(v_test_array[-1]),'w') as fd:
