@@ -29,15 +29,15 @@ with ADC_Manager('ADC_backup_log.csv') as adc:
 
 
 # v_min always 0
-duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+speed_test_array = [0.0, 1.0, 2.5, 5.0, 7.5, 10.0, 12, 14, 16, 20, 22, 24, 26, 28, 30]
 # pre_duty_test_array = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
 # duty_test_array = []
 # for d in pre_duty_test_array:
 #     duty_test_array.append(d)
 #     duty_test_array.append(0.0)
 
-num_iters = len(duty_test_array)
-step_duration = 1.0 # seconds
+num_iters = len(speed_test_array)
+step_duration = 2.0 # seconds
 
 ERPM_to_RadPs = 2*np.pi/180/60 # (2/21)*9*(1/60)*(np.pi/180)
 
@@ -45,7 +45,7 @@ iq_antagonist = 0
  
 with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time.time()),'w') as fd:
     writer = csv.writer(fd)
-    writer.writerow(["timestamp (epoch)", "loop time (s)", "velocity (ERPM)", "velocity (Rad/S)", "ADC Voltage (V)", "Futek Torque (Nm)", "Antagonist Q-Current (A)", "i_bus", "v_bus", "v_q", "i_q", "duty", "mosfet_temp","i_d","v_d"])
+    writer.writerow(["timestamp (epoch)", "loop time (s)", "des velocity", "velocity (Rad/S)", "ADC Voltage (V)", "Futek Torque (Nm)", "Antagonist Q-Current (A)", "i_bus", "v_bus", "v_q", "i_q", "duty", "mosfet_temp","i_d","v_d"])
     
     with TMotorManager_servo(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
         with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
@@ -55,11 +55,11 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                 ser.write(bytearray(startup_sequence()))
                 ser.write(bytearray(set_motor_parameter_return_format_all()))
 
-                loop = SoftRealtimeLoop(dt=0.1, report=True, fade=0.0)
-                dev.enter_duty_cycle_control()
+                loop = SoftRealtimeLoop(dt=0.05, report=True, fade=0.0)
+                dev.enter_velocity_control()
                 i = 0
                 t_next = step_duration
-                print("testing with: {} V".format(duty_test_array[i]))
+                print("testing with: {} rad\s".format(speed_test_array[i]))
                 time.sleep(0.1)
                 for t in loop:
                     adc.update()
@@ -68,11 +68,11 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                         t_next += step_duration
                         i += 1
                         if i < num_iters:
-                            print("testing with: {} V".format(duty_test_array[i]))
+                            print("testing with: {} rad\s".format(speed_test_array[i]))
                         else:
                             break
 
-                    dev.set_duty_cycle(duty_test_array[i])
+                    dev.θd = speed_test_array[i]
                     dev.update()
                     
                     # put this into an "update" function later and run ascynch
@@ -83,7 +83,7 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                             params = p
                     ser.write(bytearray(get_motor_parameters()))
 
-                    writer.writerow([time.time(), t, dev.θd, dev.θd*ERPM_to_RadPs, adc.volts, volt_to_torque(adc.volts, bias=bias), iq_antagonist, params.input_current, params.input_voltage, params.Vq, params.iq_current, params.duty, params.mos_temperature, params.id_current, params.Vd])
+                    writer.writerow([time.time(), t, speed_test_array[i], dev.θd, adc.volts, volt_to_torque(adc.volts, bias=bias), iq_antagonist, params.input_current, params.input_voltage, params.Vq, params.iq_current, params.duty, params.mos_temperature, params.id_current, params.Vd, params.error])
                     # print("\r" + str(dev), end='')
 
 

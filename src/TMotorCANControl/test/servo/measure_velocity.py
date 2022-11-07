@@ -30,7 +30,7 @@ import serial
 # duty_test_array = [0.1]
 # num_iters = len(duty_test_array)
 
-v_test_array = [1]
+v_test_array = [10] # , 12, 14, 16, 18, 20
 num_iters = len(v_test_array)
 
 v_arr = []
@@ -40,9 +40,9 @@ step_duration = 2 # seconds
 print("Measuring velocities: {}".format(v_test_array))
 with open("Measuring_velocities_{}_rps.csv".format(v_test_array[-1]),'w') as fd:
     writer = csv.writer(fd)
-    writer.writerow(['timestamp (epoch)', 'loop_time (s)', 'velocity (ERPM)'])
+    writer.writerow(['epoch', 'loop time', 'angular velocity (rad/s)', 'i_bus', 'v_bus', 'iq', 'vq', 'CAN error code', 'Serial error code'])
     with TMotorManager_servo(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
-        with serial.Serial("/dev/ttyUSB1", 961200, timeout=100) as ser:
+        with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
             params = servo_motor_serial_state()
             ser.write(bytearray(startup_sequence()))
             ser.write(bytearray(set_motor_parameter_return_format_all()))
@@ -75,7 +75,7 @@ with open("Measuring_velocities_{}_rps.csv".format(v_test_array[-1]),'w') as fd:
                 ser.write(bytearray(get_motor_parameters()))
                 v_arr.append(dev.θd)
                 # adc.update()
-                writer.writerow([time.time(), t, dev.θd, params.input_current, params.input_voltage,  dev.get_motor_error_code(), params.error]) # adc.volts, volt_to_torque(adc.volts, bias=bias),
+                writer.writerow([time.time(), t, dev.θd, params.input_current, params.input_voltage, params.iq_current, params.Vq, dev.get_motor_error_code(), params.error]) # adc.volts, volt_to_torque(adc.volts, bias=bias),
                 # print("\r" + str(dev) + 'i_bus: ' + str(round(params.input_current)), end='')
             
 

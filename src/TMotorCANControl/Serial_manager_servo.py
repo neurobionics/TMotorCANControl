@@ -383,7 +383,7 @@ def hex_print(arr):
 
 
 def stream_serial_data(end_time=5):
-    with serial.Serial("/dev/ttyUSB1", 961200, timeout=100) as ser:
+    with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
         loop = SoftRealtimeLoop(dt=0.1, report=True, fade=0.0)
         ser.write(bytearray(startup_sequence()))
         

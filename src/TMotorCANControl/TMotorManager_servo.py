@@ -63,7 +63,7 @@ class TMotorManager_servo():
         self.type = motor_type
         self.ID = motor_ID
         self.csv_file_name = CSV_file
-        self.max_temp = 60 # max temp in deg C, can update later
+        self.max_temp = 50 # max temp in deg C, can update later
         print("Initializing device: " + self.device_info_string())
 
         self._motor_state = servo_motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
