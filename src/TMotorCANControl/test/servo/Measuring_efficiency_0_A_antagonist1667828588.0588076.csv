@@ -1,4 +1,4 @@
-timestamp (epoch),loop time (s),des velocity,velocity (Rad/S),ADC Voltage (V),Futek Torque (Nm),Antagonist Q-Current (A),i_bus,v_bus,v_q,i_q,duty,mosfet_temp,i_d,v_d
+timestamp (epoch),loop time (s),des velocity,velocity (Rad/S),ADC Voltage (V),Futek Torque (Nm),Antagonist Q-Current (A),i_bus,v_bus,v_q,i_q,duty,mosfet_temp,i_d,v_d,error
 1667828590.3513453,0.04999995231628418,0.0,0.0,2.518576860866115,0.05053154210028054,0,0,0,0,0,0,0,0,0,0
 1667828590.401532,0.09999990463256836,0.0,0.0,2.518701864680929,0.05553169469283859,0,0,0,0,0,0,0,0,0,0
 1667828590.451485,0.14999985694885254,0.0,0.0,2.5177018341624198,0.015530473952463097,0,0,0,0,0,0,0,0,0,0
