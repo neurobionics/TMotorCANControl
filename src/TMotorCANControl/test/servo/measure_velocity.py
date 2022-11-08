@@ -30,7 +30,7 @@ import serial
 # duty_test_array = [0.1]
 # num_iters = len(duty_test_array)
 
-v_test_array = [10] # , 12, 14, 16, 18, 20
+v_test_array = [1, 5, 7, 10] # , 12, 14, 16, 18, 20
 num_iters = len(v_test_array)
 
 v_arr = []

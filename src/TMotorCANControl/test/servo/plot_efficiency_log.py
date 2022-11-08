@@ -3,9 +3,10 @@ import csv
 import numpy as np
 import pandas as pd
 
-name = "Measuring_efficiency_0_A_antagonist1667828588.0588076.csv"
+name = "Measuring_efficiency_0_A_antagonist1667907781.924308.csv"
 data = pd.read_csv(name)
 print([k for k in data])
+
 torque_adc = -1*np.array(data['Futek Torque (Nm)'])
 time = np.array(data['loop time (s)'])
 current = np.array(data['i_q'])
@@ -22,6 +23,7 @@ for i in range(power_out.shape[0]):
     eff[i] = tmp if (not np.isnan(tmp) and not np.isinf(tmp)) else -100
 
 print(np.mean(eff))
+print(np.max(eff))
 
 # print(data)
 print("Average Torque: {}Nm".format(torque_adc.mean()))
