@@ -134,7 +134,7 @@ def buffer_append_uint16( buffer,number):
     buffer.append((number)&(0x00FF))
     
 # Buffer allocation for 32 bit
-def buffer_append_int32( buffer,number):
+def buffer_append_int32(buffer,number):
     """
     buffer size for int 32
 
