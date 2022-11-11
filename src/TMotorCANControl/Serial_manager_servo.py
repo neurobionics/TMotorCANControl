@@ -2,6 +2,7 @@ import serial
 import time
 import numpy as np
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
+import os
 
 crc16_tab = [0x0000, 0x1021, 0x2042,0x3063, 0x4084,
 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c,0xd1ad,
@@ -107,6 +108,8 @@ Servo_Params_Serial = {
             'Use_derived_torque_constants': False, # true if you have a better model
         }        
 }
+
+
 
 def buffer_append_int16( buffer,number):
     """
@@ -252,7 +255,6 @@ def crc16(data, DL):
         # cksum = crc16_tab[(((cksum >> 8) ^ *buf++) & 0xFF)] ^ (cksum << 8)
         cksum = crc16_tab[((cksum >> 8) ^ (data[i])) & 0xFF] ^ (cksum << 8)
     return np.uint16(cksum)
-
 
 def create_frame(data):
     frame = []

@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+setup.cfg
+src/TMotorCANControl/CAN_Manager.py
+src/TMotorCANControl/TMotorManager.py
+src/TMotorCANControl/__init__.py
+src/TMotorCANControl.egg-info/PKG-INFO
+src/TMotorCANControl.egg-info/SOURCES.txt
+src/TMotorCANControl.egg-info/dependency_links.txt
+src/TMotorCANControl.egg-info/requires.txt
+src/TMotorCANControl.egg-info/top_level.txt

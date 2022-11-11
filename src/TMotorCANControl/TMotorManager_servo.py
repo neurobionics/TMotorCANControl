@@ -101,8 +101,7 @@ class TMotorManager_servo():
         
         self._canman = CAN_Manager_servo()
         self._canman.add_motor(self)
-        
-            
+               
     def __enter__(self):
         """
         Used to safely power the motor on and begin the log file.
