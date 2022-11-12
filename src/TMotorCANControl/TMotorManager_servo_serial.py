@@ -38,12 +38,12 @@ crc16_tab = [0x0000, 0x1021, 0x2042,0x3063, 0x4084,
 
 Servo_Params_Serial = {
     'AK80-9':{
-        'P_min' : -32000,#-3200 deg
-        'P_max' : 32000,#3200 deg
-        'V_min' : -32000,#-320000 rpm electrical speed
-        'V_max' : 32000,# 320000 rpm electrical speed
-        'Curr_min' : -1500,# -60A is the acutal limit but set to -15A
-        'Curr_max' : 1500, # 60A is the acutal limit but set to 15A
+        'P_min' : -58.85, # rad (-58.85 rad limit)
+        'P_max' : 58.85, # rad (58.85 rad limit)
+        'V_min' : -20.0, # rad/s (-58.18 rad/s limit)
+        'V_max' : 20.0, # rad/s (58.18 rad/s limit)
+        'Curr_min' : -15.0,# A (-60A is the acutal limit)
+        'Curr_max' : 15.0, # A (60A is the acutal limit)
         'Temp_max' : 40.0, # max mosfet temp in deg C
         'Kt': 0.115, # Nm before gearbox per A of qaxis current
         'GEAR_RATIO': 9.0, # 9:1 gear ratio
@@ -366,7 +366,7 @@ class TMotorManager_servo_serial():
         self._command = None # overwrite with byte array of command to send on update()
         self._control_state = SERVO_SERIAL_CONTROL_STATE.IDLE
 
-        self.radps_per_ERPM = 2*np.pi()/180/60 # 5.82E-04 
+        self.radps_per_ERPM = 2*np.pi/180/60 # 5.82E-04 
 
         self._entered = False
         self._start_time = time.time()
@@ -409,7 +409,8 @@ class TMotorManager_servo_serial():
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
 
     def send_command(self):
-        self._ser.write(self._command)
+        if not (self._command is None):
+            self._ser.write(self._command)
 
     def update(self):
         if not self._entered:
@@ -481,6 +482,7 @@ class TMotorManager_servo_serial():
         i+=4
         self._motor_state_async.input_voltage = float(buffer_get_int16(data,i))/10.0
         i+=2 + 24
+        # TODO investigate what's in the 24 reserved bytes? Maybe it's interesting to record?
         self._motor_state_async.error = float(np.uint(data[i]))
         i+=1
         self._motor_state_async.position = float(buffer_get_int32(data,i))/1000000.0
@@ -495,84 +497,20 @@ class TMotorManager_servo_serial():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | temp: " + '{: 1f}'.format(round(self.T,0)) + " C"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self._motor_state.position,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self._motor_state.speed,3)) + " rad/s | current: " + '{: 1f}'.format(round(self._motor_state.iq_current,3)) + " A | temp: " + '{: 1f}'.format(round(self._motor_state.mos_temperature,0)) + " C"
 
     def device_info_string(self):
         """Prints the motor's serial port and device type."""
         return str(self.type) + "  Port: " + str(self.port)
 
-
-
-
-
-
-
-    
-
-
-
-
-
-
-def read_packet(ser):
-    if ser.inWaiting() < 1:
-        return []
-    else:
-        header = ser.read(1)
-        DL = int.from_bytes(ser.read(1), byteorder="big")
-        i = 0
-        data = []
-        # print(DL)
-        while (i < DL and ser.inWaiting() > 0):
-            data.append(int.from_bytes(ser.read(1),byteorder="big"))
-            i+=1
-        crc1 = int.from_bytes(ser.read(1),byteorder='big') # check this later
-        crc2 = int.from_bytes(ser.read(1),byteorder='big')
-        footer = int.from_bytes(ser.read(1),byteorder='big')
-        # print(data)
-        # print(crc1)
-        # print(crc2)
-        # print(footer)
-        if not (footer == 0x03):
-            return []
-        else:
-            return data
-
-def hex_print(arr):
-    print([hex(d) for d in arr])
-
-def stream_serial_data(end_time=5):
-    with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
-        loop = SoftRealtimeLoop(dt=0.1, report=True, fade=0.0)
-        ser.write(bytearray(startup_sequence()))
-        
-        # not sure how to get position out of -360 to 360 degrees
-        ser.write(bytearray(set_motor_parameter_return_format_all()))
-        
-        print("\n\n\n\n\n\n\n\n\n")
-        for t in loop:
-            if t > end_time:
-                # print(["\n"]*14)
-                return
-            else:
-                data = read_packet(ser)
-                if len(data):
-                    # print(data)
-                    # hex_print(data)
-                    print()
-                    print(parse_motor_parameters(data),end='')
-                    print('\x1B[13A',end='')
-                    
-                cmd = get_motor_parameters()
-                # hex_print(cmd)
-                # print(bytearray(cmd))
-                ser.write(bytearray(cmd))
-        
-
-                
-
 if __name__ == '__main__':
-    stream_serial_data(100)
+    with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as dev:
+        loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
+        dev.set_motor_parameter_return_format_all()
+        time.sleep(0.1)
+        for t in loop:
+            dev.update()
+            print("\r" + str(dev), end='')
     
 
 
