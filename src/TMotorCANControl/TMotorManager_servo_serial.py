@@ -17,7 +17,8 @@ Servo_Params_Serial = {
         'Curr_max' : 15.0, # A (60A is the acutal limit)
         'Temp_max' : 40.0, # max mosfet temp in deg C
         'Kt': 0.115, # Nm before gearbox per A of qaxis current
-        'GEAR_RATIO': 9.0, # 9:1 gear ratio
+        'GEAR_RATIO': 9, # 9:1 gear ratio
+        'NUM_POLE_PAIRS' : 21 # 21 pole pairs
     }        
 }
 
@@ -102,6 +103,7 @@ class COMM_PACKET_ID():
     COMM_SET_POS = 9
     COMM_SET_HANDBRAKE = 10
     COMM_SET_DETECT = 11
+    # COMM_GET_POS = 16
     COMM_ROTOR_POSITION = 22
     COMM_GET_VALUES_SETUP = 50
     COMM_SET_POS_SPD = 91
@@ -262,12 +264,13 @@ class servo_serial_motor_state:
         self.duty = 0
         self.speed = 0
         self.input_voltage = 0
-        self.position = 0
+        self.position_set = 0
         self.controlID = 0
         self.Vd = 0
         self.Vq = 0
         self.error = 0
         self.acceleration = 0
+        self.position = 0
 
     def set_state(self, mos_temperature = 0,
                 motor_temperature = 0,
@@ -278,12 +281,13 @@ class servo_serial_motor_state:
                 duty = 0,
                 speed = 0,
                 input_voltage = 0,
-                position = 0,
+                position_set = 0,
                 controlID = 0,
                 Vd = 0,
                 Vq = 0,
                 error = 0,
-                acceleration = 0):
+                acceleration = 0,
+                position = 0):
         self.initialized = True
         self.mos_temperature = mos_temperature
         self.motor_temperature = motor_temperature 
@@ -294,12 +298,13 @@ class servo_serial_motor_state:
         self.duty = duty
         self.speed = speed
         self.input_voltage = input_voltage
-        self.position = position
+        self.position_set = position_set
         self.controlID = controlID
         self.Vd = Vd
         self.Vq = Vq
         self.error = error
         self.acceleration = acceleration
+        self.position = position
 
     
     def __str__(self):
@@ -312,7 +317,7 @@ class servo_serial_motor_state:
         s += f'\nduty: {self.duty}'
         s += f'\nspeed: {self.speed}'
         s += f'\ninput voltage: {self.input_voltage}'
-        s += f'\nposition: {self.position}'
+        s += f'\nposition: {self.position_set}'
         s += f'\ncontrolID: {self.controlID}'
         s += f'\nVd: {self.Vd}'
         s += f'\nVq: {self.Vq}'
@@ -378,6 +383,7 @@ class motor_listener(serial.threaded.Protocol):
                 
     def handle_packet(self, packet):
         if self.motor is not None:
+            # print(packet)
             header = packet[0]
             DL = packet[1]
             data = packet[2:2+DL]
@@ -410,7 +416,9 @@ class TMotorManager_servo_serial():
         self._command = None # overwrite with byte array of command to send on update()
         self._control_state = SERVO_SERIAL_CONTROL_STATE.IDLE
 
-        self.radps_per_ERPM = 2*np.pi/180/60 # 5.82E-04 
+        self.radps_per_ERPM =2*np.pi/180/60 # 5.82E-04 
+        self.rad_per_Eang = 2*(np.pi/180)/(self.motor_params['NUM_POLE_PAIRS']*self.motor_params['GEAR_RATIO']) # 1.85e-4
+        
 
         self._entered = False
         self._start_time = time.time()
@@ -430,8 +438,13 @@ class TMotorManager_servo_serial():
         self._listener = self._reader_thread.__enter__() 
         self._listener.motor = self
         self.power_on()
+        self.send_command()
         self.set_motor_parameter_return_format_all()
+        self.send_command()
+        self.begin_position_feedback()
+        self.send_command()
         self.enter_idle_mode()
+        self.send_command()
         # if not self.check_serial_connection():
         #     raise RuntimeError("Device not connected: " + str(self.device_info_string()))
         return self
@@ -453,6 +466,8 @@ class TMotorManager_servo_serial():
         
         if (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES) or (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES_SETUP):
             self.parse_motor_parameters_async(data)
+        elif (packet_ID == COMM_PACKET_ID.COMM_ROTOR_POSITION):
+            self.parse_position_feedback_async(data)
 
         if self._motor_state.error != 0:
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
@@ -482,14 +497,20 @@ class TMotorManager_servo_serial():
         self.set_duty_cycle(0.0)
         self.send_command()
 
-    def startup_sequence():
-        return bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
-
     def enter_idle_mode(self):
         self._command = None
 
     def enter_velocity_control(self):
         self._control_state = SERVO_SERIAL_CONTROL_STATE.VELOCITY
+
+    def enter_position_control(self):
+        self._control_state = SERVO_SERIAL_CONTROL_STATE.POSITION
+
+    def enter_current_loop_control(self):
+        self._control_state = SERVO_SERIAL_CONTROL_STATE.CURRENT_LOOP
+
+    def enter_duty_cycle_control(self):
+        self._control_state = SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE
 
     def set_duty_cycle(self, duty):
         buffer=[]
@@ -512,18 +533,44 @@ class TMotorManager_servo_serial():
         self._command = bytearray(create_frame(data))
         return self._command
 
+    def set_position(self, pos):
+        buffer=[]
+        buffer_append_int32(buffer, int(pos*1000000))
+        data = [COMM_PACKET_ID.COMM_SET_POS] + buffer
+        self._command = bytearray(create_frame(data))
+        return self._command
+
+    def set_position_velocity(self, pos, vel, acc):
+        # 4 byte pos * 1000, 4 byte vel * 1, 4 byte a * 1
+        buffer=[]
+        buffer_append_int32(buffer, int(pos*1000000))
+        buffer_append_int32(buffer, int(vel))
+        buffer_append_int32(buffer, int(acc))
+        data = [COMM_PACKET_ID.COMM_SET_POS_SPD] + buffer
+        self._command = bytearray(create_frame(data))
+        return self._command
+
     def set_multi_turn(self):
         self._command = bytearray([0x02 ,0x05 ,0x5C ,0x00 ,0x00 ,0x00 ,0x00 ,0x9E ,0x19 ,0x03])
+
+    def set_zero_position(self):
+        self._command = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
     
     def set_motor_parameter_return_format_all(self):
         header = COMM_PACKET_ID.COMM_GET_VALUES_SETUP
         data = [header, 0xFF,0xFF,0xFF,0xFF]
         self._command = bytearray(create_frame(data))
 
+    def begin_position_feedback(self):
+        self._command = bytearray([0x02, 0x02, 0x0B, 0x04, 0x9C, 0x7E, 0x03])
+
     def get_motor_parameters(self):
         header = COMM_PACKET_ID.COMM_GET_VALUES
         data = [header]
         self._command = bytearray(create_frame(data))
+
+    def parse_position_feedback_async(self, data):
+        self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000.0
 
     def parse_motor_parameters_async(self, data):
         i = 1
@@ -548,7 +595,7 @@ class TMotorManager_servo_serial():
         # TODO investigate what's in the 24 reserved bytes? Maybe it's interesting to record?
         self._motor_state_async.error = float(np.uint(data[i]))
         i+=1
-        self._motor_state_async.position = float(buffer_get_int32(data,i))/1000000.0
+        self._motor_state_async.position_set = float(buffer_get_int32(data,i))/1000000.0
         i+=4
         self._motor_state_async.controlID = np.uint(data[i])
         i+=1 + 6
@@ -616,7 +663,7 @@ class TMotorManager_servo_serial():
         Returns:
         The most recently updated output angle in radians
         """
-        return self._motor_state.position * np.pi / 180
+        return self._motor_state.position * self.rad_per_Eang
 
     def get_output_velocity_radians_per_second(self):
         """
@@ -653,6 +700,51 @@ class TMotorManager_servo_serial():
             raise RuntimeError("Attempted to send speed command without entering speed control " + self.device_info_string()) 
 
         self.set_speed_ERPM(vel/self.radps_per_ERPM)
+
+    def set_duty_cycle_percent(self, duty):
+        """
+        Make motor go brrr
+
+        Args:
+            vel: The desired output speed in rad/s
+        """
+        if np.abs(duty) >= 1:
+            raise RuntimeError("Cannot control using duty cycle mode for more than 100 percent duty!")
+
+        if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE]:
+            raise RuntimeError("Attempted to duty cycle command without entering duty cycle control " + self.device_info_string()) 
+
+        self.set_duty_cycle(duty)
+
+    def set_current_qaxis_amps(self, curr):
+        """
+        Make motor go brrr
+
+        Args:
+            vel: The desired output speed in rad/s
+        """
+        if np.abs(curr) >= self.motor_params["Curr_max"]:
+            raise RuntimeError("Cannot control using current mode with magnitude greater than " + str(self.motor_params["I_max"]) + "rad/s!")
+
+        if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.CURRENT_LOOP]:
+            raise RuntimeError("Attempted to send current command without entering current control " + self.device_info_string()) 
+
+        self.set_current_loop(curr)
+
+    def set_output_angle_radians(self, pos):
+        """
+        Make motor go brrr
+
+        Args:
+            vel: The desired output speed in rad/s
+        """
+        if np.abs(pos) >= self.motor_params["P_max"]:
+            raise RuntimeError("Cannot control using position mode for angles with magnitude greater than " + str(self.motor_params["P_max"]) + "rad!")
+
+        if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.POSITION]:
+            raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 
+
+        self.set_position_velocity(pos, 1000, 10)
 
     # Pretty stuff
     def __str__(self):
