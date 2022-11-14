@@ -417,20 +417,21 @@ class TMotorManager_servo_serial():
         self._last_update_time = self._start_time
         self._last_command_time = None
         self._updated = False
-        self._ser_thread = None
+        self._ser = None
         self._reader_thread = None
         
     def __enter__(self):
         """
         Used to safely power the motor on.
         """
-        self._ser_thread = serial.Serial(self.port, self.baud)
+        self._ser = serial.Serial(self.port, self.baud)
         self._entered = True
-        self._reader_thread = serial.threaded.ReaderThread(self._ser_thread, motor_listener)
+        self._reader_thread = serial.threaded.ReaderThread(self._ser, motor_listener)
         self._listener = self._reader_thread.__enter__() 
         self._listener.motor = self
         self.power_on()
         self.set_motor_parameter_return_format_all()
+        self.enter_idle_mode()
         # if not self.check_serial_connection():
         #     raise RuntimeError("Device not connected: " + str(self.device_info_string()))
         return self
@@ -439,9 +440,10 @@ class TMotorManager_servo_serial():
         """
         Used to safely power the motor off and close the log file.
         """
-        self.power_off() 
-        print('Turning off control for device: ' + self.device_info_string())
-        self._reader_thread.close() # also should shut down serial port
+        print('\nTurning off control for device: ' + self.device_info_string())
+        self._reader_thread.stop() # end reading thread
+        self._ser.write(self.set_duty_cycle(0.0)) # power down motor
+        self._ser.close() # end serial connection
 
         if not (etype is None):
             traceback.print_exception(etype, value, tb)
@@ -455,48 +457,60 @@ class TMotorManager_servo_serial():
         if self._motor_state.error != 0:
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
     
-    def send_command(self, command):
-        if not (command is None):
-            self._reader_thread.write(command)
+    def send_command(self):
+        if not (self._command is None):
+            self._reader_thread.write(self._command)
 
     def update(self):
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
+        
+        old_cmd = self._command
+        self.get_motor_parameters()
+        self.send_command()
 
-        self.send_command(self.get_motor_parameters())
         self._motor_state = self._motor_state_async
-        self.send_command(self._command)
+        self._command = old_cmd
+        self.send_command()
 
     # comm protocol commands
     def power_on(self):
-        self.send_command(bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0]))
+        self._command = bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
+        self.send_command()
 
     def power_off(self):
-        self.send_command(self.set_duty(0.0))
+        self.set_duty_cycle(0.0)
+        self.send_command()
 
     def startup_sequence():
         return bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
 
-    def idle(self):
+    def enter_idle_mode(self):
         self._command = None
 
-    def set_duty(self, duty):
+    def enter_velocity_control(self):
+        self._control_state = SERVO_SERIAL_CONTROL_STATE.VELOCITY
+
+    def set_duty_cycle(self, duty):
         buffer=[]
         buffer_append_int32(buffer, int(duty * 100000.0))
         data = [COMM_PACKET_ID.COMM_SET_DUTY] + buffer
         self._command = bytearray(create_frame(data))
+        return self._command
 
-    def set_speed(self, speed):
+    def set_speed_ERPM(self, speed):
         buffer=[]
         buffer_append_int32(buffer, int(speed))
         data = [COMM_PACKET_ID.COMM_SET_RPM] + buffer
         self._command = bytearray(create_frame(data))
+        return self._command
 
-    def set_current(self, current):
+    def set_current_loop(self, current):
         buffer=[]
         buffer_append_int32(buffer, int(current*1000.0))
         data = [COMM_PACKET_ID.COMM_SET_CURRENT] + buffer
         self._command = bytearray(create_frame(data))
+        return self._command
 
     def set_multi_turn(self):
         self._command = bytearray([0x02 ,0x05 ,0x5C ,0x00 ,0x00 ,0x00 ,0x00 ,0x9E ,0x19 ,0x03])
@@ -624,6 +638,21 @@ class TMotorManager_servo_serial():
             the most recently updated output torque in Nm
         """
         return self.get_current_qaxis_amps()*self.motor_params["Kt"]*self.motor_params["GEAR_RATIO"]
+
+    def set_output_velocity_radians_per_second(self, vel):
+        """
+        Make motor go brrr
+
+        Args:
+            vel: The desired output speed in rad/s
+        """
+        if np.abs(vel) >= self.motor_params["V_max"]:
+            raise RuntimeError("Cannot control using speed mode for angles with magnitude greater than " + str(self.motor_params["V_max"]) + "rad/s!")
+
+        if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.VELOCITY]:
+            raise RuntimeError("Attempted to send speed command without entering speed control " + self.device_info_string()) 
+
+        self.set_speed_ERPM(vel/self.radps_per_ERPM)
 
     # Pretty stuff
     def __str__(self):
