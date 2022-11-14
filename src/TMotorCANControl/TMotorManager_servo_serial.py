@@ -1,9 +1,25 @@
 import serial
+from serial import threaded
 import time
 import numpy as np
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from enum import Enum
 import traceback
+
+Servo_Params_Serial = {
+    'AK80-9': {
+        'Type' : 'AK80-9', # name of motor to print out in diagnostics
+        'P_min' : -58.85, # rad (-58.85 rad limit)
+        'P_max' : 58.85, # rad (58.85 rad limit)
+        'V_min' : -20.0, # rad/s (-58.18 rad/s limit)
+        'V_max' : 20.0, # rad/s (58.18 rad/s limit)
+        'Curr_min' : -15.0,# A (-60A is the acutal limit)
+        'Curr_max' : 15.0, # A (60A is the acutal limit)
+        'Temp_max' : 40.0, # max mosfet temp in deg C
+        'Kt': 0.115, # Nm before gearbox per A of qaxis current
+        'GEAR_RATIO': 9.0, # 9:1 gear ratio
+    }        
+}
 
 crc16_tab = [0x0000, 0x1021, 0x2042,0x3063, 0x4084,
 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c,0xd1ad,
@@ -34,21 +50,6 @@ crc16_tab = [0x0000, 0x1021, 0x2042,0x3063, 0x4084,
 0x9de8, 0x8dc9, 0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83,0x1ce0,
 0x0cc1, 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9,0x9ff8,
 0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0]
-
-
-Servo_Params_Serial = {
-    'AK80-9':{
-        'P_min' : -58.85, # rad (-58.85 rad limit)
-        'P_max' : 58.85, # rad (58.85 rad limit)
-        'V_min' : -20.0, # rad/s (-58.18 rad/s limit)
-        'V_max' : 20.0, # rad/s (58.18 rad/s limit)
-        'Curr_min' : -15.0,# A (-60A is the acutal limit)
-        'Curr_max' : 15.0, # A (60A is the acutal limit)
-        'Temp_max' : 40.0, # max mosfet temp in deg C
-        'Kt': 0.115, # Nm before gearbox per A of qaxis current
-        'GEAR_RATIO': 9.0, # 9:1 gear ratio
-    }        
-}
 
 PARAMETER_FLAGS = {
     # parameter       : flag
@@ -88,7 +89,7 @@ ERROR_CODES = {
     18 : 'FAULT_CODE_UNBALANCED_CURRENTS',
 }    
 
-class COMM_PACKET_ID(Enum):
+class COMM_PACKET_ID():
     COMM_FW_VERSION = 0
     COMM_JUMP_TO_BOOTLOADER = 1
     COMM_ERASE_NEW_APP = 2
@@ -236,31 +237,18 @@ def create_frame(data):
 
 def parse_frame(frame):
     # add error checking later
-    header = frame[0]
-    DL = frame[1]
-    data = frame[2:2+DL]
-    crc = buffer_get_int16(frame[2+DL:DL+4])
-    if crc == crc16(data, DL):
-        return data
+    print(frame)
+    if len(frame) > 4:
+        header = frame[0]
+        DL = frame[1]
+        data = frame[2:2+DL]
+        crc = buffer_get_int16(frame[2+DL:DL+4], 0)
+        if crc == crc16(data, DL):
+            return data
+        else:
+            return None
     else:
         return None
-
-class motor_listener(serial.threaded.Packetizer):
-    TERMINATOR = b'\03'
-
-    def connection_made(self, transport):
-        super().connection_made(transport)
-        print("connected on " + str(transport))
-
-    def __init__(self):
-        super().__init__()
-        self.motor = None
-
-    def handle_packet(self, packet):
-        if self.motor is not None:
-            data = parse_frame(packet)
-            if not (data is None):
-                self.motor.update_async()
                 
 class servo_serial_motor_state:
     def __init__(self):
@@ -279,6 +267,7 @@ class servo_serial_motor_state:
         self.Vd = 0
         self.Vq = 0
         self.error = 0
+        self.acceleration = 0
 
     def set_state(self, mos_temperature = 0,
                 motor_temperature = 0,
@@ -293,7 +282,8 @@ class servo_serial_motor_state:
                 controlID = 0,
                 Vd = 0,
                 Vq = 0,
-                error = 0):
+                error = 0,
+                acceleration = 0):
         self.initialized = True
         self.mos_temperature = mos_temperature
         self.motor_temperature = motor_temperature 
@@ -309,6 +299,7 @@ class servo_serial_motor_state:
         self.Vd = Vd
         self.Vq = Vq
         self.error = error
+        self.acceleration = acceleration
 
     
     def __str__(self):
@@ -325,9 +316,8 @@ class servo_serial_motor_state:
         s += f'\ncontrolID: {self.controlID}'
         s += f'\nVd: {self.Vd}'
         s += f'\nVq: {self.Vq}'
+        s += f'\nAccel: {self.acceleration}'
         return s
-        
-
 
 # possible states for the controller
 class SERVO_SERIAL_CONTROL_STATE(Enum):
@@ -342,6 +332,60 @@ class SERVO_SERIAL_CONTROL_STATE(Enum):
     HANDBRAKE = 5
     POSITION_VELOCITY = 6
     IDLE = 7
+
+
+class motor_listener(serial.threaded.Protocol):
+
+    def connection_made(self, transport):
+        super().connection_made(transport)
+        print("connected on " + str(transport))
+
+    def connection_lost(self, transport):
+        super().connection_made(transport)
+        print("connection closed")
+
+    def __init__(self):
+        super().__init__()
+        self.buffer =[]
+        self.state = 0 # 0 : ready, 1 : message started (0x02), 2 : known DL, 3 : ready data, 5 : expect 0x03
+        self.DL = 0
+        self.i = 0
+        self.motor = None
+
+    def data_received(self, data):
+        for d in data:
+            if self.state == 0:
+                if d == 0x02:
+                    self.buffer.append(d)
+                    self.state = 1
+            elif self.state == 1:
+                self.buffer.append(d)
+                self.DL = d + 2
+                self.state = 2
+            elif self.state == 2:
+                self.buffer.append(d)
+                self.i += 1
+                if self.i == self.DL:
+                    self.state = 3
+                    self.i = 0
+                    self.DL = 0
+            elif self.state == 3:
+                if d == 0x03:
+                    self.buffer.append(d)
+                    self.handle_packet(self.buffer)
+                    self.state = 0
+                    self.buffer = []
+                
+    def handle_packet(self, packet):
+        if self.motor is not None:
+            header = packet[0]
+            DL = packet[1]
+            data = packet[2:2+DL]
+            crc = buffer_get_int16(packet[2+DL:DL+4], 0)
+            if crc != crc16(data, DL):
+                data = None
+            if not (data is None) and len(data) > 0:
+                self.motor.update_async(data)
 
 # the user-facing class that manages the motor.
 class TMotorManager_servo_serial():
@@ -373,18 +417,20 @@ class TMotorManager_servo_serial():
         self._last_update_time = self._start_time
         self._last_command_time = None
         self._updated = False
-        self._ser = None
+        self._ser_thread = None
         self._reader_thread = None
         
     def __enter__(self):
         """
         Used to safely power the motor on.
         """
-        self._ser = serial.Serial(self.port, self.baud)
+        self._ser_thread = serial.Serial(self.port, self.baud)
         self._entered = True
-        self._reader_thread = serial.threaded.ReaderThread(self._ser, motor_listener)
-        self._reader_thread.motor = self
+        self._reader_thread = serial.threaded.ReaderThread(self._ser_thread, motor_listener)
+        self._listener = self._reader_thread.__enter__() 
+        self._listener.motor = self
         self.power_on()
+        self.set_motor_parameter_return_format_all()
         # if not self.check_serial_connection():
         #     raise RuntimeError("Device not connected: " + str(self.device_info_string()))
         return self
@@ -401,35 +447,38 @@ class TMotorManager_servo_serial():
             traceback.print_exception(etype, value, tb)
 
     def update_async(self, data):
-        packet_ID = COMM_PACKET_ID(data[0])
-        if packet_ID == COMM_PACKET_ID.COMM_GET_VALUES:
+        packet_ID = data[0]
+        
+        if (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES) or (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES_SETUP):
             self.parse_motor_parameters_async(data)
 
         if self._motor_state.error != 0:
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
-
-    def send_command(self):
-        if not (self._command is None):
-            self._ser.write(self._command)
+    
+    def send_command(self, command):
+        if not (command is None):
+            self._reader_thread.write(command)
 
     def update(self):
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
-        
+
+        self.send_command(self.get_motor_parameters())
         self._motor_state = self._motor_state_async
-        self.send_command()
+        self.send_command(self._command)
 
     # comm protocol commands
     def power_on(self):
-        self._command = bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
-        self.send_command()
+        self.send_command(bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0]))
 
     def power_off(self):
-        self.set_duty(0.0)
-        self.send_command()
+        self.send_command(self.set_duty(0.0))
 
     def startup_sequence():
         return bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
+
+    def idle(self):
+        self._command = None
 
     def set_duty(self, duty):
         buffer=[]
@@ -494,14 +543,96 @@ class TMotorManager_servo_serial():
         self._motor_state_async.Vq = float(buffer_get_int32(data,i))/1000.0
         i+=4
 
+    # getters for motor state
+    def get_temperature_celsius(self):
+        """
+        Returns:
+        The most recently updated motor temperature in degrees C.
+        """
+        return self._motor_state.mos_temperature
+    
+    def get_motor_error_code(self):
+        """
+        Returns:
+        The most recently updated motor error code.
+        Note the program should throw a runtime error before you get a chance to read
+        this value if it is ever anything besides 0.
+
+        Codes:
+        - 0 : 'No Error',
+        - 1 : 'Over temperature fault',
+        - 2 : 'Over current fault',
+        - 3 : 'Over voltage fault',
+        - 4 : 'Under voltage fault',
+        - 5 : 'Encoder fault',
+        - 6 : 'Phase current unbalance fault (The hardware may be damaged)'
+        """
+        return self._motor_state.error
+
+    def get_current_qaxis_amps(self):
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
+        return self._motor_state.iq_current
+
+    def get_current_daxis_amps(self):
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
+        return self._motor_state.id_current
+
+    def get_voltage_qaxis_amps(self):
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
+        return self._motor_state.Vq
+
+    def get_current_daxis_amps(self):
+        """
+        Returns:
+        The most recently updated qaxis current in amps
+        """
+        return self._motor_state.Vd
+
+    def get_output_angle_radians(self):
+        """
+        Returns:
+        The most recently updated output angle in radians
+        """
+        return self._motor_state.position * np.pi / 180
+
+    def get_output_velocity_radians_per_second(self):
+        """
+        Returns:
+            The most recently updated output velocity in radians per second
+        """
+        return self._motor_state.speed * self.radps_per_ERPM
+
+    def get_output_acceleration_radians_per_second_squared(self):
+        """
+        Returns:
+            The most recently updated output acceleration in radians per second per second
+        """
+        return self._motor_state.acceleration * self.radps_per_ERPM
+
+    def get_output_torque_newton_meters(self):
+        """
+        Returns:
+            the most recently updated output torque in Nm
+        """
+        return self.get_current_qaxis_amps()*self.motor_params["Kt"]*self.motor_params["GEAR_RATIO"]
+
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self._motor_state.position,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self._motor_state.speed,3)) + " rad/s | current: " + '{: 1f}'.format(round(self._motor_state.iq_current,3)) + " A | temp: " + '{: 1f}'.format(round(self._motor_state.mos_temperature,0)) + " C"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.get_output_angle_radians(),3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.get_output_velocity_radians_per_second(),3)) + " rad/s | current: " + '{: 1f}'.format(round(self._motor_state.iq_current,3)) + " A | temp: " + '{: 1f}'.format(round(self._motor_state.mos_temperature,0)) + " C"
 
     def device_info_string(self):
         """Prints the motor's serial port and device type."""
-        return str(self.type) + "  Port: " + str(self.port)
+        return self.motor_params["Type"] + "  Port: " + str(self.port) # self.motor_params["Type"] + 
 
 if __name__ == '__main__':
     with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as dev:
