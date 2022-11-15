@@ -417,13 +417,11 @@ class TMotorManager_servo_serial():
         self._control_state = SERVO_SERIAL_CONTROL_STATE.IDLE
 
         self.radps_per_ERPM =2*np.pi/180/60 # 5.82E-04 
-        self.rad_per_Eang = 2*(np.pi/180)/(self.motor_params['NUM_POLE_PAIRS']*self.motor_params['GEAR_RATIO']) # 1.85e-4
+        self.rad_per_Eang = 2*(np.pi/180)/(self.motor_params['NUM_POLE_PAIRS']) # 1.85e-4
         
-
         self._entered = False
         self._start_time = time.time()
         self._last_update_time = self._start_time
-        self._last_command_time = None
         self._updated = False
         self._ser = None
         self._reader_thread = None
@@ -432,40 +430,66 @@ class TMotorManager_servo_serial():
         """
         Used to safely power the motor on.
         """
-        self._ser = serial.Serial(self.port, self.baud)
-        self._entered = True
-        self._reader_thread = serial.threaded.ReaderThread(self._ser, motor_listener)
-        self._listener = self._reader_thread.__enter__() 
-        self._listener.motor = self
-        self.power_on()
-        self.send_command()
-        self.set_motor_parameter_return_format_all()
-        self.send_command()
-        self.begin_position_feedback()
-        self.send_command()
-        self.enter_idle_mode()
-        self.send_command()
-        # if not self.check_serial_connection():
-        #     raise RuntimeError("Device not connected: " + str(self.device_info_string()))
-        return self
+        if not self._entered:
+            # begin serial connection
+            self._ser = serial.Serial(self.port, self.baud)
 
+            # start another thread to handle recieved data
+            self._reader_thread = serial.threaded.ReaderThread(self._ser, motor_listener)
+            self._listener = self._reader_thread.__enter__() 
+            self._listener.motor = self
+
+            # send startup sequence
+            self.power_on()
+            self.send_command()
+
+            # tell the motor to send back all parameters
+            # TODO expand to allow user to only request some data, could be faster
+            self.set_motor_parameter_return_format_all()
+            self.send_command()
+
+            # tell motor to send current position (for some reason current position is not in the other parameters)
+            self.begin_position_feedback()
+            self.send_command()
+
+            # don't do anything else
+            self.enter_idle_mode()
+            self.send_command()
+
+            # return the safely entered motor manager object
+            self._entered = True
+            return self
+        else:
+            # it's already been entered!
+            print(f"Already entered device: {self.device_info_string()}")
+        
     def __exit__(self, etype, value, tb):
         """
-        Used to safely power the motor off and close the log file.
+        Used to safely power the motor off and close the port.
         """
         print('\nTurning off control for device: ' + self.device_info_string())
-        self._reader_thread.stop() # end reading thread
-        self._ser.write(self.set_duty_cycle(0.0)) # power down motor
-        self._ser.close() # end serial connection
+        # end reading thread
+        self._reader_thread.stop() 
 
+        # power down motor
+        self._ser.write(self.set_duty_cycle(0.0)) 
+
+        # end serial connection
+        self._ser.close() 
+
+        # if this was ended due to an error, print the stack trace
         if not (etype is None):
             traceback.print_exception(etype, value, tb)
 
     def update_async(self, data):
         packet_ID = data[0]
-        
         if (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES) or (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES_SETUP):
             self.parse_motor_parameters_async(data)
+            # calculate acceleration
+            now = time.time()
+            dt = now - self._last_update_time
+            self._motor_state_async.acceleration = self._motor_state_async.speed/dt
+            self._last_update_time = now
         elif (packet_ID == COMM_PACKET_ID.COMM_ROTOR_POSITION):
             self.parse_position_feedback_async(data)
 
@@ -474,20 +498,33 @@ class TMotorManager_servo_serial():
     
     def send_command(self):
         if not (self._command is None):
+            # use the thread-safe method to write the command, so that we don't access the serial 
+            # object while the reader thread is using it!!
+            # TODO when pyserial adds full asyncio support, consider switching to that
             self._reader_thread.write(self._command)
+
+    def _send_specific_command(self, command):
+        if not (self._command is None):
+            # use the thread-safe method to write the command, so that we don't access the serial 
+            # object while the reader thread is using it!!
+            # TODO when pyserial adds full asyncio support, consider switching to that
+            self._reader_thread.write(command)
 
     def update(self):
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
         
-        old_cmd = self._command
-        self.get_motor_parameters()
+        # send the user specified command
         self.send_command()
 
+        # send the command to get parameters (message will be read in other thread)
+        self._send_specific_command(self.get_motor_parameters())
+
+        # synchronize user-facing state with most recent async state
+        # TODO implement some filtering on the async state, if it gets multiple updates
+        # between user requested updates
         self._motor_state = self._motor_state_async
-        self._command = old_cmd
-        self.send_command()
-
+        
     # comm protocol commands
     def power_on(self):
         self._command = bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
@@ -512,63 +549,82 @@ class TMotorManager_servo_serial():
     def enter_duty_cycle_control(self):
         self._control_state = SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE
 
-    def set_duty_cycle(self, duty):
+    def set_duty_cycle(self, duty, set_command=True):
         buffer=[]
         buffer_append_int32(buffer, int(duty * 100000.0))
         data = [COMM_PACKET_ID.COMM_SET_DUTY] + buffer
-        self._command = bytearray(create_frame(data))
+        if set_command:
+            self._command = bytearray(create_frame(data))
         return self._command
 
-    def set_speed_ERPM(self, speed):
+    def set_speed_ERPM(self, speed, set_command=True):
         buffer=[]
         buffer_append_int32(buffer, int(speed))
         data = [COMM_PACKET_ID.COMM_SET_RPM] + buffer
-        self._command = bytearray(create_frame(data))
+        if set_command:
+            self._command = bytearray(create_frame(data))
         return self._command
 
-    def set_current_loop(self, current):
+    def set_current_loop(self, current, set_command=True):
         buffer=[]
         buffer_append_int32(buffer, int(current*1000.0))
         data = [COMM_PACKET_ID.COMM_SET_CURRENT] + buffer
-        self._command = bytearray(create_frame(data))
+        if set_command:
+            self._command = bytearray(create_frame(data))
         return self._command
 
-    def set_position(self, pos):
+    def set_position(self, pos, set_command=True):
         buffer=[]
         buffer_append_int32(buffer, int(pos*1000000))
         data = [COMM_PACKET_ID.COMM_SET_POS] + buffer
-        self._command = bytearray(create_frame(data))
+        if set_command:
+            self._command = bytearray(create_frame(data))
         return self._command
 
-    def set_position_velocity(self, pos, vel, acc):
+    def set_position_velocity(self, pos, vel, acc, set_command=True):
         # 4 byte pos * 1000, 4 byte vel * 1, 4 byte a * 1
         buffer=[]
         buffer_append_int32(buffer, int(pos*1000000))
         buffer_append_int32(buffer, int(vel))
         buffer_append_int32(buffer, int(acc))
         data = [COMM_PACKET_ID.COMM_SET_POS_SPD] + buffer
-        self._command = bytearray(create_frame(data))
+        if set_command:
+            self._command = bytearray(create_frame(data))
         return self._command
 
-    def set_multi_turn(self):
-        self._command = bytearray([0x02 ,0x05 ,0x5C ,0x00 ,0x00 ,0x00 ,0x00 ,0x9E ,0x19 ,0x03])
+    def set_multi_turn(self, set_command=True):
+        cmd = bytearray([0x02 ,0x05 ,0x5C ,0x00 ,0x00 ,0x00 ,0x00 ,0x9E ,0x19 ,0x03])
+        if set_command:
+            self._command = cmd
+        return cmd
 
-    def set_zero_position(self):
-        self._command = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
+    def set_zero_position(self, set_command=True):
+        cmd = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
+        if set_command:
+            self._command = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
+        return cmd
     
-    def set_motor_parameter_return_format_all(self):
+    def set_motor_parameter_return_format_all(self, set_command=True):
         header = COMM_PACKET_ID.COMM_GET_VALUES_SETUP
         data = [header, 0xFF,0xFF,0xFF,0xFF]
-        self._command = bytearray(create_frame(data))
+        cmd = bytearray(create_frame(data))
+        if set_command:
+            self._command = cmd
+        return cmd
 
-    def begin_position_feedback(self):
-        self._command = bytearray([0x02, 0x02, 0x0B, 0x04, 0x9C, 0x7E, 0x03])
+    def begin_position_feedback(self, set_command=True):
+        if set_command:
+            self._command = bytearray([0x02, 0x02, 0x0B, 0x04, 0x9C, 0x7E, 0x03])
 
-    def get_motor_parameters(self):
+    def get_motor_parameters(self, set_command=True):
         header = COMM_PACKET_ID.COMM_GET_VALUES
         data = [header]
-        self._command = bytearray(create_frame(data))
-
+        cmd = bytearray(create_frame(data))
+        if set_command:
+            self._command = cmd
+        return cmd
+        
+    # comm data parsing 
     def parse_position_feedback_async(self, data):
         self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000.0
 
@@ -620,13 +676,7 @@ class TMotorManager_servo_serial():
         this value if it is ever anything besides 0.
 
         Codes:
-        - 0 : 'No Error',
-        - 1 : 'Over temperature fault',
-        - 2 : 'Over current fault',
-        - 3 : 'Over voltage fault',
-        - 4 : 'Under voltage fault',
-        - 5 : 'Encoder fault',
-        - 6 : 'Phase current unbalance fault (The hardware may be damaged)'
+        
         """
         return self._motor_state.error
 
@@ -644,19 +694,33 @@ class TMotorManager_servo_serial():
         """
         return self._motor_state.id_current
 
-    def get_voltage_qaxis_amps(self):
+    def get_current_bus_amps(self):
         """
         Returns:
         The most recently updated qaxis current in amps
+        """
+        return self._motor_state.input_current
+
+    def get_voltage_qaxis_volts(self):
+        """
+        Returns:
+        The most recently updated qaxis voltage in volts
         """
         return self._motor_state.Vq
 
-    def get_current_daxis_amps(self):
+    def get_voltage_daxis_volts(self):
         """
         Returns:
-        The most recently updated qaxis current in amps
+        The most recently updated daxis voltage in volts
         """
         return self._motor_state.Vd
+
+    def get_voltage_bus_volts(self):
+        """
+        Returns:
+        The most recently updated input voltage in volts
+        """
+        return self._motor_state.input_current
 
     def get_output_angle_radians(self):
         """
@@ -686,6 +750,8 @@ class TMotorManager_servo_serial():
         """
         return self.get_current_qaxis_amps()*self.motor_params["Kt"]*self.motor_params["GEAR_RATIO"]
 
+
+    # user facing setters 
     def set_output_velocity_radians_per_second(self, vel):
         """
         Make motor go brrr
@@ -716,7 +782,7 @@ class TMotorManager_servo_serial():
 
         self.set_duty_cycle(duty)
 
-    def set_current_qaxis_amps(self, curr):
+    def set_motor_current_qaxis_amps(self, curr):
         """
         Make motor go brrr
 
@@ -746,6 +812,82 @@ class TMotorManager_servo_serial():
 
         self.set_position_velocity(pos, 1000, 10)
 
+    def set_output_torque_newton_meters(self, torque):
+        """
+        Used for either current or MIT Mode to set current, based on desired torque.
+        If a more complicated torque model is available for the motor, that will be used.
+        Otherwise it will just use the motor's torque constant.
+        
+        Args:
+            torque: The desired output torque in Nm.
+        """
+        self.set_motor_current_qaxis_amps( (torque/self.motor_params["Kt"]/self.motor_params["GEAR_RATIO"]) )
+
+
+    # motor-side functions to account for the gear ratio
+    def set_motor_torque_newton_meters(self, torque):
+        """
+        Version of set_output_torque that accounts for gear ratio to control motor-side torque
+        
+        Args:
+            torque: The desired motor-side torque in Nm.
+        """
+        self.set_output_torque_newton_meters(torque*self.motor_params["Kt"])
+
+    def set_motor_angle_radians(self, pos):
+        """
+        Wrapper for set_output_angle that accounts for gear ratio to control motor-side angle
+        
+        Args:
+            pos: The desired motor-side position in rad.
+        """
+        self.set_output_angle_radians(pos/(self.motor_params["GEAR_RATIO"]) )
+
+    def set_motor_velocity_radians_per_second(self, vel):
+        """
+        Wrapper for set_output_velocity that accounts for gear ratio to control motor-side velocity
+        
+        Args:
+            vel: The desired motor-side velocity in rad/s.
+        """
+        self.set_output_velocity_radians_per_second(vel/(self.motor_params["GEAR_RATIO"]) )
+
+    def get_motor_angle_radians(self):
+        """
+        Wrapper for get_output_angle that accounts for gear ratio to get motor-side angle
+        
+        Returns:
+            The most recently updated motor-side angle in rad.
+        """
+        return self._motor_state.position*self.motor_params["GEAR_RATIO"]
+
+    def get_motor_velocity_radians_per_second(self):
+        """
+        Wrapper for get_output_velocity that accounts for gear ratio to get motor-side velocity
+        
+        Returns:
+            The most recently updated motor-side velocity in rad/s.
+        """
+        return self._motor_state.velocity*self.motor_params["GEAR_RATIO"]
+
+    def get_motor_acceleration_radians_per_second_squared(self):
+        """
+        Wrapper for get_output_acceleration that accounts for gear ratio to get motor-side acceleration
+        
+        Returns:
+            The most recently updated motor-side acceleration in rad/s/s.
+        """
+        return self._motor_state.acceleration*self.motor_params["GEAR_RATIO"]
+
+    def get_motor_torque_newton_meters(self):
+        """
+        Wrapper for get_output_torque that accounts for gear ratio to get motor-side torque
+        
+        Returns:
+            The most recently updated motor-side torque in Nm.
+        """
+        return self.get_output_torque_newton_meters()*self.motor_params["GEAR_RATIO"]
+
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
@@ -753,16 +895,62 @@ class TMotorManager_servo_serial():
 
     def device_info_string(self):
         """Prints the motor's serial port and device type."""
-        return self.motor_params["Type"] + "  Port: " + str(self.port) # self.motor_params["Type"] + 
+        return f"{self.motor_params['Type']} Port: {self.port}"
 
-if __name__ == '__main__':
-    with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as dev:
-        loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
-        dev.set_motor_parameter_return_format_all()
-        time.sleep(0.1)
-        for t in loop:
-            dev.update()
-            print("\r" + str(dev), end='')
+    # controller variables
+    T = property(get_temperature_celsius, doc="temperature_degrees_C")
+    """Temperature in Degrees Celsius"""
+
+    # TODO write actual codes in description here as well
+    e = property(get_motor_error_code, doc="Error")
+    """Motor error code. 0 means no error."""
+
+    # electrical variables
+    iq = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps")
+    """Q-axis current in amps"""
+
+    id = property(get_current_daxis_amps, doc="current_daxis_amps")
+    """D-axis current in amps"""
+
+    ibus = property(get_current_bus_amps, doc="current_bus_amps")
+    """Bus input current in amps"""
+
+    vq = property(get_voltage_qaxis_volts, doc="voltage_qaxis_volts")
+    """Q-axis voltage in volts"""
+
+    vd = property(get_voltage_daxis_volts, doc="voltage_daxis_volts")
+    """D-axis voltage in volts"""
+
+    vbus = property(get_voltage_bus_volts, doc="voltage_bus_volts")
+    """Bus input voltage in volts"""
+
+    # output-side variables
+    θ = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians")
+    """Output angle in rad"""
+
+    θd = property (get_output_velocity_radians_per_second, set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    """Output velocity in rad/s"""
+
+    θdd = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
+    """Output acceleration in rad/s/s"""
+
+    τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
+    """Output torque in Nm"""
+
+    # motor-side variables
+    ϕ = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians")
+    """Motor-side angle in rad"""
+    
+    ϕd = property (get_motor_velocity_radians_per_second, set_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    """Motor-side velocity in rad/s"""
+
+    ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
+    """Motor-side acceleration in rad/s/s"""
+
+    τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
+    """Motor-side torque in Nm"""
+
+
     
 
 
