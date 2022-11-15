@@ -5,6 +5,7 @@ import numpy as np
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from enum import Enum
 import traceback
+import csv
 
 Servo_Params_Serial = {
     'AK80-9': {
@@ -343,11 +344,9 @@ class motor_listener(serial.threaded.Protocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
-        print("connected on " + str(transport))
 
     def connection_lost(self, transport):
         super().connection_made(transport)
-        print("connection closed")
 
     def __init__(self):
         super().__init__()
@@ -409,19 +408,19 @@ class TMotorManager_servo_serial():
         self.baud = baud
         print("Initializing device: " + self.device_info_string())
 
-        self.ser = serial.Serial("/dev/ttyUSB0", 961200, timeout=100)
-
         self._motor_state = servo_serial_motor_state()
         self._motor_state_async = servo_serial_motor_state()
         self._command = None # overwrite with byte array of command to send on update()
-        self._control_state = SERVO_SERIAL_CONTROL_STATE.IDLE
+        self._control_state = None
 
+        # TODO verify these work for other motor types!
         self.radps_per_ERPM =2*np.pi/180/60 # 5.82E-04 
         self.rad_per_Eang = 2*(np.pi/180)/(self.motor_params['NUM_POLE_PAIRS']) # 1.85e-4
         
         self._entered = False
         self._start_time = time.time()
         self._last_update_time = self._start_time
+        self._updated_async = False
         self._updated = False
         self._ser = None
         self._reader_thread = None
@@ -456,6 +455,13 @@ class TMotorManager_servo_serial():
             self.enter_idle_mode()
             self.send_command()
 
+            if not self.check_connection():
+                print("device: {self.device_info_string()} not connected!")
+            else:
+                print(f"device: {self.device_info_string()} successfully connected.")
+
+            self.f = open('timing_test_log.csv','w').__enter__()
+            self.w = csv.writer(self.f)
             # return the safely entered motor manager object
             self._entered = True
             return self
@@ -481,7 +487,16 @@ class TMotorManager_servo_serial():
         if not (etype is None):
             traceback.print_exception(etype, value, tb)
 
+    def check_connection(self):
+        self._send_specific_command(self.get_motor_parameters())
+        self._send_specific_command(self.get_motor_parameters())
+        self._send_specific_command(self.get_motor_parameters())
+        # slight delay to ensure connection!
+        time.sleep(0.2)
+        return self._updated_async
+
     def update_async(self, data):
+        self._updated_async = True
         packet_ID = data[0]
         if (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES) or (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES_SETUP):
             self.parse_motor_parameters_async(data)
@@ -524,6 +539,9 @@ class TMotorManager_servo_serial():
         # TODO implement some filtering on the async state, if it gets multiple updates
         # between user requested updates
         self._motor_state = self._motor_state_async
+
+        # self.w.writerow([time.time()-self._start_time])
+        
         
     # comm protocol commands
     def power_on(self):
@@ -542,6 +560,9 @@ class TMotorManager_servo_serial():
 
     def enter_position_control(self):
         self._control_state = SERVO_SERIAL_CONTROL_STATE.POSITION
+
+    def enter_position_velocity_control(self):
+        self._control_state = SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY
 
     def enter_current_loop_control(self):
         self._control_state = SERVO_SERIAL_CONTROL_STATE.CURRENT_LOOP
@@ -649,7 +670,7 @@ class TMotorManager_servo_serial():
         self._motor_state_async.input_voltage = float(buffer_get_int16(data,i))/10.0
         i+=2 + 24
         # TODO investigate what's in the 24 reserved bytes? Maybe it's interesting to record?
-        self._motor_state_async.error = float(np.uint(data[i]))
+        self._motor_state_async.error = np.uint(data[i])
         i+=1
         self._motor_state_async.position_set = float(buffer_get_int32(data,i))/1000000.0
         i+=4
@@ -797,7 +818,7 @@ class TMotorManager_servo_serial():
 
         self.set_current_loop(curr)
 
-    def set_output_angle_radians(self, pos):
+    def set_output_angle_radians(self, pos, vel=1000, acc=500):
         """
         Make motor go brrr
 
@@ -807,10 +828,12 @@ class TMotorManager_servo_serial():
         if np.abs(pos) >= self.motor_params["P_max"]:
             raise RuntimeError("Cannot control using position mode for angles with magnitude greater than " + str(self.motor_params["P_max"]) + "rad!")
 
-        if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.POSITION]:
+        if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:
+            self.set_position_velocity(pos, vel, acc)
+        elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
+            self.set_position(pos)
+        else:
             raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 
-
-        self.set_position_velocity(pos, 1000, 10)
 
     def set_output_torque_newton_meters(self, torque):
         """
@@ -822,7 +845,6 @@ class TMotorManager_servo_serial():
             torque: The desired output torque in Nm.
         """
         self.set_motor_current_qaxis_amps( (torque/self.motor_params["Kt"]/self.motor_params["GEAR_RATIO"]) )
-
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
@@ -902,7 +924,7 @@ class TMotorManager_servo_serial():
     """Temperature in Degrees Celsius"""
 
     # TODO write actual codes in description here as well
-    e = property(get_motor_error_code, doc="Error")
+    error = property(get_motor_error_code, doc="Error")
     """Motor error code. 0 means no error."""
 
     # electrical variables
