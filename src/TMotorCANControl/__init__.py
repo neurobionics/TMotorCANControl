@@ -1,1 +1,1 @@
-from TMotorCANControl.TMotorManager import TMotorManager
+from TMotorCANControl.TMotorManager_mit_can import TMotorManager

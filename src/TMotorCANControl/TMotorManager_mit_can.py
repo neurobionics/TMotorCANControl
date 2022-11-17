@@ -32,7 +32,7 @@ class _TMotorManState(Enum):
 
 
 # the user-facing class that manages the motor.
-class TMotorManager():
+class TMotorManager_mit_can():
     """
     The user-facing class that manages the motor. This class should be
     used in the context of a with as block, in order to safely enter/exit

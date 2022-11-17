@@ -7,6 +7,11 @@ from enum import Enum
 import traceback
 import csv
 
+
+"""
+A python module to control the CubeMars AK series actuators over the serial port.
+"""
+
 Servo_Params_Serial = {
     'AK80-9': {
         'Type' : 'AK80-9', # name of motor to print out in diagnostics
@@ -22,6 +27,22 @@ Servo_Params_Serial = {
         'NUM_POLE_PAIRS' : 21 # 21 pole pairs
     }        
 }
+"""
+Dictionary with the default parameters for the motors, indexed by their name
+
+Parameters:
+    Type (str): the name of this type of motor (ie, AK##-##)
+    P_min (float): Minimum position in radians
+    P_max (float): Maximum position in radians
+    V_min (float): Minimum speed command in velocity control in rad/s
+    V_max (float): Maximum speed command in velocity control in rad/s
+    Curr_min (float): Minimum current command during current control in A
+    Curr_max (float): Maximum current command during current control in A
+    Temp_max (float): Temperature above which motor should be turned off in Celsius
+    Kt (float): Torque constant of motor in Nm/A, before gearbox, q-axis
+    GEAR_RATIO (int): The gear ratio of the motor "n" as in n:1
+    NUM_POLE_PAIRS (int): Number of pole pairs in the motor
+"""
 
 crc16_tab = [0x0000, 0x1021, 0x2042,0x3063, 0x4084,
 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c,0xd1ad,
@@ -52,6 +73,9 @@ crc16_tab = [0x0000, 0x1021, 0x2042,0x3063, 0x4084,
 0x9de8, 0x8dc9, 0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83,0x1ce0,
 0x0cc1, 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9,0x9ff8,
 0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0]
+"""
+CRC 16 table as given in the manual, to be used to verify the packets recived
+"""
 
 PARAMETER_FLAGS = {
     # parameter       : flag
@@ -68,6 +92,9 @@ PARAMETER_FLAGS = {
     'MOTOR_POSITION'  : 1 << 17,
     'MOTOR_ID'        : 1 << 18
 }
+"""
+A dictionary of flags, where 1 means enable the desired parameter during feedback, and 0 means disable.
+"""
 
 ERROR_CODES = {
     0  : 'FAULT_CODE_NONE',
@@ -90,8 +117,14 @@ ERROR_CODES = {
     17 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3',
     18 : 'FAULT_CODE_UNBALANCED_CURRENTS',
 }    
+"""
+A dictionary mapping error code numbers to the name of the error code
+"""
 
 class COMM_PACKET_ID():
+    """
+    Basically used as ENUM to identify what each packet ID does
+    """
     COMM_FW_VERSION = 0
     COMM_JUMP_TO_BOOTLOADER = 1
     COMM_ERASE_NEW_APP = 2
@@ -113,14 +146,13 @@ class COMM_PACKET_ID():
     COMM_SET_POS_UNLIMITED = 94
     COMM_SET_POS_ORIGIN = 95
 
-def buffer_append_int16( buffer,number):
+def buffer_append_int16(buffer, number):
     """
-    buffer size for int 16
+    split a 16 bit signed integer into 2 bytes and append to buffer.
 
     Args:
         Buffer: memory allocated to store data.
         number: value.
-        index: Size of the buffer.
     """
     buffer.append((number >> 8)&(0x00FF))
     buffer.append((number)&(0x00FF))
@@ -128,12 +160,11 @@ def buffer_append_int16( buffer,number):
 # Buffer allocation for unsigned 16 bit
 def buffer_append_uint16( buffer,number):
     """
-    buffer size for Uint 16
+    split a 16 bit unsigned integer into 2 bytes and append to buffer.
 
     Args:
         Buffer: memory allocated to store data.
         number: value.
-        index: Size of the buffer.
     """
     buffer.append((number >> 8)&(0x00FF))
     buffer.append((number)&(0x00FF))
@@ -141,12 +172,11 @@ def buffer_append_uint16( buffer,number):
 # Buffer allocation for 32 bit
 def buffer_append_int32(buffer,number):
     """
-    buffer size for int 32
+    split a 32 bit signed integer into 4 bytes and append to buffer.
 
     Args:
         Buffer: memory allocated to store data.
         number: value.
-        index: Size of the buffer.
     """
     buffer.append((number >> 24)&(0x000000FF))
     buffer.append((number >> 16)&(0x000000FF))
@@ -156,12 +186,11 @@ def buffer_append_int32(buffer,number):
 # Buffer allocation for 32 bit
 def buffer_append_uint32( buffer,number):
     """
-    buffer size for uint 32
+    split a 32 bit unsigned integer into 4 bytes and append to buffer.
 
     Args:
         Buffer: memory allocated to store data.
         number: value.
-        index: Size of the buffer.
     """
     buffer.append((number >> 24)&(0x000000FF))
     buffer.append((number >> 16)&(0x000000FF))
@@ -171,12 +200,11 @@ def buffer_append_uint32( buffer,number):
 # Buffer allocation for 64 bit
 def buffer_append_int64( buffer,number):
     """
-    buffer size for int 64
+    split a 64 bit signed integer into 8 bytes and append to buffer.
 
     Args:
         Buffer: memory allocated to store data.
         number: value.
-        index: Size of the buffer.
     """
     buffer.append((number >> 56)&(0x00000000000000FF))
     buffer.append((number >> 48)&(0x00000000000000FF))
@@ -190,12 +218,11 @@ def buffer_append_int64( buffer,number):
 # Buffer allocation for Unsigned 64 bit
 def buffer_append_uint64(buffer,number):
     """
-    buffer size for uint 64
+    split a 64 bit unsigned integer into 8 bytes and append to buffer.
 
     Args:
         Buffer: memory allocated to store data.
         number: value.
-        index: Size of the buffer.
     """
     buffer.append((number >> 56)&(0x00000000000000FF))
     buffer.append((number >> 48)&(0x00000000000000FF))
@@ -206,46 +233,102 @@ def buffer_append_uint64(buffer,number):
     buffer.append((number >> 8)&(0x00000000000000FF))
     buffer.append((number)&(0x00000000000000FF))
 
-def buffer_get_int8(data, ind):
-    return np.int8((data[ind]))
+def buffer_get_int8(buffer, ind):
+    """
+    Grab the 8 bit integer at data[ind]
 
-def buffer_get_int16(data, ind):
-    return np.int16((np.uint8(data[ind]) << 8) | np.uint8(data[ind+1]))
+    Args:
+        buffer: array with bytes of data
+        ind: location to index   
 
-def buffer_get_int32(data, ind):
-    return np.int32((np.uint8(data[ind]) << 24) | (np.uint8(data[ind+1]) << 16) | (np.uint8(data[ind+2]) << 8) | np.uint8(data[ind+3]))
+    Returns:
+        8 bit integer at data[ind] 
+    """
+    return np.int8((buffer[ind]))
+
+def buffer_get_int16(buffer, ind):
+    """
+    Grab the 16 bit integer at data[ind:ind+1]
+
+    Args:
+        buffer: array with bytes of data
+        ind: location to index    
+
+    Returns:
+        16 bit integer at data[ind:ind+1]
+    """
+    return np.int16((np.uint8(buffer[ind]) << 8) | np.uint8(buffer[ind+1]))
+
+def buffer_get_int32(buffer, ind):
+    """
+    Grab the 32 bit integer at data[ind:ind+3]
+
+    Args:
+        buffer: array with bytes of data
+        ind: location to index
+
+    Returns:
+        32-bit signed integer at data[ind:ind+3]
+    """
+    return np.int32((np.uint8(buffer[ind]) << 24) | (np.uint8(buffer[ind+1]) << 16) | (np.uint8(buffer[ind+2]) << 8) | np.uint8(buffer[ind+3]))
 
 def crc16(data, DL):
-        cksum = np.uint16(0)
-        for i in range(DL):
-            # From C example code:
-            # cksum = crc16_tab[(((cksum >> 8) ^ *buf++) & 0xFF)] ^ (cksum << 8)
-            cksum = crc16_tab[((cksum >> 8) ^ (data[i])) & 0xFF] ^ (cksum << 8)
-        return np.uint16(cksum)
+    """
+    Calculate the crc16 value for the given data array and data length. 
+    This is just translated to python from the C code in the manual on the cubmars website.
 
-def create_frame(data):
-    frame = []
+    Args:
+        data: array of data to creat checksum value for
+        DL: data length
+
+    Returns:
+        16-bit integer checksum.
+    """
+    cksum = np.uint16(0)
+    for i in range(DL):
+        cksum = crc16_tab[((cksum >> 8) ^ (data[i])) & 0xFF] ^ (cksum << 8)
+    return np.uint16(cksum)
+
+def create_packet(data):
+    """
+    Packages the data into a packet to be sent.
+
+    Args:
+        data: array of N+1 bytes of data, [packet id, data_1, ..., data_N]
+
+    Returns:
+        packet: array in the format, [0x02, data length, packet id, data_1, ..., data_N, crc_1, crc_2, 0x03]
+    """
+    packet = []
     DL = len(data)
     if (DL > 256):
         raise RuntimeError("Tried to send packet longer than 256 bytes!")
     else:
-        frame.append(0x02)
-        frame.append(DL)
-        frame += data
+        packet.append(0x02)
+        packet.append(DL)
+        packet += data
         crc = crc16(data, DL)
-        frame.append(np.uint8(crc >> 8))
-        frame.append(np.uint8(crc & 0xFF))
-        frame.append(0x03)
-    return frame
+        packet.append(np.uint8(crc >> 8))
+        packet.append(np.uint8(crc & 0xFF))
+        packet.append(0x03)
+    return packet
 
-def parse_frame(frame):
-    # add error checking later
-    print(frame)
-    if len(frame) > 4:
-        header = frame[0]
-        DL = frame[1]
-        data = frame[2:2+DL]
-        crc = buffer_get_int16(frame[2+DL:DL+4], 0)
+def parse_packet(packet):
+    """
+    Check that the packet makes sense, and get the data out of it.
+
+    Args:
+        packet: array in the format [0x02, data length, packet id, data_1, ..., data_N, crc_1, crc_2, 0x03]
+
+    Returns:
+        data: Just the packet id and actual data from the recieved packet, [packet id, data_1, ..., data_N]
+        None: returns None if the packet failed to successfully parse
+    """
+    if len(packet) > 4:
+        header = packet[0]
+        DL = packet[1]
+        data = packet[2:2+DL]
+        crc = buffer_get_int16(packet[2+DL:DL+4], 0)
         if crc == crc16(data, DL):
             return data
         else:
@@ -254,8 +337,13 @@ def parse_frame(frame):
         return None
                 
 class servo_serial_motor_state:
+    """
+    An object representing the state of the motor
+    """
     def __init__(self):
-        self.initialized = False
+        """
+        Initialize the motor state to zero.
+        """
         self.mos_temperature = 0
         self.motor_temperature = 0
         self.output_current = 0
@@ -273,42 +361,48 @@ class servo_serial_motor_state:
         self.acceleration = 0
         self.position = 0
 
-    def set_state(self, mos_temperature = 0,
-                motor_temperature = 0,
-                output_current = 0,
-                input_current = 0,
-                id_current = 0,
-                iq_current = 0,
-                duty = 0,
-                speed = 0,
-                input_voltage = 0,
-                position_set = 0,
-                controlID = 0,
-                Vd = 0,
-                Vq = 0,
-                error = 0,
-                acceleration = 0,
-                position = 0):
-        self.initialized = True
-        self.mos_temperature = mos_temperature
-        self.motor_temperature = motor_temperature 
-        self.output_current = output_current
-        self.input_current = input_current
-        self.id_current = id_current
-        self.iq_current = iq_current
-        self.duty = duty
-        self.speed = speed
-        self.input_voltage = input_voltage
-        self.position_set = position_set
-        self.controlID = controlID
-        self.Vd = Vd
-        self.Vq = Vq
-        self.error = error
-        self.acceleration = acceleration
-        self.position = position
+    def set_state(self, 
+                mos_temperature = None,
+                motor_temperature = None,
+                output_current = None,
+                input_current = None,
+                id_current = None,
+                iq_current = None,
+                duty = None,
+                speed = None,
+                input_voltage = None,
+                position_set = None,
+                controlID = None,
+                Vd = None,
+                Vq = None,
+                error = None,
+                acceleration = None,
+                position = None):
+        """
+        Set the motor state based on input to the function. If any field is not specified,
+        then that field will not be altered.
+        """
+        self.mos_temperature = mos_temperature if not (mos_temperature is None) else self.mos_temperature
+        self.motor_temperature = motor_temperature if not (motor_temperature is None) else self.motor_temperature
+        self.output_current = output_current if not (output_current is None) else self.output_current
+        self.input_current = input_current if not (input_current is None) else self.input_current
+        self.id_current = id_current if not (id_current is None) else self.id_current
+        self.iq_current = iq_current if not (iq_current is None) else self.iq_current
+        self.duty = duty if not (duty is None) else self.duty
+        self.speed = speed if not (speed is None) else self.speed
+        self.input_voltage = input_voltage if not (input_voltage is None) else self.input_voltage
+        self.position_set = position_set if not (position_set is None) else self.position_set
+        self.controlID = controlID if not (controlID is None) else self.controlID
+        self.Vd = Vd if not (Vd is None) else self.Vd
+        self.Vq = Vq if not (Vq is None) else self.Vq
+        self.error = error if not (error is None) else self.error
+        self.acceleration = acceleration if not (acceleration is None) else self.acceleration
+        self.position = position if not (position is None) else self.position
 
-    
     def __str__(self):
+        """
+        String showing each of the fields in the motor state.
+        """
         s = f'Mos Temp: {self.mos_temperature}'
         s += f'\nMotor Temp: {self.motor_temperature}'
         s += f'\nOutput Current: {self.output_current}'
@@ -339,16 +433,35 @@ class SERVO_SERIAL_CONTROL_STATE(Enum):
     POSITION_VELOCITY = 6
     IDLE = 7
 
-
 class motor_listener(serial.threaded.Protocol):
+    """
+    Implements the pyserial "Protocol" class to handle messages asynchronously
+    TODO when pyserial implmements asyncio support, switch to that
+    """
 
     def connection_made(self, transport):
+        """
+        Could add other things to happen here on connection initialization.
+
+        Args:
+            transport: the connection
+        """
         super().connection_made(transport)
 
     def connection_lost(self, transport):
+        """
+        Could add other things to happen here on connection termination.
+
+        Args:
+            transport: the connection
+        """
         super().connection_made(transport)
 
     def __init__(self):
+        """
+        Initializes the class, including the state machine variables and a reference
+        to the motor manager in the main thread that this class will update.
+        """
         super().__init__()
         self.buffer =[]
         self.state = 0 # 0 : ready, 1 : message started (0x02), 2 : known DL, 3 : ready data, 5 : expect 0x03
@@ -357,6 +470,17 @@ class motor_listener(serial.threaded.Protocol):
         self.motor = None
 
     def data_received(self, data):
+        """
+        Handle data that's been recieved, by stepping through a state machine one byte at a time.
+        States:
+            0: expecting 0x02 for beginning of next message
+            1: expecting data length field
+            2: will keep reading data until DL + 2
+            3: expecting 0x03 for ending of this message
+
+        Args:
+            data: array of received data to parse
+        """
         for d in data:
             if self.state == 0:
                 if d == 0x02:
@@ -364,12 +488,12 @@ class motor_listener(serial.threaded.Protocol):
                     self.state = 1
             elif self.state == 1:
                 self.buffer.append(d)
-                self.DL = d + 2
+                self.DL = d
                 self.state = 2
             elif self.state == 2:
                 self.buffer.append(d)
                 self.i += 1
-                if self.i == self.DL:
+                if self.i == self.DL + 2:
                     self.state = 3
                     self.i = 0
                     self.DL = 0
@@ -381,6 +505,13 @@ class motor_listener(serial.threaded.Protocol):
                     self.buffer = []
                 
     def handle_packet(self, packet):
+        """
+        Called whenever the state machine finishes reading a packet, 
+        to update motor manager object.
+
+        Args:
+            packet: array of data to parse.
+        """
         if self.motor is not None:
             # print(packet)
             header = packet[0]
@@ -396,12 +527,18 @@ class motor_listener(serial.threaded.Protocol):
 class TMotorManager_servo_serial():
     """
     The user-facing class that manages the motor. This class should be
-    used in the context of a with as block, in order to safely enter/exit
+    used in the "context" of a with as block, in order to safely enter/exit
     control of the motor.
     """
     def __init__(self, port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']):
         """
-        Add description later
+        Initialize the motor manager. Note that this will not turn on the motor, 
+        until __enter__ is called (automatically called in a with block)
+
+        Args:
+            port: the name of the serial port to connect to (ie, /dev/ttyUSB0, COM3, etc)
+            baud: the baud rate to use for connection. Should always be 961200 as far as I can tell.
+            motor_params: A parameter dictionary defining the motor parameters, as defined above.
         """
         self.motor_params = motor_params
         self.port = port
@@ -471,7 +608,7 @@ class TMotorManager_servo_serial():
         
     def __exit__(self, etype, value, tb):
         """
-        Used to safely power the motor off and close the port.
+        Used to safely power the motor off and close the reader thread and serial port.
         """
         print('\nTurning off control for device: ' + self.device_info_string())
         # end reading thread
@@ -488,6 +625,10 @@ class TMotorManager_servo_serial():
             traceback.print_exception(etype, value, tb)
 
     def check_connection(self):
+        """
+        For now, just sends some parameter read commands and waits 0.2 seconds to
+        see if we got a response.
+        """
         self._send_specific_command(self.get_motor_parameters())
         self._send_specific_command(self.get_motor_parameters())
         self._send_specific_command(self.get_motor_parameters())
@@ -496,6 +637,15 @@ class TMotorManager_servo_serial():
         return self._updated_async
 
     def update_async(self, data):
+        """
+        Update the asynchronous motor state. Called by a reader thread.
+
+        Args:
+            data: An array of N bytes of data to parse, [packet id, data_1, ..., data_N]
+
+        Raises:
+            RuntimeError: If the packet recieved contains an error code.
+        """
         self._updated_async = True
         packet_ID = data[0]
         if (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES) or (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES_SETUP):
@@ -512,6 +662,9 @@ class TMotorManager_servo_serial():
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
     
     def send_command(self):
+        """
+        Sends the current command that the user has specified.
+        """
         if not (self._command is None):
             # use the thread-safe method to write the command, so that we don't access the serial 
             # object while the reader thread is using it!!
@@ -519,6 +672,12 @@ class TMotorManager_servo_serial():
             self._reader_thread.write(self._command)
 
     def _send_specific_command(self, command):
+        """
+        Sends the specified command rather than the current value of <this object>._command 
+
+        Args:
+            command: bytearray with the command to send.
+        """
         if not (self._command is None):
             # use the thread-safe method to write the command, so that we don't access the serial 
             # object while the reader thread is using it!!
@@ -526,6 +685,14 @@ class TMotorManager_servo_serial():
             self._reader_thread.write(command)
 
     def update(self):
+        """
+        Synchronizes the current motor state with the asynchronously updated state.
+        Sends the current motor command
+        Sends the command to get parameter feedback
+
+        Raises:
+            RuntimeError: if this method is called before the motor is entered.
+        """
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
         
@@ -542,67 +709,159 @@ class TMotorManager_servo_serial():
 
         # self.w.writerow([time.time()-self._start_time])
         
-        
     # comm protocol commands
     def power_on(self):
+        """
+        Send the startup sequence command. Not sure why it's like this, but the 
+        command is [0x40, 0x80, 0x20, 0x02, 0x21, 0xc0]
+        """
         self._command = bytearray([0x40, 0x80, 0x20, 0x02, 0x21, 0xc0])
         self.send_command()
 
     def power_off(self):
+        """
+        There is no official power off command that I can see, so this will
+        set the duty cycle to 0.0
+        """
         self.set_duty_cycle(0.0)
         self.send_command()
 
     def enter_idle_mode(self):
+        """
+        Set the control state to IDLE and current command to none.
+        In this mode, no command will be sent.
+        """
         self._command = None
+        self._control_state = SERVO_SERIAL_CONTROL_STATE.IDLE
 
     def enter_velocity_control(self):
+        """
+        Set the control state to VELOCITY
+        In this mode, you can send a certain motion speed to motor
+        """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.VELOCITY
 
     def enter_position_control(self):
+        """
+        Set the control state to POSITION
+        In this mode, you can send a certain position to motor, the motor will run to the specified
+        position, (default speed 12000erpm acceleration 40000erpm)
+        """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.POSITION
 
     def enter_position_velocity_control(self):
+        """
+        Set the control state to POSITION_VELOCITY
+        In this mode, you can send a certain position, speed and acceleration to motor.
+        The motor will run at a given acceleration and maximum speed to a specified
+        position.
+        """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY
 
     def enter_current_loop_control(self):
+        """
+        Set the control state to CURENT_LOOP
+        In this mode, you can send an Iq current to motor, the motor output torque = Iq *KT, so it can
+        be used as a torque loop
+        """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.CURRENT_LOOP
 
     def enter_duty_cycle_control(self):
+        """
+        Set the control state to DUTY_CYCLE
+        In this mode, you can send a certain duty cycle voltage to motor
+        """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE
 
     def set_duty_cycle(self, duty, set_command=True):
+        """
+        send a certain duty cycle voltage to motor
+
+        Args:
+            duty: -1.0 to 1.0 duty cycle to use
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         buffer=[]
         buffer_append_int32(buffer, int(duty * 100000.0))
         data = [COMM_PACKET_ID.COMM_SET_DUTY] + buffer
         if set_command:
-            self._command = bytearray(create_frame(data))
+            self._command = bytearray(create_packet(data))
         return self._command
 
     def set_speed_ERPM(self, speed, set_command=True):
+        """
+        send a certain motion speed to motor
+
+        Args:
+            speed: speed to use in ERPM, sign denotes direction
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         buffer=[]
         buffer_append_int32(buffer, int(speed))
         data = [COMM_PACKET_ID.COMM_SET_RPM] + buffer
         if set_command:
-            self._command = bytearray(create_frame(data))
+            self._command = bytearray(create_packet(data))
         return self._command
 
     def set_current_loop(self, current, set_command=True):
+        """
+        send am Iq current to motor, the motor output torque = Iq *KT, so it can
+        be used as a torque loop
+
+        Args:
+            current: q axis current to use in A, sign denotes direction
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         buffer=[]
         buffer_append_int32(buffer, int(current*1000.0))
         data = [COMM_PACKET_ID.COMM_SET_CURRENT] + buffer
         if set_command:
-            self._command = bytearray(create_frame(data))
+            self._command = bytearray(create_packet(data))
         return self._command
 
     def set_position(self, pos, set_command=True):
+        """
+        send a certain position to motor, the motor will run to the specified
+        position, (default speed 12000erpm acceleration 40000erpm)
+
+        Args:
+            pos: Desired position in degrees
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         buffer=[]
         buffer_append_int32(buffer, int(pos*1000000))
         data = [COMM_PACKET_ID.COMM_SET_POS] + buffer
         if set_command:
-            self._command = bytearray(create_frame(data))
+            self._command = bytearray(create_packet(data))
         return self._command
 
     def set_position_velocity(self, pos, vel, acc, set_command=True):
+        """
+        send a certain position, speed and acceleration to motor.
+        The motor will run at a given acceleration and maximum speed to a specified
+        position.
+
+        Args:
+            pos: Desired position in degrees
+            vel: Desired speed in ERPM
+            acc: Desired acceleration in ERPM/minute? TODO verify this
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         # 4 byte pos * 1000, 4 byte vel * 1, 4 byte a * 1
         buffer=[]
         buffer_append_int32(buffer, int(pos*1000000))
@@ -610,46 +869,104 @@ class TMotorManager_servo_serial():
         buffer_append_int32(buffer, int(acc))
         data = [COMM_PACKET_ID.COMM_SET_POS_SPD] + buffer
         if set_command:
-            self._command = bytearray(create_frame(data))
+            self._command = bytearray(create_packet(data))
         return self._command
 
     def set_multi_turn(self, set_command=True):
+        """
+        Tell the motor to operate in multi-turn mode, rather than being limited to 
+        Just 360 degrees of position feedback.
+
+        Args:
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         cmd = bytearray([0x02 ,0x05 ,0x5C ,0x00 ,0x00 ,0x00 ,0x00 ,0x9E ,0x19 ,0x03])
         if set_command:
             self._command = cmd
         return cmd
 
     def set_zero_position(self, set_command=True):
+        """
+        Set the current position of the motor to be the new zero position.
+
+        Args:
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         cmd = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
         if set_command:
             self._command = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
         return cmd
     
     def set_motor_parameter_return_format_all(self, set_command=True):
+        """
+        Tell the motor to send back all possible fields when an update is requested.
+
+        Args:
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         header = COMM_PACKET_ID.COMM_GET_VALUES_SETUP
         data = [header, 0xFF,0xFF,0xFF,0xFF]
-        cmd = bytearray(create_frame(data))
+        cmd = bytearray(create_packet(data))
         if set_command:
             self._command = cmd
         return cmd
 
     def begin_position_feedback(self, set_command=True):
+        """
+        Tell the motor to send back its current position every 10ms
+
+        Args:
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         if set_command:
             self._command = bytearray([0x02, 0x02, 0x0B, 0x04, 0x9C, 0x7E, 0x03])
 
     def get_motor_parameters(self, set_command=True):
+        """
+        Request the current motor parameters
+
+        Args:
+            set_command: set the TMotorManager's current command to this if True
+
+        Returns:
+            The command as a bytearray
+        """
         header = COMM_PACKET_ID.COMM_GET_VALUES
         data = [header]
-        cmd = bytearray(create_frame(data))
+        cmd = bytearray(create_packet(data))
         if set_command:
             self._command = cmd
         return cmd
         
     # comm data parsing 
     def parse_position_feedback_async(self, data):
+        """
+        Update this motor's asynch position based on recieved data
+
+        Args:
+            data: The data array to parse the position from.
+        """
         self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000.0
 
     def parse_motor_parameters_async(self, data):
+        """
+        Update this motor's asynch state (except position) based on received data
+ 
+        Args:
+            data: The data array to parse the parameters from
+        """
         i = 1
         self._motor_state_async.mos_temperature = float(buffer_get_int16(data,i))/10.0
         i+=2
@@ -697,7 +1014,25 @@ class TMotorManager_servo_serial():
         this value if it is ever anything besides 0.
 
         Codes:
-        
+            0  : 'FAULT_CODE_NONE'
+            1  : 'FAULT_CODE_OVER_VOLTAGE'
+            2  : 'FAULT_CODE_UNDER_VOLTAGE'
+            3  : 'FAULT_CODE_DRIVE'
+            4  : 'FAULT_CODE_ABS_OVER_CURRENT'
+            5  : 'FAULT_CODE_OVER_TEMP_FET'
+            6  : 'FAULT_CODE_OVER_TEMP_MOTOR'
+            7  : 'FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE'
+            8  : 'FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE'
+            9  : 'FAULT_CODE_MCU_UNDER_VOLTAGE'
+            10 : 'FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET'
+            11 : 'FAULT_CODE_ENCODER_SPI'
+            12 : 'FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE'
+            13 : 'FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE'
+            14 : 'FAULT_CODE_FLASH_CORRUPTION'
+            15 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1'
+            16 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2'
+            17 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3'
+            18 : 'FAULT_CODE_UNBALANCED_CURRENTS'
         """
         return self._motor_state.error
 
@@ -771,11 +1106,12 @@ class TMotorManager_servo_serial():
         """
         return self.get_current_qaxis_amps()*self.motor_params["Kt"]*self.motor_params["GEAR_RATIO"]
 
-
     # user facing setters 
     def set_output_velocity_radians_per_second(self, vel):
         """
-        Make motor go brrr
+        Update the current command to the desired velocity.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
 
         Args:
             vel: The desired output speed in rad/s
@@ -790,10 +1126,12 @@ class TMotorManager_servo_serial():
 
     def set_duty_cycle_percent(self, duty):
         """
-        Make motor go brrr
+        Update the current command to the desired duty cycle.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
 
         Args:
-            vel: The desired output speed in rad/s
+            duty: The desired duty cycle -1.0 to 1.0
         """
         if np.abs(duty) >= 1:
             raise RuntimeError("Cannot control using duty cycle mode for more than 100 percent duty!")
@@ -805,10 +1143,12 @@ class TMotorManager_servo_serial():
 
     def set_motor_current_qaxis_amps(self, curr):
         """
-        Make motor go brrr
+        Update the current command to the desired current.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
 
         Args:
-            vel: The desired output speed in rad/s
+            curr: The desired q-axis current in A
         """
         if np.abs(curr) >= self.motor_params["Curr_max"]:
             raise RuntimeError("Cannot control using current mode with magnitude greater than " + str(self.motor_params["I_max"]) + "rad/s!")
@@ -820,10 +1160,14 @@ class TMotorManager_servo_serial():
 
     def set_output_angle_radians(self, pos, vel=1000, acc=500):
         """
-        Make motor go brrr
+        Update the current command to the desired position.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
 
         Args:
-            vel: The desired output speed in rad/s
+            pos: The desired output angle in rad
+            vel: The desired speed to get there (when in POSITION_VELOCITY mode)
+            acc: The desired acceleration to get there (when in POSITION_VELOCITY mode)
         """
         if np.abs(pos) >= self.motor_params["P_max"]:
             raise RuntimeError("Cannot control using position mode for angles with magnitude greater than " + str(self.motor_params["P_max"]) + "rad!")
@@ -837,9 +1181,9 @@ class TMotorManager_servo_serial():
 
     def set_output_torque_newton_meters(self, torque):
         """
-        Used for either current or MIT Mode to set current, based on desired torque.
-        If a more complicated torque model is available for the motor, that will be used.
-        Otherwise it will just use the motor's torque constant.
+        Update the current command to the desired current, based on the requested torque.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
         
         Args:
             torque: The desired output torque in Nm.
@@ -912,7 +1256,7 @@ class TMotorManager_servo_serial():
 
     # Pretty stuff
     def __str__(self):
-        """Prints the motor's device info and current"""
+        """Prints the motor's device info and current state"""
         return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.get_output_angle_radians(),3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.get_output_velocity_radians_per_second(),3)) + " rad/s | current: " + '{: 1f}'.format(round(self._motor_state.iq_current,3)) + " A | temp: " + '{: 1f}'.format(round(self._motor_state.mos_temperature,0)) + " C"
 
     def device_info_string(self):

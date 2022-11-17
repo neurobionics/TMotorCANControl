@@ -1,6 +1,6 @@
 from sys import path
 path.append("/home/pi/TMotorCANControl/src/")
-from TMotorCANControl.Serial_manager_servo import *
+from TMotorCANControl.test.servo_serial.Serial_manager_servo import *
 
 end_time = 100
 speed = 1000

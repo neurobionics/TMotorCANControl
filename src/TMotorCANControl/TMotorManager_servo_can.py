@@ -31,9 +31,8 @@ class _TMotorManState_Servo(Enum):
     SET_ORIGIN=5
     POSITION_VELOCITY=6
 
-
 # the user-facing class that manages the motor.
-class TMotorManager_servo():
+class TMotorManager_servo_can():
     """
     The user-facing class that manages the motor. This class should be
     used in the context of a with as block, in order to safely enter/exit
@@ -132,6 +131,7 @@ class TMotorManager_servo():
 
         if not (etype is None):
             traceback.print_exception(etype, value, tb)
+
     def TMotor_current_to_qaxis_current(self, iTM):
         return Servo_Params[self.type]['Current_Factor']*iTM/(Servo_Params[self.type]['GEAR_RATIO']*Servo_Params[self.type]['Kt_TMotor'])
     
@@ -319,6 +319,9 @@ class TMotorManager_servo():
     def enter_position_control(self):
         self._control_state = _TMotorManState_Servo.POSITION
 
+    def enter_position_velocity_control(self):
+        self._control_state = _TMotorManState_Servo.POSITION_VELOCITY
+
     # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):
         """
@@ -331,7 +334,8 @@ class TMotorManager_servo():
         """
         if np.abs(pos) >= Servo_Params[self.type]["P_max"]:
             raise RuntimeError("Cannot control using impedance mode for angles with magnitude greater than " + str(Servo_Params[self.type]["P_max"]) + "rad!")
-        self._command.position = pos*np.pi/180
+        if self._control_state == _TMotorManState_Servo.POSITION:
+            self._command.position = pos*np.pi/180
 
     def set_duty_cycle(self, duty):
         if self._control_state not in [_TMotorManState_Servo.DUTY_CYCLE]:

@@ -1,7 +1,7 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 import numpy as np
 import time
-from TMotorCANControl.TMotorManager import TMotorManager
+from TMotorCANControl.TMotorManager_mit_can import TMotorManager
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
