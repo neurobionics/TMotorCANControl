@@ -1177,7 +1177,7 @@ class TMotorManager_servo_serial():
         if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:
             self.set_position_velocity(pos, vel, acc)
         elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
-            self.set_position( pos )
+            self.set_position(pos)
         else:
             raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 
 

@@ -1,6 +1,5 @@
 from sys import path
 path.append("/home/pi/TMotorCANControl/src/")
-from TMotorCANControl.test.servo_serial.Serial_manager_servo import *
 from TMotorCANControl.TMotorManager_servo_serial import *
 
 duty = 0.1
