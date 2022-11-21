@@ -1169,13 +1169,15 @@ class TMotorManager_servo_serial():
             vel: The desired speed to get there (when in POSITION_VELOCITY mode)
             acc: The desired acceleration to get there (when in POSITION_VELOCITY mode)
         """
+        
         if np.abs(pos) >= self.motor_params["P_max"]:
             raise RuntimeError("Cannot control using position mode for angles with magnitude greater than " + str(self.motor_params["P_max"]) + "rad!")
 
+        pos = (pos * 180 / np.pi)
         if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:
             self.set_position_velocity(pos, vel, acc)
         elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
-            self.set_position(pos)
+            self.set_position( pos )
         else:
             raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 
 
