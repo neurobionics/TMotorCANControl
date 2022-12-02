@@ -1,58 +1,49 @@
 # TMotorCANControl
 A Python API for controlling the AK-series Tmotor Actuators from CubeMars over the CAN bus.
-The project is geared towards the control of the AK80-9 actuator using a raspberry pi CAN hat, but
-could eaisly be adapted for use with a different CAN interface. The API files are in the src/TMotorCANControl
-folder in this repository. The main interface is in the file TMotorManager.py for MIT mode and TMotorManager_servo.py for Servo mode. The CAN_Manager file contains a low-level CAN interface for interacting with the motor, which is used by the TMotorManager class to control the motor in a more user-friendly way. Sample scripts can be found in the src/TMotorCANControl/demos folder. For help setting up the motor using a Raspberry Pi 4 and with the PiCAN hat, see [these instructions](https://opensourceleg.com/TMotorCANControl/) on the Open Source Leg website. This page will walk you through all the setup.
+The project is geared towards the control of the AK80-9 actuator using a raspberry pi CAN hat or serial bus, but
+could eaisly be adapted for use with a different CAN/serial interface. The API files are in the src/TMotorCANControl
+folder in this repository. The main interface is in the file TMotorManager_mit_can.py for MIT mode, TMotorManager_servo_can.py for Servo mode (over CAN),
+and TMotorManager_servo_serial for Servo mode (over serial). The CAN_Manager_mit and CAN_Manager_serial file contains a low-level CAN interface for interacting with the motor, which is used by the TMotorManager classes to control the motor in a more user-friendly way. Sample scripts can be found in the demos folder. For help setting up the motor using a Raspberry Pi 4 and with the PiCAN hat, see [these instructions](https://opensourceleg.com/TMotorCANControl/) on the Open Source Leg website. That page will walk you through all the setup.
 
-## API usage
-For some code examples, see the src/TMotorCANControl/demos folder in this repository.
+## API Usage
+For some code examples, see the demos folder in this repository.
 These examples make use of the soft_real_timeloop class from the [NeuroLocoMiddleware library](https://pypi.org/project/NeuroLocoMiddleware/) 
-for the control loops, in order to ensure safe exiting of the loop when the program is terminated.
+for the control loops, but the library could be used without this dependancy. 
 
-The intended use case would be to declare a TMotorManager object or TMotorManager_servo in a block, and then
-write your controller within that block, in order to ensure the motor is powered on when in use
-and powered off afterwards. Note that one is  used for MIT mode and the other is for Servo mode. The TMotorManager  and TMotorManager_servo classes is in the TMotorManager module in the TMotorCANControl package.
-As such, it can be imported like this:
+The TMotorManager_mit_can, TMotorManager_servo_can, and TMotorManager_servo_serial classes are in the TMotorManager module in the TMotorCANControl package.
+As such, they can be imported like this:
 
 ```python
-from TMotorCANControl.TMotorManager import TMotorManager/TmotorManger_servo
+from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 ```
 
-To instantiate a motor object, you need to specify the motor's type as a string (eg, "AK80-9"), as well
-as it's CAN ID and an optional log file and set of logging parameters. Note, with multiple motors 
-each log file must have a different name.  The logger will always log a time stamp for each line 
-in the log, starting from the instantiation of the TMotorManager object. By default, it will also log the 
-output position, output velocity, output acceleration, current, and output torque. To specify
-a different log format, you can pass in a list of parameters. The full list is shown below:
-
 ```python
-logvars = [
-    "output_angle", 
-    "output_velocity", 
-    "output_acceleration",
-    "current",
-    "output_torque",
-    "motor_angle", 
-    "motor_velocity", 
-    "motor_acceleration", 
-    "motor_torque"
-]
-```
-However, this logger is slightly different for Servo mode:
-
-```python
-logvars=[
-    "motor_position" , 
-    "motor_speed" , 
-    "motor_current", 
-    "motor_temperature" 
-]
-
+from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo_can
 ```
 
-And motor control could be entered as such for an AK80-9 motor with CAN ID 3 for MIT and 1 for Servo Mode:
 ```python
-with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars=logvars) as dev:
+from TMotorCANControl.TMotorManager_servo_serial import TMotorManager_servo_serial
+```
+The intended use case would be to declare a TMotorManager_mit_can, TMotorManager_servo_can, or 
+TMotorManager_servo_serial object in a block, and then write your controller within that block, 
+in order to ensure the motor is powered on when in use and powered off if an error is thrown or the program ends. 
+
+To control a motor that has been set up for MIT control over the CAN bus, specify the motor type and CAN ID, as shown below 
+for an AK80-9 with CAN ID 3.
+```python
+with TMotorManager_mit_can(motor_type='AK80-9', motor_ID=3) as dev:
+```
+
+To control a motor that has been set up for Servo control over the CAN bus, specify the motor type and CAN ID, as shown below 
+for an AK80-9 with CAN ID 3.
+```python
+with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=3) as dev:
+```
+
+To control a motor that has been set up for MIT control over the CAN bus, specify the motor type and CAN ID, as shown below
+for an AK80-9 on usb serial port 'dev/tty/USB0', with baud rate 921600 (the default).
+```python
+with TMotorManager_servo_serial(port='/dev/ttyUSB0', baud=921600, motor_params=Servo_Params_Serial['AK80-9']) as dev:
 ```
 
 The motor can be controlled in current/torque, velocity, or impedance mode. Additionally, a
@@ -117,7 +108,7 @@ it will enter impedance control mode with gains of 10Nm/rad and 0.5Nm/(rad/s). I
 the motor position to 3.14 radians until the program is exited.
 
 ```python
-with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars=logvars) as dev:
+with TMotorManager_mit_can(motor_type='AK80-9', motor_ID=3) as dev:
     dev.zero_position()
     time.sleep(1.5)
     dev.set_impedance_gains_real_unit(K=10,B=0.5)
@@ -127,6 +118,7 @@ with TMotorManager(motor_type='AK80-9', motor_ID=3, CSV_file="log.csv", log_vars
         dev.update()
         dev.θ = 3.14
 ```
+
 Note: Most of these functions are similar in both modes. However, they have different controller states. Keep an eye out for the class enum in the respective python file. For more examples, see the src/TMotorCANControl/demo folder. Have fun controlling some TMotors!
 
 ## Other Resources
