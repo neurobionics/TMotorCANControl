@@ -13,7 +13,7 @@ with TMotorManager_servo_serial(port='/dev/ttyUSB0', baud=961200, motor_params=S
 
         dev.enter_position_control()
         for t in loop:
-            pos = np.sin(t)
+            pos = 2*np.sin(t)
             dev.set_output_angle_radians(pos)
             dev.update()
             # print("\r" + str(dev), end='')
