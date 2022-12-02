@@ -1,4 +1,4 @@
-from TMotorCANControl.CAN_Manager import *
+from TMotorCANControl.CAN_Manager_mit import *
 import time
 canman = CAN_Manager()
 

@@ -8,7 +8,7 @@ import csv
 
 from sys import path
 path.append("/home/pi/TMotorCANControl/src/")
-from TMotorCANControl.TMotorManager_servo import TMotorManager_servo
+from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo
 
 adc = ADC_Manager()
 torque_rating = 100  # 100 Nm = 5 V
