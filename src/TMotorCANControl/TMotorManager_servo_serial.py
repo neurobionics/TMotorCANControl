@@ -597,8 +597,6 @@ class TMotorManager_servo_serial():
             else:
                 print(f"device: {self.device_info_string()} successfully connected.")
 
-            self.f = open('timing_test_log.csv','w').__enter__()
-            self.w = csv.writer(self.f)
             # return the safely entered motor manager object
             self._entered = True
             return self
@@ -657,8 +655,8 @@ class TMotorManager_servo_serial():
             self._last_update_time = now
         elif (packet_ID == COMM_PACKET_ID.COMM_ROTOR_POSITION):
             self.parse_position_feedback_async(data)
-        elif (packet_ID == COMM_PACKET_ID.COMM_SET_POS):
-            self.parse_set_position_feedback_async(data)
+        # elif (packet_ID == COMM_PACKET_ID.COMM_SET_POS):
+        #     self.parse_set_position_feedback_async(data)
 
         if self._motor_state.error != 0:
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
@@ -766,8 +764,6 @@ class TMotorManager_servo_serial():
         # TODO implement some filtering on the async state, if it gets multiple updates
         # between user requested updates
         self._motor_state = self._motor_state_async
-
-        # self.w.writerow([time.time()-self._start_time])
         
     # comm protocol commands
     def power_on(self):
@@ -1119,6 +1115,7 @@ class TMotorManager_servo_serial():
         return self.get_current_qaxis_amps()*self.motor_params["Kt"]*self.motor_params["GEAR_RATIO"]
 
     # user facing setters 
+
     def set_output_velocity_radians_per_second(self, vel):
         """
         Update the current command to the desired velocity.
@@ -1185,10 +1182,10 @@ class TMotorManager_servo_serial():
         if np.abs(pos) >= self.motor_params["P_max"]:
             raise RuntimeError("Cannot control using position mode for angles with magnitude greater than " + str(self.motor_params["P_max"]) + "rad!")
 
-        pos = (pos * 180 / np.pi)
-        if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:
+        pos = (pos / self.rad_per_Eang)
+        if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
             self.set_position_velocity(pos, vel, acc)
-        elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
+        elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:
             self.set_position(pos)
         else:
             raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 

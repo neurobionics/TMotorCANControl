@@ -80,6 +80,7 @@ class TMotorManager_servo_can():
         self._old_vel = 0.0
         self._old_current_zone = 0
         self.radps_per_ERPM = 5.82E-04
+        self.rad_per_Eang = np.pi/Servo_Params[self.type]['NUM_POLE_PAIRS'] # 2*(np.pi/180)/(Servo_Params[self.type]['NUM_POLE_PAIRS'])
 
         self._entered = False
         self._start_time = time.time()
@@ -155,14 +156,17 @@ class TMotorManager_servo_can():
             raise RuntimeError('Driver board error for device: ' + self.device_info_string() + ": " + Servo_Params['ERROR_CODES'][servo_state.error])
 
         now = time.time()
+        dt = self._last_update_time - now
         self._last_update_time = now
-        # dt = self._last_update_time - now
-        # acceleration = (servo_state.velocity - self._motor_state_async.velocity)/dt
-
+        # print(f"async: {dt}")
+        self._motor_state_async.acceleration = (servo_state.velocity - self._motor_state_async.velocity)/dt
         # The "Current" supplied by the controller is actually current*Kt, which approximates torque.
         self._motor_state_async.set_state_obj(servo_state)
         
         self._updated = True
+
+        # # send current motor command
+        # self._send_command()
 
     
     # this method is called by the user to synchronize the current state used by the controller
@@ -182,7 +186,10 @@ class TMotorManager_servo_can():
         # check that the motor data is recent
         # print(self._command_sent)
         now = time.time()
+        # print(f"update: {now - self._last_command_time}")
         if (now - self._last_command_time) < 0.25 and ( (now - self._last_update_time) > 0.1):
+            
+            
             # print("State update requested but no data recieved from motor. Delay longer after zeroing, decrease frequency, or check connection.")
             warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection. " + self.device_info_string(), RuntimeWarning)
         else:
@@ -240,7 +247,7 @@ class TMotorManager_servo_can():
     def zero_position(self):
         """Zeros the position--like a scale you have to wait about a second before you can
         use the motor again. This responsibility is on the user!!"""
-        self._canman.zero(self.ID)
+        self._canman.comm_can_set_origin(self.ID,1)
         self._last_command_time = time.time()
 
     # getters for motor state
@@ -281,7 +288,7 @@ class TMotorManager_servo_can():
         Returns:
         The most recently updated output angle in radians
         """
-        return self._motor_state.position*np.pi/180
+        return self._motor_state.position*self.rad_per_Eang
 
     def get_output_velocity_radians_per_second(self):
         """
@@ -335,7 +342,7 @@ class TMotorManager_servo_can():
         if np.abs(pos) >= Servo_Params[self.type]["P_max"]:
             raise RuntimeError("Cannot control using impedance mode for angles with magnitude greater than " + str(Servo_Params[self.type]["P_max"]) + "rad!")
         if self._control_state == _TMotorManState_Servo.POSITION:
-            self._command.position = pos*np.pi/180
+            self._command.position = pos/self.rad_per_Eang
 
     def set_duty_cycle(self, duty):
         if self._control_state not in [_TMotorManState_Servo.DUTY_CYCLE]:
@@ -420,7 +427,7 @@ class TMotorManager_servo_can():
         Returns:
             The most recently updated motor-side angle in rad.
         """
-        return self._motor_state.position*np.pi/180*Servo_Params[self.type]["GEAR_RATIO"]
+        return self._motor_state.position*self.rad_per_Eang*Servo_Params[self.type]["GEAR_RATIO"]
 
     def get_motor_velocity_radians_per_second(self):
         """

@@ -54,6 +54,7 @@ Servo_Params = {
             'Current_Factor' : 0.59,
             'Kt_actual': 0.115,
             'GEAR_RATIO': 9.0, 
+            'NUM_POLE_PAIRS': 21,
             'Use_derived_torque_constants': False, # true if you have a better model
         },
         'CAN_PACKET_ID':{
@@ -227,7 +228,7 @@ class CAN_Manager_servo(object):
             # verify the CAN bus is currently down
             os.system( 'sudo /sbin/ip link set can0 down' )
             # start the CAN bus back up
-            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 500000' )
+            os.system( 'sudo /sbin/ip link set can0 up type can bitrate 1000000' )
             # # increase transmit buffer length
             # os.system( 'sudo ifconfig can0 txqueuelen 1000')
             # create a python-can bus object
@@ -433,7 +434,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_duty(self, controller_id, duty):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, int(duty * 100000.0), send_index)
+        self.buffer_append_int32(buffer, np.int32(duty * 100000.0), send_index)
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_DUTY'] << 8), buffer, send_index)
 
     # Send Servo control message for current loop mode
@@ -441,7 +442,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_current(self,controller_id, current):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, int(current * 1000.0), send_index)
+        self.buffer_append_int32(buffer, np.int32(current * 1000.0), send_index)
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_CURRENT'] << 8), buffer, send_index)
 
     # Send Servo control message for current brake mode
@@ -449,7 +450,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_cb(self, controller_id, current):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, int(current * 1000.0), send_index)
+        self.buffer_append_int32(buffer, np.int32(current * 1000.0), send_index)
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_CURRENT_BRAKE'] << 8), buffer, send_index)
         
     # Send Servo control message for Velocity mode
@@ -457,7 +458,7 @@ class CAN_Manager_servo(object):
     def comm_can_set_rpm(self,controller_id, rpm):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, int(rpm), send_index)
+        self.buffer_append_int32(buffer, np.int32(rpm), send_index)
         self.send_servo_message(controller_id| (Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_RPM'] << 8), buffer, send_index)
     
     # Send Servo control message for Position Loop mode
@@ -465,14 +466,14 @@ class CAN_Manager_servo(object):
     def comm_can_set_pos(self, controller_id, pos):
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, int(pos * 1000000.0), send_index)
+        self.buffer_append_int32(buffer, np.int32(pos * 1000000.0), send_index)
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_POS'] << 8), buffer, send_index)
     
     #Set origin mode
     #*0 means setting the temporary origin (power failure elimination), 1 means setting the permanent zero point (automatic parameter saving), 2means restoring the default zero point (automatic parameter saving)
     def comm_can_set_origin(self, controller_id, set_origin_mode) :
         send_index=0
-        buffer=[]
+        buffer=[set_origin_mode]
         self.send_servo_message(controller_id |(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_ORIGIN_HERE'] << 8), buffer, send_index)
 
     #Position and Velocity Loop Mode

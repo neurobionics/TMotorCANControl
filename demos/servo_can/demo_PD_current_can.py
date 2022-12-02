@@ -22,8 +22,7 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0, CSV_file=None) as 
     for t in loop:
         Pdes = 2*np.sin(t)
         cmd =  P*(dev.θ - Pdes) + D*(Vdes - dev.θd)
-        dev.i = np.sign(cmd)*max(abs(cmd),0.1)
+        dev.i = cmd
         dev.update()
-        print(f"\n{round(dev.θ - Pdes,2)} {round(Pdes,2)} {round(dev.θ,2)} {round(cmd,2)} {round(dev.i,2)} {np.int32(cmd * 1000.0)}", end='')
 
         
