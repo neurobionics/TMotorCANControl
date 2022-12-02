@@ -648,7 +648,7 @@ class TMotorManager_servo_serial():
         """
         self._updated_async = True
         packet_ID = data[0]
-        if (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES) or (packet_ID == COMM_PACKET_ID.COMM_GET_VALUES_SETUP):
+        if (packet_ID in [COMM_PACKET_ID.COMM_GET_VALUES, COMM_PACKET_ID.COMM_GET_VALUES_SETUP]):
             self.parse_motor_parameters_async(data)
             # calculate acceleration
             now = time.time()
@@ -657,9 +657,69 @@ class TMotorManager_servo_serial():
             self._last_update_time = now
         elif (packet_ID == COMM_PACKET_ID.COMM_ROTOR_POSITION):
             self.parse_position_feedback_async(data)
+        elif (packet_ID == COMM_PACKET_ID.COMM_SET_POS):
+            self.parse_set_position_feedback_async(data)
 
         if self._motor_state.error != 0:
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
+
+    # comm data parsing 
+    def parse_position_feedback_async(self, data):
+        """
+        Update this motor's asynch position based on recieved data
+
+        Args:
+            data: The data array to parse the position from.
+        """
+        self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000.0
+
+    def parse_set_position_feedback_async(self, data):
+        """
+        Update this motor's asynch position based on recieved data.
+
+        Args:
+            data: The data array to parse the position from.
+        """
+        # not sure why the constant varies here, maybe the streaming data is more accurate?
+        self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000000.0
+
+    def parse_motor_parameters_async(self, data):
+        """
+        Update this motor's asynch state (except position) based on received data
+ 
+        Args:
+            data: The data array to parse the parameters from
+        """
+        i = 1
+        self._motor_state_async.mos_temperature = float(buffer_get_int16(data,i))/10.0
+        i+=2
+        self._motor_state_async.motor_temperature = float(buffer_get_int16(data,i))/10.0
+        i+=2
+        self._motor_state_async.output_current = float(buffer_get_int32(data,i))/100.0
+        i+=4
+        self._motor_state_async.input_current = float(buffer_get_int32(data,i))/100.0
+        i+=4
+        self._motor_state_async.id_current = float(buffer_get_int32(data,i))/100.0
+        i+=4
+        self._motor_state_async.iq_current = float(buffer_get_int32(data,i))/100.0
+        i+=4
+        self._motor_state_async.duty = float(buffer_get_int16(data,i))/1000.0
+        i+=2
+        self._motor_state_async.speed = float(buffer_get_int32(data,i))
+        i+=4
+        self._motor_state_async.input_voltage = float(buffer_get_int16(data,i))/10.0
+        i+=2 + 24
+        # TODO investigate what's in the 24 reserved bytes? Maybe it's interesting to record?
+        self._motor_state_async.error = np.uint(data[i])
+        i+=1
+        self._motor_state_async.position_set = float(buffer_get_int32(data,i))/1000000.0
+        i+=4
+        self._motor_state_async.controlID = np.uint(data[i])
+        i+=1 + 6
+        self._motor_state_async.Vd = float(buffer_get_int32(data,i))/1000.0
+        i+=4
+        self._motor_state_async.Vq = float(buffer_get_int32(data,i))/1000.0
+        i+=4
     
     def send_command(self):
         """
@@ -950,54 +1010,6 @@ class TMotorManager_servo_serial():
             self._command = cmd
         return cmd
         
-    # comm data parsing 
-    def parse_position_feedback_async(self, data):
-        """
-        Update this motor's asynch position based on recieved data
-
-        Args:
-            data: The data array to parse the position from.
-        """
-        self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000.0
-
-    def parse_motor_parameters_async(self, data):
-        """
-        Update this motor's asynch state (except position) based on received data
- 
-        Args:
-            data: The data array to parse the parameters from
-        """
-        i = 1
-        self._motor_state_async.mos_temperature = float(buffer_get_int16(data,i))/10.0
-        i+=2
-        self._motor_state_async.motor_temperature = float(buffer_get_int16(data,i))/10.0
-        i+=2
-        self._motor_state_async.output_current = float(buffer_get_int32(data,i))/100.0
-        i+=4
-        self._motor_state_async.input_current = float(buffer_get_int32(data,i))/100.0
-        i+=4
-        self._motor_state_async.id_current = float(buffer_get_int32(data,i))/100.0
-        i+=4
-        self._motor_state_async.iq_current = float(buffer_get_int32(data,i))/100.0
-        i+=4
-        self._motor_state_async.duty = float(buffer_get_int16(data,i))/1000.0
-        i+=2
-        self._motor_state_async.speed = float(buffer_get_int32(data,i))
-        i+=4
-        self._motor_state_async.input_voltage = float(buffer_get_int16(data,i))/10.0
-        i+=2 + 24
-        # TODO investigate what's in the 24 reserved bytes? Maybe it's interesting to record?
-        self._motor_state_async.error = np.uint(data[i])
-        i+=1
-        self._motor_state_async.position_set = float(buffer_get_int32(data,i))/1000000.0
-        i+=4
-        self._motor_state_async.controlID = np.uint(data[i])
-        i+=1 + 6
-        self._motor_state_async.Vd = float(buffer_get_int32(data,i))/1000.0
-        i+=4
-        self._motor_state_async.Vq = float(buffer_get_int32(data,i))/1000.0
-        i+=4
-
     # getters for motor state
     def get_temperature_celsius(self):
         """
