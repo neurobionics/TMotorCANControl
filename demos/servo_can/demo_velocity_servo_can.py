@@ -11,7 +11,6 @@ import time
 with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
     
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
-    dev.zero_position()
     dev.enter_velocity_control()
     for t in loop:
         dev.θd = 1.0 # rad/s
