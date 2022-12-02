@@ -46,20 +46,21 @@ for an AK80-9 on usb serial port 'dev/tty/USB0', with baud rate 921600 (the defa
 with TMotorManager_servo_serial(port='/dev/ttyUSB0', baud=921600, motor_params=Servo_Params_Serial['AK80-9']) as dev:
 ```
 
-The motor can be controlled in current/torque, velocity, or impedance mode. Additionally, a
-current/torque, a velocity, and a position could be specified, in what we call "Full State Feedback" mode, 
-which makes full use of the functionality of the controller on the TMotor driver board.
-Before using any of these control modes, the mode must be entered by calling the appropriate 
-function, as follows:
+The motor can be controlled in a variety of modes, depending on which communication setup you are using, as shown below.
 
-- set_impedance_gains_real_unit(K=stiffness,B=damping): Used to enter impedance control only mode.
-- set_current_gains(): Used to enter current control only mode, for current or torque control.
-- set_impedance_gains_real_unit_full_state_feedback(K=stiffness,B=damping): Used to enter full state feedback mode.
-- set_speed_gains(kd=velocity proportional gain): Used to enter velocity control only mode. This uses the "damping" gain for the impedance controller as a "P" gain for velocity commands.
+| Control Mode                               | MIT CAN | Servo CAN | Servo Serial |
+| -----------                                | ------- | --------- | -----------  |
+| Current                                    | yes     | yes       | yes          |
+| Velocity                                   | yes     | yes       | yes          |
+| Position                                   | yes     | yes       | yes          |
+| Duty Cycle                                 | no      | yes       | yes          |
+| Impedance with feedforward Current         | yes     | no        | no           |
+| Position with velocity/acceleration limits | no      | yes       | yes          |
 
 Once entered, the motor can be controlled in any of these modes by setting the TMotorManager's
 internal command, and then calling the update() method to send the command. The values of the
-internal command can be set with the following methods:
+internal command can be set with the following methods, if available for the communication
+protocol you are using.
 
 - set_output_angle_radians(pos): Sets the position command to "pos" radians.
 - set_motor_current_qaxis_amps(current): Sets the current command to "current" amps.
