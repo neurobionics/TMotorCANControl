@@ -13,6 +13,6 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv"
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
     dev.enter_current_control()
     for t in loop:
-        dev.i = 0.5
+        dev.i = 0.1
         dev.update()
         print("\r" + str(dev),end='')
