@@ -2,7 +2,7 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 from NeuroLocoMiddleware.SysID import Chirp
 import numpy as np
 import time
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
@@ -32,5 +32,5 @@ def full_state_feedback(dev):
     del loop
 
 if __name__ == '__main__':
-    with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
         full_state_feedback(dev)

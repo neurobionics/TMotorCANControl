@@ -1,7 +1,7 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 import numpy as np
 import time
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 ID_1 = 1
@@ -36,6 +36,6 @@ def two_DOF(dev1,dev2):
 if __name__ == '__main__':
     # to use additional motors, simply add another with block
     # remember to give each motor a different log name!
-    with TMotorManager(motor_type=Type_1, motor_ID=ID_1, CSV_file="log_dev1.csv") as dev1:
-        with TMotorManager(motor_type=Type_2, motor_ID=ID_2, CSV_file="log_dev2.csv") as dev2:
+    with TMotorManager_mit_can(motor_type=Type_1, motor_ID=ID_1, CSV_file="log_dev1.csv") as dev1:
+        with TMotorManager_mit_can(motor_type=Type_2, motor_ID=ID_2, CSV_file="log_dev2.csv") as dev2:
             two_DOF(dev1,dev2)

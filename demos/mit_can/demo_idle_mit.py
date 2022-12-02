@@ -1,6 +1,6 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 import time
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
@@ -19,5 +19,5 @@ def read_only(dev):
 
 
 if __name__ == '__main__':
-    with TMotorManager(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
         read_only(dev)

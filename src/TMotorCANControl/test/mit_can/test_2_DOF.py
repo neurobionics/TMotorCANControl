@@ -1,6 +1,6 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
-from TMotorCANControl.CAN_Manager import MIT_Params, MIT_motor_state
+from TMotorCANControl.CAN_Manager_mit import MIT_Params, MIT_motor_state
 try:
      from TMotorCANControl.TMotorManager_mit_can import TMotorManager
 except ModuleNotFoundError:
