@@ -14,8 +14,8 @@ with TMotorManager_servo_serial(port=port, baud=baud, motor_params=motor_params)
         for t in loop:
             dev.update()
             Pdes = np.sin(t)
-            print("\r" + str(dev) + " | error: " + str(dev.error), end='')
-            # print(f"\n {dev} {dev.θ} ", end='')
+            # print(f"\r {dev}", end='')
+            print(f"\n {dev.θ} {dev._motor_state.position_set} {dev._motor_state.speed} ", end='')
 
 
 

@@ -86,7 +86,6 @@ class TMotorManager_mit_can():
         self._updated = False
         self.use_torque_compensation = use_torque_compensation
         self.SF = 1.0
-        self.extra_plots = []
         
         self.log_vars = log_vars
         self.LOG_FUNCTIONS = {
@@ -268,7 +267,7 @@ class TMotorManager_mit_can():
 
         # writing to log file
         if self.csv_file_name is not None:
-            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars] + self._times_past_current_limit +[data for data in self.extra_plots])
+            self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
         self._updated = False
     

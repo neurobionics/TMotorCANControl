@@ -4,7 +4,7 @@ from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
-ID = 2
+ID = 1
 
 def current_step(dev):
     dev.zero_position()

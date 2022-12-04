@@ -481,6 +481,7 @@ class motor_listener(serial.threaded.Protocol):
         Args:
             data: array of received data to parse
         """
+        print(len(data))
         for d in data:
             if self.state == 0:
                 if d == 0x02:
@@ -514,7 +515,6 @@ class motor_listener(serial.threaded.Protocol):
         """
         if self.motor is not None:
             # print(packet)
-            header = packet[0]
             DL = packet[1]
             data = packet[2:2+DL]
             crc = buffer_get_int16(packet[2+DL:DL+4], 0)
@@ -568,7 +568,15 @@ class TMotorManager_servo_serial():
         """
         if not self._entered:
             # begin serial connection
-            self._ser = serial.Serial(self.port, self.baud)
+            self._ser = serial.Serial(
+                self.port, 
+                self.baud, 
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                bytesize=serial.EIGHTBITS,
+                timeout=0.0001, 
+                inter_byte_timeout=0.001
+                )
 
             # start another thread to handle recieved data
             self._reader_thread = serial.threaded.ReaderThread(self._ser, motor_listener)
@@ -655,11 +663,15 @@ class TMotorManager_servo_serial():
             self._last_update_time = now
         elif (packet_ID == COMM_PACKET_ID.COMM_ROTOR_POSITION):
             self.parse_position_feedback_async(data)
+        else:
+            print("weird packet")
         # elif (packet_ID == COMM_PACKET_ID.COMM_SET_POS):
         #     self.parse_set_position_feedback_async(data)
 
         if self._motor_state.error != 0:
             raise RuntimeError(ERROR_CODES[self._motor_state.error])
+
+        
 
     # comm data parsing 
     def parse_position_feedback_async(self, data):
@@ -728,6 +740,7 @@ class TMotorManager_servo_serial():
             # object while the reader thread is using it!!
             # TODO when pyserial adds full asyncio support, consider switching to that
             self._reader_thread.write(self._command)
+            
 
     def _send_specific_command(self, command):
         """
@@ -1044,6 +1057,9 @@ class TMotorManager_servo_serial():
         """
         return self._motor_state.error
 
+    def get_motor_error_string(self):
+        return ERROR_CODES[self._motor_state.error]
+
     def get_current_qaxis_amps(self):
         """
         Returns:
@@ -1268,7 +1284,7 @@ class TMotorManager_servo_serial():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current state"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.get_output_angle_radians(),3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.get_output_velocity_radians_per_second(),3)) + " rad/s | current: " + '{: 1f}'.format(round(self._motor_state.iq_current,3)) + " A | temp: " + '{: 1f}'.format(round(self._motor_state.mos_temperature,0)) + " C"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.get_output_angle_radians(),3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.get_output_velocity_radians_per_second(),3)) + " rad/s | current: " + '{: 1f}'.format(round(self._motor_state.iq_current,3)) + " A | temp: " + '{: 1f}'.format(round(self._motor_state.mos_temperature,0)) + " C"  + f' | Error: {self.get_motor_error_string()}'
 
     def device_info_string(self):
         """Prints the motor's serial port and device type."""

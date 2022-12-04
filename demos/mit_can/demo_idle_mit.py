@@ -19,5 +19,5 @@ def read_only(dev):
 
 
 if __name__ == '__main__':
-    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID) as dev:
         read_only(dev)

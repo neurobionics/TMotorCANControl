@@ -439,7 +439,7 @@ class CAN_Manager_servo(object):
 
     # Send Servo control message for current loop mode
     #*Current loop mode: given the Iq current specified by the motor, the motor output torque = Iq *KT, so it can be used as a torque loop
-    def comm_can_set_current(self,controller_id, current):
+    def comm_can_set_current(self, controller_id, current):
         send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, np.int32(current * 1000.0), send_index)
@@ -498,11 +498,11 @@ class CAN_Manager_servo(object):
         pos_int = np.int16(data[0] << 8 | data[1])
         spd_int = np.int16(data[2] << 8 | data[3])
         cur_int = np.int16(data[4] << 8 | data[5])
-        motor_pos= ( pos_int * 0.1)
-        motor_spd= (float)( spd_int * 10.0) #motor speed
-        motor_cur= (float)( cur_int * 0.01) #motor current
-        motor_temp= np.int16(data[6])  #motor temperature
-        motor_error= data[7] #motor error mode
+        motor_pos= float( pos_int * 0.1) # motor position
+        motor_spd= float( spd_int * 10.0) # motor speed
+        motor_cur= float( cur_int * 0.01) # motor current
+        motor_temp= np.int16(data[6])  # motor temperature
+        motor_error= data[7] # motor error mode
         if self.debug:
             print(data)
             print('  Position: ' + str(motor_pos))

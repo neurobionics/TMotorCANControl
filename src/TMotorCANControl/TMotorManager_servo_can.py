@@ -30,6 +30,7 @@ class _TMotorManState_Servo(Enum):
     POSITION = 4
     SET_ORIGIN=5
     POSITION_VELOCITY=6
+    IDLE = 7
 
 # the user-facing class that manages the motor.
 class TMotorManager_servo_can():
@@ -68,7 +69,7 @@ class TMotorManager_servo_can():
         self._motor_state = servo_motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
         self._motor_state_async = servo_motor_state(0.0,0.0,0.0,0.0,0.0,0.0)
         self._command = servo_command(0.0,0.0,0.0,0.0)
-        self._control_state = _TMotorManState_Servo.DUTY_CYCLE
+        self._control_state = _TMotorManState_Servo.IDLE
         self._times_past_position_limit = 0
         self._times_past_current_limit = 0
         self._times_past_velocity_limit = 0
@@ -188,8 +189,6 @@ class TMotorManager_servo_can():
         now = time.time()
         # print(f"update: {now - self._last_command_time}")
         if (now - self._last_command_time) < 0.25 and ( (now - self._last_update_time) > 0.1):
-            
-            
             # print("State update requested but no data recieved from motor. Delay longer after zeroing, decrease frequency, or check connection.")
             warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection. " + self.device_info_string(), RuntimeWarning)
         else:
@@ -226,6 +225,9 @@ class TMotorManager_servo_can():
             self._canman.comm_can_set_rpm(self.ID, self._command.velocity)
         elif self._control_state == _TMotorManState_Servo.POSITION:
             self._canman.comm_can_set_pos(self.ID, self._command.position)
+        elif self._control_state == _TMotorManState_Servo.IDLE:
+            self._canman.comm_can_set_duty(self.ID, 0.0)
+
         #TODO:Add other modes
         else:
             raise RuntimeError("UNDEFINED STATE for device " + self.device_info_string())
@@ -328,6 +330,9 @@ class TMotorManager_servo_can():
 
     def enter_position_velocity_control(self):
         self._control_state = _TMotorManState_Servo.POSITION_VELOCITY
+
+    def enter_idle_mode(self):
+        self._control_state = _TMotorManState_Servo.IDLE
 
     # used for either impedance or MIT mode to set output angle
     def set_output_angle_radians(self, pos):
