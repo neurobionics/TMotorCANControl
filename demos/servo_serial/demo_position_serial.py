@@ -16,6 +16,6 @@ with TMotorManager_servo_serial(port='/dev/ttyUSB0', baud=961200, motor_params=S
             pos = 2*np.sin(t)
             dev.set_output_angle_radians(pos)
             dev.update()
-            print(f"\n {dev.θ} {pos}", end='')
+            print(f"\r {dev}", end='')
 
         

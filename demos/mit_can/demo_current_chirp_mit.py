@@ -3,7 +3,7 @@ from NeuroLocoMiddleware.SysID import Chirp
 from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK10-9'
+Type = 'AK80-9'
 ID = 1
 
 
@@ -19,9 +19,8 @@ def chirp_demo(dev, amp=1.0, dt=0.001):
         dev.update()
         des_τ = loop.fade*amp*chirp.next(t)*3/3.7
         dev.τ = des_τ # a barely audible note
-        # print(t, des_τ)
 
 if __name__ == '__main__':
-    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID) as dev:
         chirp_demo(dev, amp=1.0)
     print("done with chirp_demo()")

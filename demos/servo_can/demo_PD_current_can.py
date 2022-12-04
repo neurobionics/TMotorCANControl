@@ -23,5 +23,6 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
         cmd =  P*(dev.θ - Pdes) + D*(Vdes - dev.θd)
         dev.i = cmd
         dev.update()
+        print(f"\r {dev}", end='')
         
 

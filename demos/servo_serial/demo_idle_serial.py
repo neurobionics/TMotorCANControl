@@ -1,6 +1,7 @@
 from sys import path
 path.append("/home/pi/TMotorCANControl/src/")
 from TMotorCANControl.TMotorManager_servo_serial import *
+from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
 baud=921600
 port='/dev/ttyUSB0'
@@ -14,8 +15,7 @@ with TMotorManager_servo_serial(port=port, baud=baud, motor_params=motor_params)
         for t in loop:
             dev.update()
             Pdes = np.sin(t)
-            # print(f"\r {dev}", end='')
-            print(f"\n {dev.θ} {dev._motor_state.position_set} {dev._motor_state.speed} ", end='')
+            print(f"\r {dev}", end='')
 
 
 

@@ -16,9 +16,9 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev1:
 
         dev1.enter_position_control()
         dev2.enter_idle_mode()
-        
+
         for t in loop:
             dev1.θ = dev2.θ 
             dev1.update()
             dev2.update()
-            print("\r" + str(dev1),end='')
+            print(f"\r {dev}", end='')

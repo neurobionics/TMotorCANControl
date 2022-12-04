@@ -7,8 +7,8 @@ from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 ID_1 = 1
 ID_2 = 2
 
-Type_1 = 'AK10-9'
-Type_2 = 'AK10-9'
+Type_1 = 'AK80-9'
+Type_2 = 'AK80-9'
 
 
 def two_DOF(dev1,dev2):
@@ -36,6 +36,6 @@ def two_DOF(dev1,dev2):
 if __name__ == '__main__':
     # to use additional motors, simply add another with block
     # remember to give each motor a different log name!
-    with TMotorManager_mit_can(motor_type=Type_1, motor_ID=ID_1, CSV_file="log_dev1.csv") as dev1:
-        with TMotorManager_mit_can(motor_type=Type_2, motor_ID=ID_2, CSV_file="log_dev2.csv") as dev2:
+    with TMotorManager_mit_can(motor_type=Type_1, motor_ID=ID_1) as dev1:
+        with TMotorManager_mit_can(motor_type=Type_2, motor_ID=ID_2) as dev2:
             two_DOF(dev1,dev2)

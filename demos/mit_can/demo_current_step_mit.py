@@ -3,7 +3,7 @@ import time
 from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK10-9'
+Type = 'AK80-9'
 ID = 1
 
 def current_step(dev):
@@ -24,5 +24,5 @@ def current_step(dev):
     del loop
 
 if __name__ == '__main__':
-    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID, CSV_file="log.csv") as dev:
+    with TMotorManager_mit_can(motor_type=Type, motor_ID=ID) as dev:
         current_step(dev)

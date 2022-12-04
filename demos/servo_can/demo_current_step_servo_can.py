@@ -15,4 +15,4 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     for t in loop:
         dev.i = 0.4
         dev.update()
-        print("\r" + str(dev),end='')
+        print(f"\r {dev}", end='')

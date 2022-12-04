@@ -16,4 +16,4 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
         
         dev.set_duty_cycle(0.2)
         dev.update()
-        # print("\r" + str(dev),end='')
+        print(f"\r {dev}", end='')

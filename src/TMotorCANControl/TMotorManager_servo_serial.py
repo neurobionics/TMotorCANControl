@@ -2,7 +2,7 @@ import serial
 from serial import threaded
 import time
 import numpy as np
-from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
+from NeuroLocoMiddleware.StatProfiler import SSProfile
 from enum import Enum
 import traceback
 import csv
@@ -481,7 +481,7 @@ class motor_listener(serial.threaded.Protocol):
         Args:
             data: array of received data to parse
         """
-        print(len(data))
+        # print(f"\n {len(data)}")
         for d in data:
             if self.state == 0:
                 if d == 0x02:
@@ -772,6 +772,7 @@ class TMotorManager_servo_serial():
 
         # send the command to get parameters (message will be read in other thread)
         self._send_specific_command(self.get_motor_parameters())
+        
 
         # synchronize user-facing state with most recent async state
         # TODO implement some filtering on the async state, if it gets multiple updates
@@ -827,7 +828,7 @@ class TMotorManager_servo_serial():
         """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY
 
-    def enter_current_loop_control(self):
+    def enter_current_control(self):
         """
         Set the control state to CURENT_LOOP
         In this mode, you can send an Iq current to motor, the motor output torque = Iq *KT, so it can
