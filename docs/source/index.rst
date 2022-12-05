@@ -20,16 +20,13 @@ found in the demos folder. For help setting up the motor using a Raspberry Pi 4 
 PiCAN hat, see `Link these instructions <https://opensourceleg.com/TMotorCANControl/>`_ on the 
 Open Source Leg website. That page will walk you through all the setup.
 
-
-
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
 
    home <self>
    modules
-
-
+   demos
 
 Indices and tables
 ==================

@@ -4,9 +4,12 @@ The project is geared towards the control of the AK80-9 actuator using a raspber
 could eaisly be adapted for use with a different CAN/serial interface. The API files are in the src/TMotorCANControl
 folder in this repository. The main interface is in the file TMotorManager_mit_can.py for MIT mode, 
 TMotorManager_servo_can.py for Servo mode (over CAN), and TMotorManager_servo_serial for Servo mode (over serial). 
-Sample scripts can be found in the demos folder. For help setting up the motor using a Raspberry Pi 4 and with the
-PiCAN hat, see [these instructions](https://opensourceleg.com/TMotorCANControl/) on the Open Source Leg website.
-That page will walk you through all the setup.
+Sample scripts can be found in the demos folder. 
+
+For video instructions on setting up the motor, see the CubeMars tutorials on 
+[Yoyo Liu's youtube channel](https://www.youtube.com/watch?v=iJBJhivWqxE).
+For written instructions on setting up the motor and configuring the pi, see 
+[these instructions](https://opensourceleg.com/cubemars-tmotor-control-method/) on the Open Source Leg website.
 
 ## API Usage
 For some code examples, see the demos folder in this repository. 
@@ -137,7 +140,7 @@ with TMotorManager_mit_can(motor_type='AK80-9', motor_ID=3) as dev:
 For more examples, see the demos folder. Have fun controlling some CubeMars Motors!
 
 ## Other Resources
-1. [Setup Instructions on the OSL Website](https://opensourceleg.com/TMotorCANControl/)
+1. [Setup Instructions on the OSL Website](https://opensourceleg.com/cubemars-tmotor-control-method/)
 
 2. [API Documentation](https://tmotorcancontrol.readthedocs.io/en/latest/index.html)
 
