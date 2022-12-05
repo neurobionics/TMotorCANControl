@@ -2,7 +2,7 @@ from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK80-9'
-ID = 2
+ID = 1
 
 with TMotorManager_mit_can(motor_type=Type, motor_ID=ID) as dev:
     if dev.check_can_connection():

@@ -18,7 +18,7 @@ with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params
         dev2.update()
         
         for t in loop:
-            dev1.set_position(dev2.θ)
+            dev1.position = dev2.position
             dev1.update()
             dev2.update()
             print(f"\r {dev1} {dev2}", end='')

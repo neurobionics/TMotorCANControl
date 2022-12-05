@@ -12,7 +12,7 @@ D = 0.3
 
 with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     loop = SoftRealtimeLoop(dt=0.002, report=True, fade=0.0)
-    dev.zero_position()
+    dev.set_zero_position()
     
     dev.update()
     dev.enter_current_control()
@@ -20,8 +20,8 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     
     for t in loop:
         Pdes = 3*np.sin(t)
-        cmd =  P*(dev.θ - Pdes) + D*(Vdes - dev.θd)
-        dev.i = cmd
+        cmd =  P*(dev.position - Pdes) + D*(Vdes - dev.velocity)
+        dev.current_qaxis = cmd
         dev.update()
         print(f"\r {dev}", end='')
         

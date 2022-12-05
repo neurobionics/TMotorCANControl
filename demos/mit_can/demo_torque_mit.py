@@ -8,7 +8,7 @@ ID = 1
 
 
 def torque_step(dev):
-    dev.zero_position()
+    dev.set_zero_position()
     time.sleep(1.5) # wait for the motor to zero (~1 second)
     dev.set_current_gains()
     
@@ -17,9 +17,9 @@ def torque_step(dev):
     for t in loop:
         dev.update()
         if t < 1.0:
-            dev.τ = 0.0
+            dev.torque = 0.0
         else:
-            dev.τ = 0.0
+            dev.torque = 1.0
 
     del loop
 

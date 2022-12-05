@@ -8,7 +8,7 @@ Type = 'AK80-9'
 ID = 1
 
 def position_step(dev):
-    dev.zero_position() # has a delay!
+    dev.set_zero_position() # has a delay!
     time.sleep(1.5)
     dev.set_impedance_gains_real_unit(K=10,B=0.5)
     
@@ -18,9 +18,9 @@ def position_step(dev):
     for t in loop:
         dev.update()
         if t < 1.0:
-            dev.θ = 0.0
+            dev.position = 0.0
         else:
-            dev.θ = np.pi/2.0
+            dev.position = np.pi/2.0
 
     del loop
 

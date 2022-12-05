@@ -22,7 +22,7 @@ with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params
         for t in loop:
             Pdes = np.sin(2*t)
             duty = P*(Pdes - dev.get_output_angle_radians()) + D*(Vdes - dev.get_output_velocity_radians_per_second())
-            dev.set_duty_cycle(duty)
+            dev.set_duty_cycle_percent(duty)
             dev.update()
             print(f"\r {dev}", end='')
 

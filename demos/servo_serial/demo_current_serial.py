@@ -13,7 +13,7 @@ with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params
         dev.enter_current_control()
         
         for t in loop:
-            dev.iq = current
+            dev.current_qaxis = current
             dev.update()
             print(f"\r {dev}", end='')
 

@@ -12,8 +12,8 @@ Type_2 = 'AK80-9'
 
 
 def two_DOF(dev1,dev2):
-    dev1.zero_position()
-    dev2.zero_position()
+    dev1.set_zero_position()
+    dev2.set_zero_position()
     time.sleep(1.5) # wait for the motors to zero (~1 second)
     dev1.set_impedance_gains_real_unit(K=10.0,B=0.5)
     dev2.set_impedance_gains_real_unit(K=10.0,B=0.5)
@@ -25,11 +25,11 @@ def two_DOF(dev1,dev2):
         dev1.update()
         dev2.update()
         if t < 1.0:
-            dev1.θ = 0.0
-            dev2.θ = 0.0
+            dev1.position = 0.0
+            dev2.position = 0.0
         else:
-            dev1.θ = (np.pi/2)*int(t)
-            dev2.θ = (np.pi/2)*int(t)
+            dev1.position = (np.pi/2)*int(t)
+            dev2.position = (np.pi/2)*int(t)
 
     del loop
 

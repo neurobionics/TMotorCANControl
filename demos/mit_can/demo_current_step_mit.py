@@ -7,7 +7,7 @@ Type = 'AK80-9'
 ID = 1
 
 def current_step(dev):
-    dev.zero_position()
+    dev.set_zero_position()
     time.sleep(1.5) # wait for the motor to zero (~1 second)
     dev.set_current_gains()
     
@@ -17,9 +17,9 @@ def current_step(dev):
     for t in loop:
         dev.update()
         if t < 1.0:
-            dev.i = 0.0
+            dev.current_qaxis = 0.0
         else:
-            dev.i = 0.5
+            dev.current_qaxis = 0.5
 
     del loop
 

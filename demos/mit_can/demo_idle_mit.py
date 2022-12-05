@@ -7,7 +7,7 @@ Type = 'AK80-9'
 ID = 1
 
 def read_only(dev):
-    dev.zero_position()
+    dev.set_zero_position()
     time.sleep(1.5) # wait for the motor to zero (~1 second)
     
     print("Starting read only demo. Press ctrl+C to quit.")

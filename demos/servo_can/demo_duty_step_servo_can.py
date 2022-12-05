@@ -14,6 +14,6 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     dev.enter_duty_cycle_control()
     for t in loop:
         
-        dev.set_duty_cycle(0.2)
+        dev.set_duty_cycle_percent(0.2)
         dev.update()
         print(f"\r {dev}", end='')

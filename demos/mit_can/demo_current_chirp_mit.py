@@ -10,7 +10,7 @@ ID = 1
 def chirp_demo(dev, amp=1.0, dt=0.001):
     print("Chirping ActPackA. Press CTRL-C to finish.")
     chirp = Chirp(250, 25, 1)
-    dev.set_current_gains()
+    dev.set_set_current_gains()
     
     print("Starting current chirp demo. Press ctrl+C to quit.")
 
@@ -18,7 +18,7 @@ def chirp_demo(dev, amp=1.0, dt=0.001):
     for t in loop:
         dev.update()
         des_τ = loop.fade*amp*chirp.next(t)*3/3.7
-        dev.τ = des_τ # a barely audible note
+        dev.torque = des_τ # a barely audible note
 
 if __name__ == '__main__':
     with TMotorManager_mit_can(motor_type=Type, motor_ID=ID) as dev:

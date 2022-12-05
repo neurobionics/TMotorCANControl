@@ -15,7 +15,7 @@ def chirp_demo(dev, amp=1.0, dt=0.005):
     loop = SoftRealtimeLoop(dt = dt, report=True)
     for t in loop:
         dev.update()
-        dev.iq = amp*chirp.next(t) # a barely audible note
+        dev.current_qaxis = amp*chirp.next(t) # a barely audible note
 
 with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as dev:
     chirp_demo(dev, amp=1.0)

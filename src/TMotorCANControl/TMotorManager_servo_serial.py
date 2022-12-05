@@ -843,7 +843,7 @@ class TMotorManager_servo_serial():
         """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE
 
-    def set_duty_cycle(self, duty, set_command=True):
+    def comm_set_duty_cycle(self, duty, set_command=True):
         """
         send a certain duty cycle voltage to motor
 
@@ -861,7 +861,7 @@ class TMotorManager_servo_serial():
             self._command = bytearray(create_packet(data))
         return self._command
 
-    def set_speed_ERPM(self, speed, set_command=True):
+    def comm_set_speed_ERPM(self, speed, set_command=True):
         """
         send a certain motion speed to motor
 
@@ -879,7 +879,7 @@ class TMotorManager_servo_serial():
             self._command = bytearray(create_packet(data))
         return self._command
 
-    def set_current_loop(self, current, set_command=True):
+    def comm_set_current_loop(self, current, set_command=True):
         """
         send am Iq current to motor, the motor output torque = Iq *KT, so it can
         be used as a torque loop
@@ -898,7 +898,7 @@ class TMotorManager_servo_serial():
             self._command = bytearray(create_packet(data))
         return self._command
 
-    def set_position(self, pos, set_command=True):
+    def comm_set_position(self, pos, set_command=True):
         """
         send a certain position to motor, the motor will run to the specified
         position, (default speed 12000erpm acceleration 40000erpm)
@@ -917,7 +917,7 @@ class TMotorManager_servo_serial():
             self._command = bytearray(create_packet(data))
         return self._command
 
-    def set_position_velocity(self, pos, vel, acc, set_command=True):
+    def comm_set_position_velocity(self, pos, vel, acc, set_command=True):
         """
         send a certain position, speed and acceleration to motor.
         The motor will run at a given acceleration and maximum speed to a specified
@@ -942,7 +942,7 @@ class TMotorManager_servo_serial():
             self._command = bytearray(create_packet(data))
         return self._command
 
-    def set_multi_turn(self, set_command=True):
+    def comm_set_multi_turn(self, set_command=True):
         """
         Tell the motor to operate in multi-turn mode, rather than being limited to 
         Just 360 degrees of position feedback.
@@ -973,7 +973,7 @@ class TMotorManager_servo_serial():
             self._command = bytearray([0x02, 0x02, 0x5F, 0x01, 0x0E, 0xA0, 0x03])
         return cmd
     
-    def set_motor_parameter_return_format_all(self, set_command=True):
+    def comm_set_motor_parameter_return_format_all(self, set_command=True):
         """
         Tell the motor to send back all possible fields when an update is requested.
 
@@ -990,7 +990,7 @@ class TMotorManager_servo_serial():
             self._command = cmd
         return cmd
 
-    def begin_position_feedback(self, set_command=True):
+    def comm_begin_position_feedback(self, set_command=True):
         """
         Tell the motor to send back its current position every 10ms
 
@@ -1003,7 +1003,7 @@ class TMotorManager_servo_serial():
         if set_command:
             self._command = bytearray([0x02, 0x02, 0x0B, 0x04, 0x9C, 0x7E, 0x03])
 
-    def get_motor_parameters(self, set_command=True):
+    def comm_get_motor_parameters(self, set_command=True):
         """
         Request the current motor parameters
 
@@ -1132,7 +1132,6 @@ class TMotorManager_servo_serial():
         return self.get_current_qaxis_amps()*self.motor_params["Kt"]*self.motor_params["GEAR_RATIO"]
 
     # user facing setters 
-
     def set_output_velocity_radians_per_second(self, vel):
         """
         Update the current command to the desired velocity.
@@ -1148,7 +1147,7 @@ class TMotorManager_servo_serial():
         if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.VELOCITY]:
             raise RuntimeError("Attempted to send speed command without entering speed control " + self.device_info_string()) 
 
-        self.set_speed_ERPM(vel/self.radps_per_ERPM)
+        self.comm_set_speed_ERPM(vel/self.radps_per_ERPM)
 
     def set_duty_cycle_percent(self, duty):
         """
@@ -1165,7 +1164,7 @@ class TMotorManager_servo_serial():
         if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE]:
             raise RuntimeError("Attempted to duty cycle command without entering duty cycle control " + self.device_info_string()) 
 
-        self.set_duty_cycle(duty)
+        self.comm_set_duty_cycle(duty)
 
     def set_motor_current_qaxis_amps(self, curr):
         """
@@ -1182,7 +1181,7 @@ class TMotorManager_servo_serial():
         if self._control_state not in [SERVO_SERIAL_CONTROL_STATE.CURRENT_LOOP]:
             raise RuntimeError("Attempted to send current command without entering current control " + self.device_info_string()) 
 
-        self.set_current_loop(curr)
+        self.comm_set_current_loop(curr)
 
     def set_output_angle_radians(self, pos, vel=1000, acc=500):
         """
@@ -1201,9 +1200,9 @@ class TMotorManager_servo_serial():
 
         pos = (pos / self.rad_per_Eang)
         if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
-            self.set_position_velocity(pos, vel, acc)
+            self.comm_set_position_velocity(pos, vel, acc)
         elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:
-            self.set_position(pos)
+            self.comm_set_position(pos)
         else:
             raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 
 
@@ -1292,56 +1291,76 @@ class TMotorManager_servo_serial():
         return f"{self.motor_params['Type']} Port: {self.port}"
 
     # controller variables
-    T = property(get_temperature_celsius, doc="temperature_degrees_C")
+    temperature = property(get_temperature_celsius, doc="temperature_degrees_C")
     """Temperature in Degrees Celsius"""
 
     # TODO write actual codes in description here as well
     error = property(get_motor_error_code, doc="Error")
-    """Motor error code. 0 means no error."""
+    """Error Codes:
+            0  : 'FAULT_CODE_NONE'
+            1  : 'FAULT_CODE_OVER_VOLTAGE'
+            2  : 'FAULT_CODE_UNDER_VOLTAGE'
+            3  : 'FAULT_CODE_DRIVE'
+            4  : 'FAULT_CODE_ABS_OVER_CURRENT'
+            5  : 'FAULT_CODE_OVER_TEMP_FET'
+            6  : 'FAULT_CODE_OVER_TEMP_MOTOR'
+            7  : 'FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE'
+            8  : 'FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE'
+            9  : 'FAULT_CODE_MCU_UNDER_VOLTAGE'
+            10 : 'FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET'
+            11 : 'FAULT_CODE_ENCODER_SPI'
+            12 : 'FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE'
+            13 : 'FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE'
+            14 : 'FAULT_CODE_FLASH_CORRUPTION'
+            15 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1'
+            16 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2'
+            17 : 'FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3'
+            18 : 'FAULT_CODE_UNBALANCED_CURRENTS'
+    """
 
     # electrical variables
-    iq = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps")
+    current_qaxis = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps")
     """Q-axis current in amps"""
 
-    id = property(get_current_daxis_amps, doc="current_daxis_amps")
+    current_daxis = property(get_current_daxis_amps, doc="current_daxis_amps")
     """D-axis current in amps"""
 
-    ibus = property(get_current_bus_amps, doc="current_bus_amps")
+    current_bus = property(get_current_bus_amps, doc="current_bus_amps")
     """Bus input current in amps"""
 
-    vq = property(get_voltage_qaxis_volts, doc="voltage_qaxis_volts")
+    voltage_qaxis = property(get_voltage_qaxis_volts, doc="voltage_qaxis_volts")
     """Q-axis voltage in volts"""
 
-    vd = property(get_voltage_daxis_volts, doc="voltage_daxis_volts")
+    voltage_daxis = property(get_voltage_daxis_volts, doc="voltage_daxis_volts")
     """D-axis voltage in volts"""
 
-    vbus = property(get_voltage_bus_volts, doc="voltage_bus_volts")
+    voltage_bus = property(get_voltage_bus_volts, doc="voltage_bus_volts")
     """Bus input voltage in volts"""
 
     # output-side variables
-    θ = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians")
+    position = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians")
     """Output angle in rad"""
 
-    θd = property (get_output_velocity_radians_per_second, set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    velocity = property (get_output_velocity_radians_per_second, set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
     """Output velocity in rad/s"""
 
-    θdd = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
+    acceleration = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
     """Output acceleration in rad/s/s"""
 
-    τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
+    torque = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
     """Output torque in Nm"""
 
     # motor-side variables
-    ϕ = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians")
+    angle_motorside = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians")
     """Motor-side angle in rad"""
     
-    ϕd = property (get_motor_velocity_radians_per_second, set_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    velocity_motorside = property (get_motor_velocity_radians_per_second, set_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
     """Motor-side velocity in rad/s"""
 
-    ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
+    acceleration_motorside = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
     """Motor-side acceleration in rad/s/s"""
 
-    τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
+    torque_motorside = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
     """Motor-side torque in Nm"""
 
 

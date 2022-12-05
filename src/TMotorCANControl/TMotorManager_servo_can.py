@@ -246,7 +246,7 @@ class TMotorManager_servo_can():
 
     # zeros the position, like a scale you have to wait about a second before you can
     # use the motor again. This responsibility is on the user!!
-    def zero_position(self):
+    def set_zero_position(self):
         """Zeros the position--like a scale you have to wait about a second before you can
         use the motor again. This responsibility is on the user!!"""
         self._canman.comm_can_set_origin(self.ID,1)
@@ -349,7 +349,7 @@ class TMotorManager_servo_can():
         if self._control_state == _TMotorManState_Servo.POSITION:
             self._command.position = pos/self.rad_per_Eang
 
-    def set_duty_cycle(self, duty):
+    def set_duty_cycle_percent(self, duty):
         if self._control_state not in [_TMotorManState_Servo.DUTY_CYCLE]:
             raise RuntimeError("Attempted to send duty cycle command without gains for device " + self.device_info_string()) 
         else:
@@ -464,7 +464,7 @@ class TMotorManager_servo_can():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | temp: " + '{: 1f}'.format(round(self.T,0)) + " C"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.position,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.velocity,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.current_qaxis,3)) + " A | temp: " + '{: 1f}'.format(round(self.temperature,0)) + " C"
 
     def device_info_string(self):
         """Prints the motor's ID and device type."""
@@ -494,51 +494,41 @@ class TMotorManager_servo_can():
         # self._canman.notifier.remove_listener(Listener)
         return success
 
-   
-
-
-
-    ## Greek letter math symbol property interface. This is the good
-    #  interface, for those who like code that resembles math. It works best
-    #  to use the UnicodeMath plugin for sublime-text, "Fast Unicode Math
-    #  Characters" in VS Code, or the like to allow easy typing of ϕ, θ, and
-    #  τ.
-
     # controller variables
-    T = property(get_temperature_celsius, doc="temperature_degrees_C")
+    temperature = property(get_temperature_celsius, doc="temperature_degrees_C")
     """Temperature in Degrees Celsius"""
 
-    e = property(get_motor_error_code, doc="temperature_degrees_C")
+    error = property(get_motor_error_code, doc="temperature_degrees_C")
     """Motor error code. 0 means no error."""
 
     # electrical variables
-    i = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps_current_only")
+    current_qaxis = property(get_current_qaxis_amps, set_motor_current_qaxis_amps, doc="current_qaxis_amps_current_only")
     """Q-axis current in amps"""
 
     # output-side variables
-    θ = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians_impedance_only")
+    position = property(get_output_angle_radians, set_output_angle_radians, doc="output_angle_radians_impedance_only")
     """Output angle in rad"""
 
-    θd = property (get_output_velocity_radians_per_second, set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
+    velocity = property (get_output_velocity_radians_per_second, set_output_velocity_radians_per_second, doc="output_velocity_radians_per_second")
     """Output velocity in rad/s"""
 
-    θdd = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
+    acceleration = property(get_output_acceleration_radians_per_second_squared, doc="output_acceleration_radians_per_second_squared")
     """Output acceleration in rad/s/s"""
 
-    τ = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
+    torque = property(get_output_torque_newton_meters, set_output_torque_newton_meters, doc="output_torque_newton_meters")
     """Output torque in Nm"""
 
     # motor-side variables
-    ϕ = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians_impedance_only")
+    angle_motorside = property(get_motor_angle_radians, set_motor_angle_radians, doc="motor_angle_radians_impedance_only")
     """Motor-side angle in rad"""
     
-    ϕd = property (get_motor_velocity_radians_per_second, set_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
+    velocity_motorside = property (get_motor_velocity_radians_per_second, set_motor_velocity_radians_per_second, doc="motor_velocity_radians_per_second")
     """Motor-side velocity in rad/s"""
 
-    ϕdd = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
+    acceleration_motorside = property(get_motor_acceleration_radians_per_second_squared, doc="motor_acceleration_radians_per_second_squared")
     """Motor-side acceleration in rad/s/s"""
 
-    τm = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
+    torque_motorside = property(get_motor_torque_newton_meters, set_motor_torque_newton_meters, doc="motor_torque_newton_meters")
     """Motor-side torque in Nm"""
 
 

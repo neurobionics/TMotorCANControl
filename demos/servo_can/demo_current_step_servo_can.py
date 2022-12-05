@@ -13,6 +13,6 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
     dev.enter_current_control()
     for t in loop:
-        dev.i = 0.4
+        dev.current_qaxis = 0.4
         dev.update()
         print(f"\r {dev}", end='')

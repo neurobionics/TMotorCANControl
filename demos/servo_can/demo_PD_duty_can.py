@@ -13,7 +13,7 @@ D = 0.0
 
 with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     loop = SoftRealtimeLoop(dt=0.001, report=True, fade=0.0)
-    dev.zero_position()
+    dev.set_zero_position()
     
     dev.update()
     dev.enter_duty_cycle_control()
@@ -21,7 +21,7 @@ with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
     
     for t in loop:
         Pdes = np.sin(t)
-        dev.set_duty_cycle(-P*(Pdes - dev.θ) + D*(Vdes - dev.θd))
+        dev.set_duty_cycle_percent(-P*(Pdes - dev.position) + D*(Vdes - dev.velocity))
         dev.update()
         print(f"\r {dev}", end='')
 

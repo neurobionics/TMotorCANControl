@@ -21,7 +21,7 @@ with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params
         for t in loop:
             Pdes = 3*np.sin(t)
             cmd = P*(Pdes - dev.θ ) + D*(Vdes - dev.θd)
-            dev.iq = cmd
+            dev.current_qaxis = cmd
             dev.update()
             print(f"\r {dev}", end='')
             

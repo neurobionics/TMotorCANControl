@@ -2,7 +2,7 @@ from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
-ID = 2
+ID = 0
 
 with TMotorManager_servo_can(motor_type=Type, motor_ID=ID) as dev:
     if dev.check_can_connection():

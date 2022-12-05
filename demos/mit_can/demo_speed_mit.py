@@ -7,7 +7,7 @@ Type = 'AK80-9'
 ID = 1
 
 def speed_step(dev):
-    dev.zero_position()
+    dev.set_zero_position()
     time.sleep(1.5) # wait for the motor to zero (~1 second)
     dev.set_speed_gains(kd=3.0)
     
@@ -16,9 +16,9 @@ def speed_step(dev):
     for t in loop:
         dev.update()
         if t < 1.0:
-            dev.θd = 0.0
+            dev.velocity = 0.0
         else:
-            dev.θd = 1.0
+            dev.velocity = 1.0
             
     del loop
 
