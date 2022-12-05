@@ -1,7 +1,7 @@
 README.md
 pyproject.toml
 setup.cfg
-src/TMotorCANControl/CAN_Manager.py
+src/TMotorCANControl/CAN_Manager_mit.py
 src/TMotorCANControl/CAN_manager_servo.py
 src/TMotorCANControl/TMotorManager_mit_can.py
 src/TMotorCANControl/TMotorManager_servo_can.py
