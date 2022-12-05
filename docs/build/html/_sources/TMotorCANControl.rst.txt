@@ -9,11 +9,11 @@ TMotorCANControl.mit\_can module
 A module for controlling the motor in MIT mode over the CAN bus.
 
 .. automodule:: TMotorCANControl.mit_can
-      :members:
-      :undoc-members:
-      :show-inheritance:
-      :special-members:
-      :private-members:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :private-members:
+    :special-members: __init__, __enter__, __exit__
 
 TMotorCANControl.servo\_can module
 --------------------------------
@@ -23,8 +23,8 @@ A module for controlling the motor in Servo mode over the CAN bus.
     :members:
     :undoc-members:
     :show-inheritance:
-    :special-members:
     :private-members:
+    :special-members: __init__, __enter__, __exit__
 
 TMotorCANControl.servo\_serial module
 --------------------------------
@@ -34,5 +34,5 @@ A module for controlling the motor in Servo mode over a serial port.
     :members:
     :undoc-members:
     :show-inheritance:
-    :special-members:
     :private-members:
+    :special-members: __init__, __enter__, __exit__
