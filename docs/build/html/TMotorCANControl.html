@@ -114,38 +114,9 @@ current for the field-oriented controller on the motor control chip, given by th
 </dd></dl>
 
 <dl class="method">
-<dt id="TMotorCANControl.mit_can.CAN_Manager.__del__">
-<code class="descname">__del__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#CAN_Manager.__del__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.CAN_Manager.__del__" title="Permalink to this definition">¶</a></dt>
-<dd><p># shut down the CAN bus when the object is deleted
-# This may not ever get called, so keep a reference and explicitly delete if this is important.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.CAN_Manager.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.mit_can', '__doc__': 'A class to manage the low level CAN communication protocols', 'debug': False, '_instance': None, '__new__': &lt;staticmethod object&gt;, '__init__': &lt;function CAN_Manager.__init__&gt;, '__del__': &lt;function CAN_Manager.__del__&gt;, 'add_motor': &lt;function CAN_Manager.add_motor&gt;, 'limit_value': &lt;staticmethod object&gt;, 'float_to_uint': &lt;staticmethod object&gt;, 'uint_to_float': &lt;staticmethod object&gt;, 'send_MIT_message': &lt;function CAN_Manager.send_MIT_message&gt;, 'power_on': &lt;function CAN_Manager.power_on&gt;, 'power_off': &lt;function CAN_Manager.power_off&gt;, 'zero': &lt;function CAN_Manager.zero&gt;, 'MIT_controller': &lt;function CAN_Manager.MIT_controller&gt;, 'parse_MIT_message': &lt;function CAN_Manager.parse_MIT_message&gt;, '__dict__': &lt;attribute '__dict__' of 'CAN_Manager' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'CAN_Manager' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.mit_can.CAN_Manager.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="TMotorCANControl.mit_can.CAN_Manager.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#CAN_Manager.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.CAN_Manager.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>ALl initialization happens in __new__</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.CAN_Manager.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.mit_can'</em><a class="headerlink" href="#TMotorCANControl.mit_can.CAN_Manager.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="staticmethod">
-<dt id="TMotorCANControl.mit_can.CAN_Manager.__new__">
-<em class="property">static </em><code class="descname">__new__</code><span class="sig-paren">(</span><em>cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#CAN_Manager.__new__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.CAN_Manager.__new__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Makes a singleton object to manage a socketcan_native CAN bus.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.CAN_Manager.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.mit_can.CAN_Manager.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -362,11 +333,6 @@ So far, such a model is only available for the AK80-9.</p>
 <em class="property">class </em><code class="descclassname">TMotorCANControl.mit_can.</code><code class="descname">MIT_command</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>kp</em>, <em>kd</em>, <em>current</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#MIT_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.MIT_command" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Data structure to store MIT_command that will be sent upon update</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.MIT_command.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.mit_can', '__doc__': 'Data structure to store MIT_command that will be sent upon update', '__init__': &lt;function MIT_command.__init__&gt;, '__dict__': &lt;attribute '__dict__' of 'MIT_command' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'MIT_command' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.mit_can.MIT_command.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.mit_can.MIT_command.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>kp</em>, <em>kd</em>, <em>current</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#MIT_command.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.MIT_command.__init__" title="Permalink to this definition">¶</a></dt>
@@ -388,17 +354,6 @@ So far, such a model is only available for the AK80-9.</p>
 </table>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.MIT_command.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.mit_can'</em><a class="headerlink" href="#TMotorCANControl.mit_can.MIT_command.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.MIT_command.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.mit_can.MIT_command.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="attribute">
@@ -418,11 +373,6 @@ control of the motor.</p>
 <dl class="method">
 <dt id="TMotorCANControl.mit_can.TMotorManager_mit_can.TMotor_current_to_qaxis_current">
 <code class="descname">TMotor_current_to_qaxis_current</code><span class="sig-paren">(</span><em>iTM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#TMotorManager_mit_can.TMotor_current_to_qaxis_current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.TMotorManager_mit_can.TMotor_current_to_qaxis_current" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.TMotorManager_mit_can.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.mit_can', '__doc__': '\n    The user-facing class that manages the motor. This class should be\n    used in the context of a with as block, in order to safely enter/exit\n    control of the motor.\n    ', '__init__': &lt;function TMotorManager_mit_can.__init__&gt;, '__enter__': &lt;function TMotorManager_mit_can.__enter__&gt;, '__exit__': &lt;function TMotorManager_mit_can.__exit__&gt;, 'TMotor_current_to_qaxis_current': &lt;function TMotorManager_mit_can.TMotor_current_to_qaxis_current&gt;, 'qaxis_current_to_TMotor_current': &lt;function TMotorManager_mit_can.qaxis_current_to_TMotor_current&gt;, '_update_state_async': &lt;function TMotorManager_mit_can._update_state_async&gt;, 'update': &lt;function TMotorManager_mit_can.update&gt;, '_send_command': &lt;function TMotorManager_mit_can._send_command&gt;, 'power_on': &lt;function TMotorManager_mit_can.power_on&gt;, 'power_off': &lt;function TMotorManager_mit_can.power_off&gt;, 'set_zero_position': &lt;function TMotorManager_mit_can.set_zero_position&gt;, 'get_temperature_celsius': &lt;function TMotorManager_mit_can.get_temperature_celsius&gt;, 'get_motor_error_code': &lt;function TMotorManager_mit_can.get_motor_error_code&gt;, 'get_current_qaxis_amps': &lt;function TMotorManager_mit_can.get_current_qaxis_amps&gt;, 'get_output_angle_radians': &lt;function TMotorManager_mit_can.get_output_angle_radians&gt;, 'get_output_velocity_radians_per_second': &lt;function TMotorManager_mit_can.get_output_velocity_radians_per_second&gt;, 'get_output_acceleration_radians_per_second_squared': &lt;function TMotorManager_mit_can.get_output_acceleration_radians_per_second_squared&gt;, 'get_output_torque_newton_meters': &lt;function TMotorManager_mit_can.get_output_torque_newton_meters&gt;, 'set_impedance_gains_real_unit': &lt;function TMotorManager_mit_can.set_impedance_gains_real_unit&gt;, 'set_impedance_gains_real_unit_full_state_feedback': &lt;function TMotorManager_mit_can.set_impedance_gains_real_unit_full_state_feedback&gt;, 'set_current_gains': &lt;function TMotorManager_mit_can.set_current_gains&gt;, 'set_speed_gains': &lt;function TMotorManager_mit_can.set_speed_gains&gt;, 'set_output_angle_radians': &lt;function TMotorManager_mit_can.set_output_angle_radians&gt;, 'set_output_velocity_radians_per_second': &lt;function TMotorManager_mit_can.set_output_velocity_radians_per_second&gt;, 'set_motor_current_qaxis_amps': &lt;function TMotorManager_mit_can.set_motor_current_qaxis_amps&gt;, 'set_output_torque_newton_meters': &lt;function TMotorManager_mit_can.set_output_torque_newton_meters&gt;, 'set_motor_torque_newton_meters': &lt;function TMotorManager_mit_can.set_motor_torque_newton_meters&gt;, 'set_motor_angle_radians': &lt;function TMotorManager_mit_can.set_motor_angle_radians&gt;, 'set_motor_velocity_radians_per_second': &lt;function TMotorManager_mit_can.set_motor_velocity_radians_per_second&gt;, 'get_motor_angle_radians': &lt;function TMotorManager_mit_can.get_motor_angle_radians&gt;, 'get_motor_velocity_radians_per_second': &lt;function TMotorManager_mit_can.get_motor_velocity_radians_per_second&gt;, 'get_motor_acceleration_radians_per_second_squared': &lt;function TMotorManager_mit_can.get_motor_acceleration_radians_per_second_squared&gt;, 'get_motor_torque_newton_meters': &lt;function TMotorManager_mit_can.get_motor_torque_newton_meters&gt;, '__str__': &lt;function TMotorManager_mit_can.__str__&gt;, 'device_info_string': &lt;function TMotorManager_mit_can.device_info_string&gt;, 'check_can_connection': &lt;function TMotorManager_mit_can.check_can_connection&gt;, 'temperature': &lt;property object&gt;, 'error': &lt;property object&gt;, 'current_qaxis': &lt;property object&gt;, 'position': &lt;property object&gt;, 'velocity': &lt;property object&gt;, 'acceleration': &lt;property object&gt;, 'torque': &lt;property object&gt;, 'position_motorside': &lt;property object&gt;, 'velocity_motorside': &lt;property object&gt;, 'acceleration_motorside': &lt;property object&gt;, 'torque_motorside': &lt;property object&gt;, '__dict__': &lt;attribute '__dict__' of 'TMotorManager_mit_can' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'TMotorManager_mit_can' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.mit_can.TMotorManager_mit_can.__dict__" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -466,23 +416,6 @@ call __enter__, mostly commonly by using a with block, before attempting to cont
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.TMotorManager_mit_can.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.mit_can'</em><a class="headerlink" href="#TMotorCANControl.mit_can.TMotorManager_mit_can.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="TMotorCANControl.mit_can.TMotorManager_mit_can.__str__">
-<code class="descname">__str__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#TMotorManager_mit_can.__str__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.TMotorManager_mit_can.__str__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prints the motor’s device info and current</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.TMotorManager_mit_can.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.mit_can.TMotorManager_mit_can.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="method">
@@ -978,11 +911,6 @@ with the most recent message recieved, as well as to send the current command.</
 <code class="descname">SPEED</code><em class="property"> = 4</em><a class="headerlink" href="#TMotorCANControl.mit_can._TMotorManState.SPEED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can._TMotorManState.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.mit_can'</em><a class="headerlink" href="#TMotorCANControl.mit_can._TMotorManState.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
@@ -990,11 +918,6 @@ with the most recent message recieved, as well as to send the current command.</
 <em class="property">class </em><code class="descclassname">TMotorCANControl.mit_can.</code><code class="descname">motorListener</code><span class="sig-paren">(</span><em>canman</em>, <em>motor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#motorListener"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.motorListener" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">can.listener.Listener</span></code></p>
 <p>Python-can listener object, with handler to be called upon reception of a message on the CAN bus</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.motorListener.__abstractmethods__">
-<code class="descname">__abstractmethods__</code><em class="property"> = frozenset()</em><a class="headerlink" href="#TMotorCANControl.mit_can.motorListener.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.mit_can.motorListener.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>canman</em>, <em>motor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#motorListener.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.motorListener.__init__" title="Permalink to this definition">¶</a></dt>
@@ -1012,11 +935,6 @@ with the most recent message recieved, as well as to send the current command.</
 </tbody>
 </table>
 </dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.motorListener.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.mit_can'</em><a class="headerlink" href="#TMotorCANControl.mit_can.motorListener.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="TMotorCANControl.mit_can.motorListener._abc_impl">
@@ -1044,11 +962,6 @@ with the most recent message recieved, as well as to send the current command.</
 <em class="property">class </em><code class="descclassname">TMotorCANControl.mit_can.</code><code class="descname">motor_state</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>current</em>, <em>temperature</em>, <em>error</em>, <em>acceleration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#motor_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.motor_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Data structure to store and update motor states</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.motor_state.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.mit_can', '__doc__': 'Data structure to store and update motor states', '__init__': &lt;function motor_state.__init__&gt;, 'set_state': &lt;function motor_state.set_state&gt;, 'set_state_obj': &lt;function motor_state.set_state_obj&gt;, '__dict__': &lt;attribute '__dict__' of 'motor_state' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'motor_state' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.mit_can.motor_state.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.mit_can.motor_state.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>current</em>, <em>temperature</em>, <em>error</em>, <em>acceleration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/mit_can.html#motor_state.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.mit_can.motor_state.__init__" title="Permalink to this definition">¶</a></dt>
@@ -1068,17 +981,6 @@ with the most recent message recieved, as well as to send the current command.</
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.motor_state.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.mit_can'</em><a class="headerlink" href="#TMotorCANControl.mit_can.motor_state.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.mit_can.motor_state.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.mit_can.motor_state.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="method">
@@ -1128,38 +1030,9 @@ with the most recent message recieved, as well as to send the current command.</
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A class to manage the low level CAN communication protocols</p>
 <dl class="method">
-<dt id="TMotorCANControl.servo_can.CAN_Manager_servo.__del__">
-<code class="descname">__del__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#CAN_Manager_servo.__del__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.CAN_Manager_servo.__del__" title="Permalink to this definition">¶</a></dt>
-<dd><p># shut down the CAN bus when the object is deleted
-# This may not ever get called, so keep a reference and explicitly delete if this is important.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.CAN_Manager_servo.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_can', '__doc__': 'A class to manage the low level CAN communication protocols', 'debug': False, '_instance': None, '__new__': &lt;staticmethod object&gt;, '__init__': &lt;function CAN_Manager_servo.__init__&gt;, '__del__': &lt;function CAN_Manager_servo.__del__&gt;, 'add_motor': &lt;function CAN_Manager_servo.add_motor&gt;, 'buffer_append_int16': &lt;staticmethod object&gt;, 'buffer_append_uint16': &lt;staticmethod object&gt;, 'buffer_append_int32': &lt;staticmethod object&gt;, 'buffer_append_uint32': &lt;staticmethod object&gt;, 'buffer_append_int64': &lt;staticmethod object&gt;, 'buffer_append_uint64': &lt;staticmethod object&gt;, 'send_servo_message': &lt;function CAN_Manager_servo.send_servo_message&gt;, 'power_on': &lt;function CAN_Manager_servo.power_on&gt;, 'power_off': &lt;function CAN_Manager_servo.power_off&gt;, 'comm_can_set_duty': &lt;function CAN_Manager_servo.comm_can_set_duty&gt;, 'comm_can_set_current': &lt;function CAN_Manager_servo.comm_can_set_current&gt;, 'comm_can_set_cb': &lt;function CAN_Manager_servo.comm_can_set_cb&gt;, 'comm_can_set_rpm': &lt;function CAN_Manager_servo.comm_can_set_rpm&gt;, 'comm_can_set_pos': &lt;function CAN_Manager_servo.comm_can_set_pos&gt;, 'comm_can_set_origin': &lt;function CAN_Manager_servo.comm_can_set_origin&gt;, 'comm_can_set_pos_spd': &lt;function CAN_Manager_servo.comm_can_set_pos_spd&gt;, 'parse_servo_message': &lt;function CAN_Manager_servo.parse_servo_message&gt;, '__dict__': &lt;attribute '__dict__' of 'CAN_Manager_servo' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'CAN_Manager_servo' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_can.CAN_Manager_servo.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="TMotorCANControl.servo_can.CAN_Manager_servo.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#CAN_Manager_servo.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.CAN_Manager_servo.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>ALl initialization happens in __new__</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.CAN_Manager_servo.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_can'</em><a class="headerlink" href="#TMotorCANControl.servo_can.CAN_Manager_servo.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="staticmethod">
-<dt id="TMotorCANControl.servo_can.CAN_Manager_servo.__new__">
-<em class="property">static </em><code class="descname">__new__</code><span class="sig-paren">(</span><em>cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#CAN_Manager_servo.__new__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.CAN_Manager_servo.__new__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Makes a singleton object to manage a socketcan_native CAN bus.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.CAN_Manager_servo.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_can.CAN_Manager_servo.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1412,11 +1285,6 @@ control of the motor.</p>
 <code class="descname">TMotor_current_to_qaxis_current</code><span class="sig-paren">(</span><em>iTM</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#TMotorManager_servo_can.TMotor_current_to_qaxis_current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.TMotorManager_servo_can.TMotor_current_to_qaxis_current" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.TMotorManager_servo_can.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_can', '__doc__': '\n    The user-facing class that manages the motor. This class should be\n    used in the context of a with as block, in order to safely enter/exit\n    control of the motor.\n    ', '__init__': &lt;function TMotorManager_servo_can.__init__&gt;, '__enter__': &lt;function TMotorManager_servo_can.__enter__&gt;, '__exit__': &lt;function TMotorManager_servo_can.__exit__&gt;, 'TMotor_current_to_qaxis_current': &lt;function TMotorManager_servo_can.TMotor_current_to_qaxis_current&gt;, 'qaxis_current_to_TMotor_current': &lt;function TMotorManager_servo_can.qaxis_current_to_TMotor_current&gt;, '_update_state_async': &lt;function TMotorManager_servo_can._update_state_async&gt;, 'update': &lt;function TMotorManager_servo_can.update&gt;, '_send_command': &lt;function TMotorManager_servo_can._send_command&gt;, 'power_on': &lt;function TMotorManager_servo_can.power_on&gt;, 'power_off': &lt;function TMotorManager_servo_can.power_off&gt;, 'set_zero_position': &lt;function TMotorManager_servo_can.set_zero_position&gt;, 'get_temperature_celsius': &lt;function TMotorManager_servo_can.get_temperature_celsius&gt;, 'get_motor_error_code': &lt;function TMotorManager_servo_can.get_motor_error_code&gt;, 'get_current_qaxis_amps': &lt;function TMotorManager_servo_can.get_current_qaxis_amps&gt;, 'get_output_angle_radians': &lt;function TMotorManager_servo_can.get_output_angle_radians&gt;, 'get_output_velocity_radians_per_second': &lt;function TMotorManager_servo_can.get_output_velocity_radians_per_second&gt;, 'get_output_acceleration_radians_per_second_squared': &lt;function TMotorManager_servo_can.get_output_acceleration_radians_per_second_squared&gt;, 'get_output_torque_newton_meters': &lt;function TMotorManager_servo_can.get_output_torque_newton_meters&gt;, 'enter_duty_cycle_control': &lt;function TMotorManager_servo_can.enter_duty_cycle_control&gt;, 'enter_current_control': &lt;function TMotorManager_servo_can.enter_current_control&gt;, 'enter_current_brake_control': &lt;function TMotorManager_servo_can.enter_current_brake_control&gt;, 'enter_velocity_control': &lt;function TMotorManager_servo_can.enter_velocity_control&gt;, 'enter_position_control': &lt;function TMotorManager_servo_can.enter_position_control&gt;, 'enter_position_velocity_control': &lt;function TMotorManager_servo_can.enter_position_velocity_control&gt;, 'enter_idle_mode': &lt;function TMotorManager_servo_can.enter_idle_mode&gt;, 'set_output_angle_radians': &lt;function TMotorManager_servo_can.set_output_angle_radians&gt;, 'set_duty_cycle_percent': &lt;function TMotorManager_servo_can.set_duty_cycle_percent&gt;, 'set_output_velocity_radians_per_second': &lt;function TMotorManager_servo_can.set_output_velocity_radians_per_second&gt;, 'set_motor_current_qaxis_amps': &lt;function TMotorManager_servo_can.set_motor_current_qaxis_amps&gt;, 'set_output_torque_newton_meters': &lt;function TMotorManager_servo_can.set_output_torque_newton_meters&gt;, 'set_motor_torque_newton_meters': &lt;function TMotorManager_servo_can.set_motor_torque_newton_meters&gt;, 'set_motor_angle_radians': &lt;function TMotorManager_servo_can.set_motor_angle_radians&gt;, 'set_motor_velocity_radians_per_second': &lt;function TMotorManager_servo_can.set_motor_velocity_radians_per_second&gt;, 'get_motor_angle_radians': &lt;function TMotorManager_servo_can.get_motor_angle_radians&gt;, 'get_motor_velocity_radians_per_second': &lt;function TMotorManager_servo_can.get_motor_velocity_radians_per_second&gt;, 'get_motor_acceleration_radians_per_second_squared': &lt;function TMotorManager_servo_can.get_motor_acceleration_radians_per_second_squared&gt;, 'get_motor_torque_newton_meters': &lt;function TMotorManager_servo_can.get_motor_torque_newton_meters&gt;, '__str__': &lt;function TMotorManager_servo_can.__str__&gt;, 'device_info_string': &lt;function TMotorManager_servo_can.device_info_string&gt;, 'check_can_connection': &lt;function TMotorManager_servo_can.check_can_connection&gt;, 'temperature': &lt;property object&gt;, 'error': &lt;property object&gt;, 'current_qaxis': &lt;property object&gt;, 'position': &lt;property object&gt;, 'velocity': &lt;property object&gt;, 'acceleration': &lt;property object&gt;, 'torque': &lt;property object&gt;, 'angle_motorside': &lt;property object&gt;, 'velocity_motorside': &lt;property object&gt;, 'acceleration_motorside': &lt;property object&gt;, 'torque_motorside': &lt;property object&gt;, '__dict__': &lt;attribute '__dict__' of 'TMotorManager_servo_can' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'TMotorManager_servo_can' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_can.TMotorManager_servo_can.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_can.TMotorManager_servo_can.__enter__">
 <code class="descname">__enter__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#TMotorManager_servo_can.__enter__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.TMotorManager_servo_can.__enter__" title="Permalink to this definition">¶</a></dt>
@@ -1458,23 +1326,6 @@ call __enter__, mostly commonly by using a with block, before attempting to cont
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.TMotorManager_servo_can.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_can'</em><a class="headerlink" href="#TMotorCANControl.servo_can.TMotorManager_servo_can.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="TMotorCANControl.servo_can.TMotorManager_servo_can.__str__">
-<code class="descname">__str__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#TMotorManager_servo_can.__str__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.TMotorManager_servo_can.__str__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prints the motor’s device info and current</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.TMotorManager_servo_can.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_can.TMotorManager_servo_can.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="method">
@@ -1948,11 +1799,6 @@ with the most recent message recieved, as well as to send the current command.</
 <code class="descname">VELOCITY</code><em class="property"> = 3</em><a class="headerlink" href="#TMotorCANControl.servo_can._TMotorManState_Servo.VELOCITY" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can._TMotorManState_Servo.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_can'</em><a class="headerlink" href="#TMotorCANControl.servo_can._TMotorManState_Servo.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
@@ -1960,11 +1806,6 @@ with the most recent message recieved, as well as to send the current command.</
 <em class="property">class </em><code class="descclassname">TMotorCANControl.servo_can.</code><code class="descname">motorListener</code><span class="sig-paren">(</span><em>canman</em>, <em>motor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#motorListener"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.motorListener" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">can.listener.Listener</span></code></p>
 <p>Python-can listener object, with handler to be called upon reception of a message on the CAN bus</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.motorListener.__abstractmethods__">
-<code class="descname">__abstractmethods__</code><em class="property"> = frozenset()</em><a class="headerlink" href="#TMotorCANControl.servo_can.motorListener.__abstractmethods__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_can.motorListener.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>canman</em>, <em>motor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#motorListener.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.motorListener.__init__" title="Permalink to this definition">¶</a></dt>
@@ -1982,11 +1823,6 @@ with the most recent message recieved, as well as to send the current command.</
 </tbody>
 </table>
 </dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.motorListener.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_can'</em><a class="headerlink" href="#TMotorCANControl.servo_can.motorListener.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="TMotorCANControl.servo_can.motorListener._abc_impl">
@@ -2014,11 +1850,6 @@ with the most recent message recieved, as well as to send the current command.</
 <em class="property">class </em><code class="descclassname">TMotorCANControl.servo_can.</code><code class="descname">servo_command</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>current</em>, <em>duty</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#servo_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.servo_command" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Data structure to store MIT_command that will be sent upon update</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.servo_command.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_can', '__doc__': 'Data structure to store MIT_command that will be sent upon update', '__init__': &lt;function servo_command.__init__&gt;, '__dict__': &lt;attribute '__dict__' of 'servo_command' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'servo_command' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_can.servo_command.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_can.servo_command.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>current</em>, <em>duty</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#servo_command.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.servo_command.__init__" title="Permalink to this definition">¶</a></dt>
@@ -2040,17 +1871,6 @@ with the most recent message recieved, as well as to send the current command.</
 </table>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.servo_command.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_can'</em><a class="headerlink" href="#TMotorCANControl.servo_can.servo_command.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.servo_command.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_can.servo_command.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="class">
@@ -2058,11 +1878,6 @@ with the most recent message recieved, as well as to send the current command.</
 <em class="property">class </em><code class="descclassname">TMotorCANControl.servo_can.</code><code class="descname">servo_motor_state</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>current</em>, <em>temperature</em>, <em>error</em>, <em>acceleration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#servo_motor_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.servo_motor_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Data structure to store and update motor states</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.servo_motor_state.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_can', '__doc__': 'Data structure to store and update motor states', '__init__': &lt;function servo_motor_state.__init__&gt;, 'set_state': &lt;function servo_motor_state.set_state&gt;, 'set_state_obj': &lt;function servo_motor_state.set_state_obj&gt;, '__str__': &lt;function servo_motor_state.__str__&gt;, '__dict__': &lt;attribute '__dict__' of 'servo_motor_state' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'servo_motor_state' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_can.servo_motor_state.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_can.servo_motor_state.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>current</em>, <em>temperature</em>, <em>error</em>, <em>acceleration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#servo_motor_state.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.servo_motor_state.__init__" title="Permalink to this definition">¶</a></dt>
@@ -2082,23 +1897,6 @@ with the most recent message recieved, as well as to send the current command.</
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.servo_motor_state.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_can'</em><a class="headerlink" href="#TMotorCANControl.servo_can.servo_motor_state.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="TMotorCANControl.servo_can.servo_motor_state.__str__">
-<code class="descname">__str__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_can.html#servo_motor_state.__str__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_can.servo_motor_state.__str__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return str(self).</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_can.servo_motor_state.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_can.servo_motor_state.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="method">
@@ -2242,22 +2040,6 @@ with the most recent message recieved, as well as to send the current command.</
 <code class="descname">COMM_WRITE_NEW_APP_DATA</code><em class="property"> = 3</em><a class="headerlink" href="#TMotorCANControl.servo_serial.COMM_PACKET_ID.COMM_WRITE_NEW_APP_DATA" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.COMM_PACKET_ID.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_serial', '__doc__': '\n    Basically used as ENUM to identify what each packet ID does\n    ', 'COMM_FW_VERSION': 0, 'COMM_JUMP_TO_BOOTLOADER': 1, 'COMM_ERASE_NEW_APP': 2, 'COMM_WRITE_NEW_APP_DATA': 3, 'COMM_GET_VALUES': 4, 'COMM_SET_DUTY': 5, 'COMM_SET_CURRENT': 6, 'COMM_SET_CURRENT_BRAKE': 7, 'COMM_SET_RPM': 8, 'COMM_SET_POS': 9, 'COMM_SET_HANDBRAKE': 10, 'COMM_SET_DETECT': 11, 'COMM_ROTOR_POSITION': 22, 'COMM_GET_VALUES_SETUP': 50, 'COMM_SET_POS_SPD': 91, 'COMM_SET_POS_MULTI': 92, 'COMM_SET_POS_SINGLE': 93, 'COMM_SET_POS_UNLIMITED': 94, 'COMM_SET_POS_ORIGIN': 95, '__dict__': &lt;attribute '__dict__' of 'COMM_PACKET_ID' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'COMM_PACKET_ID' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_serial.COMM_PACKET_ID.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.COMM_PACKET_ID.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_serial'</em><a class="headerlink" href="#TMotorCANControl.servo_serial.COMM_PACKET_ID.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.COMM_PACKET_ID.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_serial.COMM_PACKET_ID.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="data">
@@ -2317,11 +2099,6 @@ with the most recent message recieved, as well as to send the current command.</
 <code class="descname">VELOCITY</code><em class="property"> = 3</em><a class="headerlink" href="#TMotorCANControl.servo_serial.SERVO_SERIAL_CONTROL_STATE.VELOCITY" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.SERVO_SERIAL_CONTROL_STATE.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_serial'</em><a class="headerlink" href="#TMotorCANControl.servo_serial.SERVO_SERIAL_CONTROL_STATE.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="data">
@@ -2358,11 +2135,6 @@ with the most recent message recieved, as well as to send the current command.</
 <p>The user-facing class that manages the motor. This class should be
 used in the “context” of a with as block, in order to safely enter/exit
 control of the motor.</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.TMotorManager_servo_serial.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_serial', '__doc__': '\n    The user-facing class that manages the motor. This class should be\n    used in the &quot;context&quot; of a with as block, in order to safely enter/exit\n    control of the motor.\n    ', '__init__': &lt;function TMotorManager_servo_serial.__init__&gt;, '__enter__': &lt;function TMotorManager_servo_serial.__enter__&gt;, '__exit__': &lt;function TMotorManager_servo_serial.__exit__&gt;, 'check_connection': &lt;function TMotorManager_servo_serial.check_connection&gt;, 'update_async': &lt;function TMotorManager_servo_serial.update_async&gt;, 'parse_position_feedback_async': &lt;function TMotorManager_servo_serial.parse_position_feedback_async&gt;, 'parse_set_position_feedback_async': &lt;function TMotorManager_servo_serial.parse_set_position_feedback_async&gt;, 'parse_motor_parameters_async': &lt;function TMotorManager_servo_serial.parse_motor_parameters_async&gt;, 'send_command': &lt;function TMotorManager_servo_serial.send_command&gt;, '_send_specific_command': &lt;function TMotorManager_servo_serial._send_specific_command&gt;, 'update': &lt;function TMotorManager_servo_serial.update&gt;, 'power_on': &lt;function TMotorManager_servo_serial.power_on&gt;, 'power_off': &lt;function TMotorManager_servo_serial.power_off&gt;, 'enter_idle_mode': &lt;function TMotorManager_servo_serial.enter_idle_mode&gt;, 'enter_velocity_control': &lt;function TMotorManager_servo_serial.enter_velocity_control&gt;, 'enter_position_control': &lt;function TMotorManager_servo_serial.enter_position_control&gt;, 'enter_position_velocity_control': &lt;function TMotorManager_servo_serial.enter_position_velocity_control&gt;, 'enter_current_control': &lt;function TMotorManager_servo_serial.enter_current_control&gt;, 'enter_duty_cycle_control': &lt;function TMotorManager_servo_serial.enter_duty_cycle_control&gt;, 'comm_set_duty_cycle': &lt;function TMotorManager_servo_serial.comm_set_duty_cycle&gt;, 'comm_set_speed_ERPM': &lt;function TMotorManager_servo_serial.comm_set_speed_ERPM&gt;, 'comm_set_current_loop': &lt;function TMotorManager_servo_serial.comm_set_current_loop&gt;, 'comm_set_position': &lt;function TMotorManager_servo_serial.comm_set_position&gt;, 'comm_set_position_velocity': &lt;function TMotorManager_servo_serial.comm_set_position_velocity&gt;, 'comm_set_multi_turn': &lt;function TMotorManager_servo_serial.comm_set_multi_turn&gt;, 'set_zero_position': &lt;function TMotorManager_servo_serial.set_zero_position&gt;, 'comm_set_motor_parameter_return_format_all': &lt;function TMotorManager_servo_serial.comm_set_motor_parameter_return_format_all&gt;, 'comm_begin_position_feedback': &lt;function TMotorManager_servo_serial.comm_begin_position_feedback&gt;, 'comm_get_motor_parameters': &lt;function TMotorManager_servo_serial.comm_get_motor_parameters&gt;, 'get_temperature_celsius': &lt;function TMotorManager_servo_serial.get_temperature_celsius&gt;, 'get_motor_error_code': &lt;function TMotorManager_servo_serial.get_motor_error_code&gt;, 'get_motor_error_string': &lt;function TMotorManager_servo_serial.get_motor_error_string&gt;, 'get_current_qaxis_amps': &lt;function TMotorManager_servo_serial.get_current_qaxis_amps&gt;, 'get_current_daxis_amps': &lt;function TMotorManager_servo_serial.get_current_daxis_amps&gt;, 'get_current_bus_amps': &lt;function TMotorManager_servo_serial.get_current_bus_amps&gt;, 'get_voltage_qaxis_volts': &lt;function TMotorManager_servo_serial.get_voltage_qaxis_volts&gt;, 'get_voltage_daxis_volts': &lt;function TMotorManager_servo_serial.get_voltage_daxis_volts&gt;, 'get_voltage_bus_volts': &lt;function TMotorManager_servo_serial.get_voltage_bus_volts&gt;, 'get_output_angle_radians': &lt;function TMotorManager_servo_serial.get_output_angle_radians&gt;, 'get_output_velocity_radians_per_second': &lt;function TMotorManager_servo_serial.get_output_velocity_radians_per_second&gt;, 'get_output_acceleration_radians_per_second_squared': &lt;function TMotorManager_servo_serial.get_output_acceleration_radians_per_second_squared&gt;, 'get_output_torque_newton_meters': &lt;function TMotorManager_servo_serial.get_output_torque_newton_meters&gt;, 'set_output_velocity_radians_per_second': &lt;function TMotorManager_servo_serial.set_output_velocity_radians_per_second&gt;, 'set_duty_cycle_percent': &lt;function TMotorManager_servo_serial.set_duty_cycle_percent&gt;, 'set_motor_current_qaxis_amps': &lt;function TMotorManager_servo_serial.set_motor_current_qaxis_amps&gt;, 'set_output_angle_radians': &lt;function TMotorManager_servo_serial.set_output_angle_radians&gt;, 'set_output_torque_newton_meters': &lt;function TMotorManager_servo_serial.set_output_torque_newton_meters&gt;, 'set_motor_torque_newton_meters': &lt;function TMotorManager_servo_serial.set_motor_torque_newton_meters&gt;, 'set_motor_angle_radians': &lt;function TMotorManager_servo_serial.set_motor_angle_radians&gt;, 'set_motor_velocity_radians_per_second': &lt;function TMotorManager_servo_serial.set_motor_velocity_radians_per_second&gt;, 'get_motor_angle_radians': &lt;function TMotorManager_servo_serial.get_motor_angle_radians&gt;, 'get_motor_velocity_radians_per_second': &lt;function TMotorManager_servo_serial.get_motor_velocity_radians_per_second&gt;, 'get_motor_acceleration_radians_per_second_squared': &lt;function TMotorManager_servo_serial.get_motor_acceleration_radians_per_second_squared&gt;, 'get_motor_torque_newton_meters': &lt;function TMotorManager_servo_serial.get_motor_torque_newton_meters&gt;, '__str__': &lt;function TMotorManager_servo_serial.__str__&gt;, 'device_info_string': &lt;function TMotorManager_servo_serial.device_info_string&gt;, 'temperature': &lt;property object&gt;, 'error': &lt;property object&gt;, 'current_qaxis': &lt;property object&gt;, 'current_daxis': &lt;property object&gt;, 'current_bus': &lt;property object&gt;, 'voltage_qaxis': &lt;property object&gt;, 'voltage_daxis': &lt;property object&gt;, 'voltage_bus': &lt;property object&gt;, 'position': &lt;property object&gt;, 'velocity': &lt;property object&gt;, 'acceleration': &lt;property object&gt;, 'torque': &lt;property object&gt;, 'angle_motorside': &lt;property object&gt;, 'velocity_motorside': &lt;property object&gt;, 'acceleration_motorside': &lt;property object&gt;, 'torque_motorside': &lt;property object&gt;, '__dict__': &lt;attribute '__dict__' of 'TMotorManager_servo_serial' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'TMotorManager_servo_serial' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_serial.TMotorManager_servo_serial.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_serial.TMotorManager_servo_serial.__enter__">
 <code class="descname">__enter__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_serial.html#TMotorManager_servo_serial.__enter__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_serial.TMotorManager_servo_serial.__enter__" title="Permalink to this definition">¶</a></dt>
@@ -2393,23 +2165,6 @@ until __enter__ is called (automatically called in a with block)</p>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.TMotorManager_servo_serial.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_serial'</em><a class="headerlink" href="#TMotorCANControl.servo_serial.TMotorManager_servo_serial.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="TMotorCANControl.servo_serial.TMotorManager_servo_serial.__str__">
-<code class="descname">__str__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_serial.html#TMotorManager_servo_serial.__str__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_serial.TMotorManager_servo_serial.__str__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prints the motor’s device info and current state</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.TMotorManager_servo_serial.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_serial.TMotorManager_servo_serial.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="method">
@@ -3447,11 +3202,6 @@ TODO when pyserial implmements asyncio support, switch to that</p>
 to the motor manager in the main thread that this class will update.</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.motor_listener.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_serial'</em><a class="headerlink" href="#TMotorCANControl.servo_serial.motor_listener.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_serial.motor_listener.connection_lost">
 <code class="descname">connection_lost</code><span class="sig-paren">(</span><em>transport</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_serial.html#motor_listener.connection_lost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_serial.motor_listener.connection_lost" title="Permalink to this definition">¶</a></dt>
@@ -3541,32 +3291,10 @@ None: returns None if the packet failed to successfully parse</td>
 <em class="property">class </em><code class="descclassname">TMotorCANControl.servo_serial.</code><code class="descname">servo_serial_motor_state</code><a class="reference internal" href="_modules/TMotorCANControl/servo_serial.html#servo_serial_motor_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_serial.servo_serial_motor_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>An object representing the state of the motor</p>
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.servo_serial_motor_state.__dict__">
-<code class="descname">__dict__</code><em class="property"> = mappingproxy({'__module__': 'TMotorCANControl.servo_serial', '__doc__': '\n    An object representing the state of the motor\n    ', '__init__': &lt;function servo_serial_motor_state.__init__&gt;, 'set_state': &lt;function servo_serial_motor_state.set_state&gt;, '__str__': &lt;function servo_serial_motor_state.__str__&gt;, '__dict__': &lt;attribute '__dict__' of 'servo_serial_motor_state' objects&gt;, '__weakref__': &lt;attribute '__weakref__' of 'servo_serial_motor_state' objects&gt;})</em><a class="headerlink" href="#TMotorCANControl.servo_serial.servo_serial_motor_state.__dict__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="method">
 <dt id="TMotorCANControl.servo_serial.servo_serial_motor_state.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_serial.html#servo_serial_motor_state.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_serial.servo_serial_motor_state.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize the motor state to zero.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.servo_serial_motor_state.__module__">
-<code class="descname">__module__</code><em class="property"> = 'TMotorCANControl.servo_serial'</em><a class="headerlink" href="#TMotorCANControl.servo_serial.servo_serial_motor_state.__module__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="TMotorCANControl.servo_serial.servo_serial_motor_state.__str__">
-<code class="descname">__str__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/TMotorCANControl/servo_serial.html#servo_serial_motor_state.__str__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#TMotorCANControl.servo_serial.servo_serial_motor_state.__str__" title="Permalink to this definition">¶</a></dt>
-<dd><p>String showing each of the fields in the motor state.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="TMotorCANControl.servo_serial.servo_serial_motor_state.__weakref__">
-<code class="descname">__weakref__</code><a class="headerlink" href="#TMotorCANControl.servo_serial.servo_serial_motor_state.__weakref__" title="Permalink to this definition">¶</a></dt>
-<dd><p>list of weak references to the object (if defined)</p>
 </dd></dl>
 
 <dl class="method">

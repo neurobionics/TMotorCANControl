@@ -66,6 +66,17 @@
              
   <div class="section" id="welcome-to-tmotorcancontrol-s-documentation">
 <h1>Welcome to TMotorCANControl’s documentation!<a class="headerlink" href="#welcome-to-tmotorcancontrol-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>The project is geared towards the control of the AK80-9 actuator using a raspberry pi CAN hat
+or serial bus, but could eaisly be adapted for use with a different CAN/serial interface.</p>
+<p>It can be download from <a class="reference external" href="https://pypi.org/project/TMotorCANControl/">Link PyPi</a> with
+the command “pip install TMotorCANControl”.</p>
+<p>The API files are on <a class="reference external" href="https://github.com/neurobionics/TMotorCANControl">Link GitHub</a>,
+in the src/TMotorCANControl folder. The main interface is in
+the file TMotorManager_mit_can.py for MIT mode, TMotorManager_servo_can.py for Servo mode (over CAN),
+and TMotorManager_servo_serial for Servo mode (over serial). Sample scripts can be
+found in the demos folder. For help setting up the motor using a Raspberry Pi 4 and with the
+PiCAN hat, see <a class="reference external" href="https://opensourceleg.com/TMotorCANControl/">Link these instructions</a> on the
+Open Source Leg website. That page will walk you through all the setup.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
