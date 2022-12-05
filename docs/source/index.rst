@@ -21,7 +21,7 @@ PiCAN hat, see `these instructions <https://opensourceleg.com/TMotorCANControl/>
 Open Source Leg website. That page will walk you through all the setup.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Contents:
 
    home <self>

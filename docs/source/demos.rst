@@ -8,7 +8,8 @@ with the python time module.
 mit_can demos
 -------------
 
-A basic read-only example is as follows::
+A basic read-only example is as follows ::
+    
     from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
     import time
     from TMotorCANControl.mit_can import TMotorManager_mit_can
@@ -35,7 +36,8 @@ for examples of more control modes.
 servo_can demos
 ---------------
 
-A basic read-only example is as follows::
+A basic read-only example is as follows ::
+
     from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
     from TMotorCANControl.servo_can import TMotorManager_servo_can
     import time
@@ -55,7 +57,8 @@ for examples of more control modes.
 servo_serial demos
 ------------------
 
-A basic read-only example is as follows::
+A basic read-only example is as follows ::
+
     from TMotorCANControl.servo_serial import *
     from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
