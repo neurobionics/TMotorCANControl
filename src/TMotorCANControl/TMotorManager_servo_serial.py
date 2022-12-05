@@ -2,7 +2,6 @@ import serial
 from serial import threaded
 import time
 import numpy as np
-from NeuroLocoMiddleware.StatProfiler import SSProfile
 from enum import Enum
 import traceback
 import csv
