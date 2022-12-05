@@ -2,6 +2,6 @@ src
 ===
 
 .. toctree::
-   :maxdepth: 4
+    :maxdepth: 4
 
-   TMotorCANControl
+    TMotorCANControl

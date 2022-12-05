@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TMotorCANControl.mit_can &mdash; TMotorCANControl 1.2.3 documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> TMotorCANControl
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">TMotorCANControl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">TMotorCANControl.mit_can</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for TMotorCANControl.mit_can</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">can</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">isfinite</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">can</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">isfinite</span>
+
+<span class="c1"># Parameter dictionary for each specific motor that can be controlled with this library</span>
+<span class="c1"># Thresholds are in the datasheet for the motor on cubemars.com</span>
+
+<span class="n">MIT_Params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;ERROR_CODES&#39;</span><span class="p">:{</span>
+            <span class="mi">0</span> <span class="p">:</span> <span class="s1">&#39;No Error&#39;</span><span class="p">,</span>
+            <span class="mi">1</span> <span class="p">:</span> <span class="s1">&#39;Over temperature fault&#39;</span><span class="p">,</span>
+            <span class="mi">2</span> <span class="p">:</span> <span class="s1">&#39;Over current fault&#39;</span><span class="p">,</span>
+            <span class="mi">3</span> <span class="p">:</span> <span class="s1">&#39;Over voltage fault&#39;</span><span class="p">,</span>
+            <span class="mi">4</span> <span class="p">:</span> <span class="s1">&#39;Under voltage fault&#39;</span><span class="p">,</span>
+            <span class="mi">5</span> <span class="p">:</span> <span class="s1">&#39;Encoder fault&#39;</span><span class="p">,</span>
+            <span class="mi">6</span> <span class="p">:</span> <span class="s1">&#39;Phase current unbalance fault (The hardware may be damaged)&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;AK80-9&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;P_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;P_max&#39;</span> <span class="p">:</span> <span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;V_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;V_max&#39;</span> <span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">18.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_max&#39;</span> <span class="p">:</span> <span class="mf">18.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_max&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_max&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kt_TMotor&#39;</span> <span class="p">:</span> <span class="mf">0.091</span><span class="p">,</span> <span class="c1"># from TMotor website (actually 1/Kvll)</span>
+            <span class="s1">&#39;Current_Factor&#39;</span> <span class="p">:</span> <span class="mf">0.59</span><span class="p">,</span> <span class="c1"># to correct the qaxis current </span>
+            <span class="s1">&#39;Kt_actual&#39;</span><span class="p">:</span> <span class="mf">0.115</span><span class="p">,</span><span class="c1"># Need to use the right constant -- 0.115 by our calcs, 0.091 by theirs. At output leads to 1.31 by them and 1.42 by us.</span>
+            <span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span> <span class="c1"># hence the 9 in the name</span>
+            <span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="c1"># true if you have a better model</span>
+            <span class="s1">&#39;a_hat&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.15605006e+00</span><span class="p">,</span> <span class="mf">4.17389589e-04</span><span class="p">,</span> <span class="mf">2.68556072e-01</span><span class="p">,</span> <span class="mf">4.90424140e-02</span><span class="p">]</span>
+            <span class="c1">#&#39;a_hat&#39; : [0.0,  8.23741648e-01, 4.57963164e-04,     2.96032614e-01, 9.31279510e-02]# [7.35415941e-02, 6.26896231e-01, 2.65240487e-04,     2.96032614e-01,  7.08736309e-02]# [-5.86860385e-02,6.50840079e-01,3.47461078e-04,8.58635580e-01,2.93809281e-01]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;AK10-9&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;P_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;P_max&#39;</span> <span class="p">:</span> <span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;V_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;V_max&#39;</span> <span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">65.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_max&#39;</span> <span class="p">:</span> <span class="mf">65.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_max&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_max&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kt_TMotor&#39;</span> <span class="p">:</span> <span class="mf">0.16</span><span class="p">,</span> <span class="c1"># from TMotor website (actually 1/Kvll)</span>
+            <span class="s1">&#39;Current_Factor&#39;</span> <span class="p">:</span> <span class="mf">0.59</span><span class="p">,</span> <span class="c1"># UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;Kt_actual&#39;</span><span class="p">:</span> <span class="mf">0.206</span><span class="p">,</span> <span class="c1"># UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span> 
+            <span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># true if you have a better model</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;AK60-6&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;P_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;P_max&#39;</span> <span class="p">:</span> <span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;V_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;V_max&#39;</span> <span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">15.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_max&#39;</span> <span class="p">:</span> <span class="mf">15.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_max&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_max&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kt_TMotor&#39;</span> <span class="p">:</span> <span class="mf">0.068</span><span class="p">,</span> <span class="c1"># from TMotor website (actually 1/Kvll)</span>
+            <span class="s1">&#39;Current_Factor&#39;</span> <span class="p">:</span> <span class="mf">0.59</span><span class="p">,</span> <span class="c1"># # UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;Kt_actual&#39;</span><span class="p">:</span> <span class="mf">0.087</span><span class="p">,</span> <span class="c1"># UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">,</span> 
+            <span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># true if you have a better model</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;AK70-10&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;P_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;P_max&#39;</span> <span class="p">:</span> <span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;V_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;V_max&#39;</span> <span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">25.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_max&#39;</span> <span class="p">:</span> <span class="mf">25.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_max&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_max&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kt_TMotor&#39;</span> <span class="p">:</span> <span class="mf">0.095</span><span class="p">,</span> <span class="c1"># from TMotor website (actually 1/Kvll)</span>
+            <span class="s1">&#39;Current_Factor&#39;</span> <span class="p">:</span> <span class="mf">0.59</span><span class="p">,</span> <span class="c1"># # UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;Kt_actual&#39;</span><span class="p">:</span> <span class="mf">0.122</span><span class="p">,</span> <span class="c1"># UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>
+            <span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># true if you have a better model</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;AK80-6&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;P_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;P_max&#39;</span> <span class="p">:</span> <span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;V_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">76.0</span><span class="p">,</span>
+            <span class="s1">&#39;V_max&#39;</span> <span class="p">:</span> <span class="mf">76.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_max&#39;</span> <span class="p">:</span> <span class="mf">12.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_max&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_max&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kt_TMotor&#39;</span> <span class="p">:</span> <span class="mf">0.091</span><span class="p">,</span> <span class="c1"># from TMotor website (actually 1/Kvll)</span>
+            <span class="s1">&#39;Current_Factor&#39;</span> <span class="p">:</span> <span class="mf">0.59</span><span class="p">,</span> <span class="c1"># # UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;Kt_actual&#39;</span><span class="p">:</span> <span class="mf">0.017</span><span class="p">,</span>  <span class="c1"># UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">,</span> 
+            <span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># true if you have a better model</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;AK80-64&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;P_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;P_max&#39;</span> <span class="p">:</span> <span class="mf">12.5</span><span class="p">,</span>
+            <span class="s1">&#39;V_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">8.0</span><span class="p">,</span>
+            <span class="s1">&#39;V_max&#39;</span> <span class="p">:</span> <span class="mf">8.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_min&#39;</span> <span class="p">:</span> <span class="o">-</span><span class="mf">144.0</span><span class="p">,</span>
+            <span class="s1">&#39;T_max&#39;</span> <span class="p">:</span> <span class="mf">144.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kp_max&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_min&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kd_max&#39;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+            <span class="s1">&#39;Kt_TMotor&#39;</span> <span class="p">:</span> <span class="mf">0.119</span><span class="p">,</span> <span class="c1"># from TMotor website (actually 1/Kvll)</span>
+            <span class="s1">&#39;Current_Factor&#39;</span> <span class="p">:</span> <span class="mf">0.59</span><span class="p">,</span> <span class="c1"># # UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;Kt_actual&#39;</span><span class="p">:</span> <span class="mf">0.153</span><span class="p">,</span> <span class="c1"># UNTESTED CONSTANT!</span>
+            <span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">:</span> <span class="mf">80.0</span><span class="p">,</span>
+            <span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># true if you have a better model</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A Dictionary containing the parameters of each type of motor, as well as the error</span>
+<span class="sd">code definitions for the AK-series TMotor actuators.</span>
+<span class="sd">You could use an optional torque model that accounts for friction losses if one is available.</span>
+<span class="sd">So far, such a model is only available for the AK80-9.</span>
+
+<span class="sd">This model comes from a linear regression with the following constants:</span>
+<span class="sd">    - a_hat[0] = bias</span>
+<span class="sd">    - a_hat[1] = standard torque constant multiplier</span>
+<span class="sd">    - a_hat[2] = nonlinear torque constant multiplier</span>
+<span class="sd">    - a_hat[3] = coloumb friction</span>
+<span class="sd">    - a_hat[4] = gearbox friction</span>
+
+<span class="sd">The model has the form:</span>
+<span class="sd">τ = a_hat[0] + gr*(a_hat[1]*kt - a_hat[2]*abs(i))*i - (v/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i))</span>
+
+<span class="sd">with the following values:</span>
+<span class="sd">    - τ = approximated torque</span>
+<span class="sd">    - gr = gear ratio</span>
+<span class="sd">    - kt = nominal torque constant</span>
+<span class="sd">    - i = current</span>
+<span class="sd">    - v = velocity</span>
+<span class="sd">    - ϵ = signum velocity threshold</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<div class="viewcode-block" id="motor_state"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motor_state">[docs]</a><span class="k">class</span> <span class="nc">motor_state</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Data structure to store and update motor states&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="motor_state.__init__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motor_state.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">position</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">acceleration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the motor state to the input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            position: Position in rad</span>
+<span class="sd">            velocity: Velocity in rad/s</span>
+<span class="sd">            current: current in amps</span>
+<span class="sd">            temperature: temperature in degrees C</span>
+<span class="sd">            error: error code, 0 means no error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">acceleration</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="motor_state.set_state"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motor_state.set_state">[docs]</a>    <span class="k">def</span> <span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">acceleration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the motor state to the input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            position: Position in rad</span>
+<span class="sd">            velocity: Velocity in rad/s</span>
+<span class="sd">            current: current in amps</span>
+<span class="sd">            temperature: temperature in degrees C</span>
+<span class="sd">            error: error code, 0 means no error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">velocity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">current</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">temperature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="n">acceleration</span></div>
+
+<div class="viewcode-block" id="motor_state.set_state_obj"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motor_state.set_state_obj">[docs]</a>    <span class="k">def</span> <span class="nf">set_state_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_motor_state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets this motor state object&#39;s values to those of another motor state object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other_motor_state: The other motor state object with values to set this motor state object&#39;s values to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">other_motor_state</span><span class="o">.</span><span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">other_motor_state</span><span class="o">.</span><span class="n">velocity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">other_motor_state</span><span class="o">.</span><span class="n">current</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="n">other_motor_state</span><span class="o">.</span><span class="n">temperature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">other_motor_state</span><span class="o">.</span><span class="n">error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceleration</span> <span class="o">=</span> <span class="n">other_motor_state</span><span class="o">.</span><span class="n">acceleration</span></div></div>
+
+<span class="c1"># Data structure to store MIT_command that will be sent upon update</span>
+<div class="viewcode-block" id="MIT_command"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.MIT_command">[docs]</a><span class="k">class</span> <span class="nc">MIT_command</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Data structure to store MIT_command that will be sent upon update&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="MIT_command.__init__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.MIT_command.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">kp</span><span class="p">,</span> <span class="n">kd</span><span class="p">,</span> <span class="n">current</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the motor state to the input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            position: Position in rad</span>
+<span class="sd">            velocity: Velocity in rad/s</span>
+<span class="sd">            kp: Position gain</span>
+<span class="sd">            kd: Velocity gain</span>
+<span class="sd">            current: Current in amps</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">velocity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kp</span> <span class="o">=</span> <span class="n">kp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kd</span> <span class="o">=</span> <span class="n">kd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">current</span></div></div>
+
+<span class="c1"># motor state from the controller, uneditable named tuple</span>
+<span class="n">MIT_motor_state</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;motor_state&#39;</span><span class="p">,</span> <span class="s1">&#39;position velocity current temperature error&#39;</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Motor state from the controller, uneditable named tuple</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># python-can listener object, with handler to be called upon reception of a message on the CAN bus</span>
+<div class="viewcode-block" id="motorListener"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motorListener">[docs]</a><span class="k">class</span> <span class="nc">motorListener</span><span class="p">(</span><span class="n">can</span><span class="o">.</span><span class="n">Listener</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Python-can listener object, with handler to be called upon reception of a message on the CAN bus&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="motorListener.__init__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motorListener.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">canman</span><span class="p">,</span> <span class="n">motor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets stores can manager and motor object references</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            canman: The CanManager object to get messages from</span>
+<span class="sd">            motor: The TMotorCANManager object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">canman</span> <span class="o">=</span> <span class="n">canman</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bus</span> <span class="o">=</span> <span class="n">canman</span><span class="o">.</span><span class="n">bus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">motor</span> <span class="o">=</span> <span class="n">motor</span></div>
+
+<div class="viewcode-block" id="motorListener.on_message_received"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.motorListener.on_message_received">[docs]</a>    <span class="k">def</span> <span class="nf">on_message_received</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates this listener&#39;s motor with the info contained in msg, if that message was for this motor.</span>
+
+<span class="sd">        args:</span>
+<span class="sd">            msg: A python-can CAN message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">ID</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ID</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">ID</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">_update_state_async</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">canman</span><span class="o">.</span><span class="n">parse_MIT_message</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">motor</span><span class="o">.</span><span class="n">type</span><span class="p">))</span></div></div>
+
+<span class="c1"># A class to manage the low level CAN communication protocols</span>
+<div class="viewcode-block" id="CAN_Manager"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager">[docs]</a><span class="k">class</span> <span class="nc">CAN_Manager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class to manage the low level CAN communication protocols&quot;&quot;&quot;</span>
+    <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set to true to display every message sent and recieved for debugging.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Note, defining singletons in this way means that you cannot inherit</span>
+    <span class="c1"># from this class, as apparently __init__ for the subclass will be called twice</span>
+    <span class="n">_instance</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Used to keep track of one instantation of the class to make a singleton object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="CAN_Manager.__new__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.__new__">[docs]</a>    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Makes a singleton object to manage a socketcan_native CAN bus.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CAN_Manager</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing CAN Manager&quot;</span><span class="p">)</span>
+            <span class="c1"># verify the CAN bus is currently down</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span> <span class="s1">&#39;sudo /sbin/ip link set can0 down&#39;</span> <span class="p">)</span>
+            <span class="c1"># start the CAN bus back up</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span> <span class="s1">&#39;sudo /sbin/ip link set can0 up type can bitrate 1000000&#39;</span> <span class="p">)</span>
+            <span class="c1"># create a python-can bus object</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span><span class="o">.</span><span class="n">bus</span> <span class="o">=</span> <span class="n">can</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Bus</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="s1">&#39;can0&#39;</span><span class="p">,</span> <span class="n">bustype</span><span class="o">=</span><span class="s1">&#39;socketcan&#39;</span><span class="p">)</span><span class="c1"># bustype=&#39;socketcan_native&#39;)</span>
+            <span class="c1"># create a python-can notifier object, which motors can later subscribe to</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span><span class="o">.</span><span class="n">notifier</span> <span class="o">=</span> <span class="n">can</span><span class="o">.</span><span class="n">Notifier</span><span class="p">(</span><span class="n">bus</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span><span class="o">.</span><span class="n">bus</span><span class="p">,</span> <span class="n">listeners</span><span class="o">=</span><span class="p">[])</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connected on: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span><span class="o">.</span><span class="n">bus</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span></div>
+
+<div class="viewcode-block" id="CAN_Manager.__init__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ALl initialization happens in __new__</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+        
+<div class="viewcode-block" id="CAN_Manager.__del__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.__del__">[docs]</a>    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        # shut down the CAN bus when the object is deleted</span>
+<span class="sd">        # This may not ever get called, so keep a reference and explicitly delete if this is important.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span> <span class="s1">&#39;sudo /sbin/ip link set can0 down&#39;</span> <span class="p">)</span> </div>
+
+    <span class="c1"># subscribe a motor object to the CAN bus to be updated upon message reception</span>
+<div class="viewcode-block" id="CAN_Manager.add_motor"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.add_motor">[docs]</a>    <span class="k">def</span> <span class="nf">add_motor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Subscribe a motor object to the CAN bus to be updated upon message reception</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor: The TMotorManager object to be subscribed to the notifier</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">notifier</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="n">motorListener</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor</span><span class="p">))</span></div>
+
+
+    <span class="c1"># Locks value between min and max</span>
+<div class="viewcode-block" id="CAN_Manager.limit_value"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.limit_value">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">limit_value</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Limits value to be between min and max</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value: The value to be limited.</span>
+<span class="sd">            min: The lowest number allowed (inclusive) for value</span>
+<span class="sd">            max: The highest number allowed (inclusive) for value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;=</span> <span class="nb">max</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">max</span>
+        <span class="k">elif</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="nb">min</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">min</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span></div>
+
+    <span class="c1"># interpolates a floating point number to fill some amount of the max size of unsigned int, </span>
+    <span class="c1"># as specified with the num_bits</span>
+<div class="viewcode-block" id="CAN_Manager.float_to_uint"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.float_to_uint">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">float_to_uint</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">x_min</span><span class="p">,</span><span class="n">x_max</span><span class="p">,</span><span class="n">num_bits</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Interpolates a floating point number to an unsigned integer of num_bits length.</span>
+<span class="sd">        A number of x_max will be the largest integer of num_bits, and x_min would be 0.</span>
+
+<span class="sd">        args:</span>
+<span class="sd">            x: The floating point number to convert</span>
+<span class="sd">            x_min: The minimum value for the floating point number</span>
+<span class="sd">            x_max: The maximum value for the floating point number</span>
+<span class="sd">            num_bits: The number of bits for the unsigned integer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">span</span> <span class="o">=</span> <span class="n">x_max</span><span class="o">-</span><span class="n">x_min</span>
+        <span class="n">bitratio</span> <span class="o">=</span> <span class="nb">float</span><span class="p">((</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">num_bits</span><span class="p">)</span><span class="o">/</span><span class="n">span</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">limit_value</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">x_min</span><span class="p">,</span><span class="n">x_max</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">bitratio</span><span class="p">))</span>
+        <span class="c1"># (x - x_min)*(2^num_bits)/span</span>
+        
+        <span class="k">return</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">limit_value</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">x</span><span class="o">-</span> <span class="n">x_min</span><span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="n">bitratio</span> <span class="p">)),</span><span class="mi">0</span><span class="p">,</span><span class="nb">int</span><span class="p">((</span><span class="n">x_max</span><span class="o">-</span><span class="n">x_min</span><span class="p">)</span><span class="o">*</span><span class="n">bitratio</span><span class="p">)</span> <span class="p">)</span></div>
+
+    <span class="c1"># undoes the above method</span>
+<div class="viewcode-block" id="CAN_Manager.uint_to_float"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.uint_to_float">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">uint_to_float</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">x_min</span><span class="p">,</span><span class="n">x_max</span><span class="p">,</span><span class="n">num_bits</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Interpolates an unsigned integer of num_bits length to a floating point number between x_min and x_max.</span>
+
+<span class="sd">        args:</span>
+<span class="sd">            x: The floating point number to convert</span>
+<span class="sd">            x_min: The minimum value for the floating point number</span>
+<span class="sd">            x_max: The maximum value for the floating point number</span>
+<span class="sd">            num_bits: The number of bits for the unsigned integer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">span</span> <span class="o">=</span> <span class="n">x_max</span><span class="o">-</span><span class="n">x_min</span>
+        <span class="c1"># (x*span/(2^num_bits -1)) + x_min</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">span</span><span class="o">/</span><span class="p">((</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">num_bits</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x_min</span><span class="p">)</span></div>
+
+    <span class="c1"># sends a message to the motor (when the motor is in MIT mode)</span>
+<div class="viewcode-block" id="CAN_Manager.send_MIT_message"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.send_MIT_message">[docs]</a>    <span class="k">def</span> <span class="nf">send_MIT_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends an MIT Mode message to the motor, with a header of motor_id and data array of data</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor_id: The CAN ID of the motor to send to.</span>
+<span class="sd">            data: An array of integers or bytes of data to send.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">DLC</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">DLC</span> <span class="o">&lt;=</span> <span class="mi">8</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Data too long in message for motor &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">motor_id</span><span class="p">))</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ID: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">motor_id</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;   Data: &#39;</span> <span class="o">+</span> <span class="s1">&#39;[</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">))</span> <span class="p">)</span>
+        
+        <span class="n">message</span> <span class="o">=</span> <span class="n">can</span><span class="o">.</span><span class="n">Message</span><span class="p">(</span><span class="n">arbitration_id</span><span class="o">=</span><span class="n">motor_id</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">is_extended_id</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bus</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    Message sent on &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bus</span><span class="o">.</span><span class="n">channel_info</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">except</span> <span class="n">can</span><span class="o">.</span><span class="n">CanError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    Message NOT sent&quot;</span><span class="p">)</span></div>
+
+    <span class="c1"># send the power on code</span>
+<div class="viewcode-block" id="CAN_Manager.power_on"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.power_on">[docs]</a>    <span class="k">def</span> <span class="nf">power_on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends the power on code to motor_id.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor_id: The CAN ID of the motor to send the message to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_MIT_message</span><span class="p">(</span><span class="n">motor_id</span><span class="p">,</span> <span class="p">[</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span><span class="mh">0XFC</span><span class="p">])</span></div>
+        
+    <span class="c1"># send the power off code</span>
+<div class="viewcode-block" id="CAN_Manager.power_off"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.power_off">[docs]</a>    <span class="k">def</span> <span class="nf">power_off</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends the power off code to motor_id.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor_id: The CAN ID of the motor to send the message to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_MIT_message</span><span class="p">(</span><span class="n">motor_id</span><span class="p">,</span> <span class="p">[</span><span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0XFD</span><span class="p">])</span></div>
+
+    <span class="c1"># send the zeroing code. Like a scale, it takes about a second to zero the position</span>
+<div class="viewcode-block" id="CAN_Manager.zero"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.zero">[docs]</a>    <span class="k">def</span> <span class="nf">zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends the zeroing code to motor_id. This code will shut off communication with the motor for about a second.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor_id: The CAN ID of the motor to send the message to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_MIT_message</span><span class="p">(</span><span class="n">motor_id</span><span class="p">,</span> <span class="p">[</span><span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFF</span><span class="p">,</span> <span class="mh">0xFE</span><span class="p">])</span></div>
+
+    <span class="c1"># send an MIT control signal, consisting of desired position, velocity, and current, and gains for position and velocity control</span>
+    <span class="c1"># basically an impedance controller</span>
+<div class="viewcode-block" id="CAN_Manager.MIT_controller"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.MIT_controller">[docs]</a>    <span class="k">def</span> <span class="nf">MIT_controller</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor_id</span><span class="p">,</span> <span class="n">motor_type</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">Kp</span><span class="p">,</span> <span class="n">Kd</span><span class="p">,</span> <span class="n">I</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends an MIT style control signal to the motor. This signal will be used to generate a </span>
+<span class="sd">        current for the field-oriented controller on the motor control chip, given by this expression:</span>
+
+<span class="sd">            q_control = Kp*(position - current_position) + Kd*(velocity - current_velocity) + I</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor_id: The CAN ID of the motor to send the message to</span>
+<span class="sd">            motor_type: A string noting the type of motor, ie &#39;AK80-9&#39;</span>
+<span class="sd">            position: The desired position in rad</span>
+<span class="sd">            velocity: The desired velocity in rad/s</span>
+<span class="sd">            Kp: The position gain</span>
+<span class="sd">            Kd: The velocity gain</span>
+<span class="sd">            I: The additional current</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">position_uint16</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">float_to_uint</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;P_min&#39;</span><span class="p">],</span> 
+                                                    <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;P_max&#39;</span><span class="p">],</span> <span class="mi">16</span><span class="p">)</span>
+        <span class="n">velocity_uint12</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">float_to_uint</span><span class="p">(</span><span class="n">velocity</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;V_min&#39;</span><span class="p">],</span> 
+                                                    <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;V_max&#39;</span><span class="p">],</span> <span class="mi">12</span><span class="p">)</span>
+        <span class="n">Kp_uint12</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">float_to_uint</span><span class="p">(</span><span class="n">Kp</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;Kp_min&#39;</span><span class="p">],</span> 
+                                                    <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;Kp_max&#39;</span><span class="p">],</span> <span class="mi">12</span><span class="p">)</span>
+        <span class="n">Kd_uint12</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">float_to_uint</span><span class="p">(</span><span class="n">Kd</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;Kd_min&#39;</span><span class="p">],</span> 
+                                                    <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;Kd_max&#39;</span><span class="p">],</span> <span class="mi">12</span><span class="p">)</span>
+        <span class="n">I_uint12</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">float_to_uint</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;T_min&#39;</span><span class="p">],</span> 
+                                                    <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">],</span> <span class="mi">12</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">position_uint16</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span><span class="p">,</span>
+            <span class="n">position_uint16</span> <span class="o">&amp;</span> <span class="mh">0x00FF</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">velocity_uint12</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="p">((</span><span class="n">velocity_uint12</span><span class="o">&amp;</span><span class="mh">0x00F</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">Kp_uint12</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">Kp_uint12</span><span class="o">&amp;</span><span class="mh">0x0FF</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">Kd_uint12</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="p">((</span><span class="n">Kd_uint12</span><span class="o">&amp;</span><span class="mh">0x00F</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">I_uint12</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">I_uint12</span><span class="o">&amp;</span><span class="mh">0x0FF</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="c1"># print(data)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_MIT_message</span><span class="p">(</span><span class="n">motor_id</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+    <span class="c1"># convert data recieved from motor in byte format back into floating point numbers in real units</span>
+<div class="viewcode-block" id="CAN_Manager.parse_MIT_message"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.CAN_Manager.parse_MIT_message">[docs]</a>    <span class="k">def</span> <span class="nf">parse_MIT_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">motor_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Takes a RAW MIT message and formats it into readable floating point numbers.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: the bytes of data from a python-can message object to be parsed</span>
+<span class="sd">            motor_type: A string noting the type of motor, ie &#39;AK80-9&#39;</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An MIT_Motor_State namedtuple that contains floating point values for the </span>
+<span class="sd">            position, velocity, current, temperature, and error in rad, rad/s, amps, and *C.</span>
+<span class="sd">            0 means no error. </span>
+<span class="sd">            </span>
+<span class="sd">            Notably, the current is converted to amps from the reported </span>
+<span class="sd">            &#39;torque&#39; value, which is i*Kt. This allows control based on actual q-axis current,</span>
+<span class="sd">            rather than estimated torque, which doesn&#39;t account for friction losses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">8</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Tried to parse a CAN message that was not Motor State in MIT Mode&#39;</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">position_uint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span><span class="mi">8</span> <span class="o">|</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">velocity_uint</span> <span class="o">=</span> <span class="p">((</span><span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">&gt;&gt;</span><span class="mi">4</span><span class="p">)</span> <span class="o">&lt;&lt;</span><span class="mi">4</span> <span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span>
+        <span class="n">current_uint</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">&amp;</span><span class="mh">0x0F</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span> <span class="o">|</span> <span class="n">data</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+
+        <span class="n">position</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">uint_to_float</span><span class="p">(</span><span class="n">position_uint</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;P_min&#39;</span><span class="p">],</span> 
+                                            <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;P_max&#39;</span><span class="p">],</span> <span class="mi">16</span><span class="p">)</span>
+        <span class="n">velocity</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">uint_to_float</span><span class="p">(</span><span class="n">velocity_uint</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;V_min&#39;</span><span class="p">],</span> 
+                                            <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;V_max&#39;</span><span class="p">],</span> <span class="mi">12</span><span class="p">)</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="o">.</span><span class="n">uint_to_float</span><span class="p">(</span><span class="n">current_uint</span><span class="p">,</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;T_min&#39;</span><span class="p">],</span> 
+                                            <span class="n">MIT_Params</span><span class="p">[</span><span class="n">motor_type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">],</span> <span class="mi">12</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  Position: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">position</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  Velocity: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">velocity</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  Current: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">current</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">temp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">error</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  Temp: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">temp</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;  Error: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+
+        <span class="c1"># returns the Tmotor &quot;current&quot; which is really a torque estimate</span>
+        <span class="k">return</span> <span class="n">MIT_motor_state</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span></div></div>
+
+
+
+<span class="c1"># defualt variables to be logged</span>
+<span class="n">LOG_VARIABLES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;output_angle&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;output_velocity&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;output_acceleration&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;current&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;output_torque&quot;</span>
+<span class="p">]</span>
+
+<span class="c1"># possible states for the controller</span>
+<div class="viewcode-block" id="_TMotorManState"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can._TMotorManState">[docs]</a><span class="k">class</span> <span class="nc">_TMotorManState</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An Enum to keep track of different control states</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">IDLE</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">IMPEDANCE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">CURRENT</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">FULL_STATE</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">SPEED</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+
+<span class="c1"># the user-facing class that manages the motor.</span>
+<div class="viewcode-block" id="TMotorManager_mit_can"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can">[docs]</a><span class="k">class</span> <span class="nc">TMotorManager_mit_can</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The user-facing class that manages the motor. This class should be</span>
+<span class="sd">    used in the context of a with as block, in order to safely enter/exit</span>
+<span class="sd">    control of the motor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.__init__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motor_type</span><span class="o">=</span><span class="s1">&#39;AK80-9&#39;</span><span class="p">,</span> <span class="n">motor_ID</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">CSV_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_vars</span> <span class="o">=</span> <span class="n">LOG_VARIABLES</span><span class="p">,</span> <span class="n">use_torque_compensation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets up the motor manager. Note the device will not be powered on by this method! You must</span>
+<span class="sd">        call __enter__, mostly commonly by using a with block, before attempting to control the motor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            motor_type: The type of motor being controlled, ie AK80-9.</span>
+<span class="sd">            motor_ID: The CAN ID of the motor.</span>
+<span class="sd">            CSV_file: A CSV file to output log info to. If None, no log will be recorded.</span>
+<span class="sd">            log_vars: The variables to log as a python list. The full list of possibilities is</span>
+<span class="sd">            - &quot;output_angle&quot;</span>
+<span class="sd">            - &quot;output_velocity&quot;</span>
+<span class="sd">            - &quot;output_acceleration&quot;</span>
+<span class="sd">            - &quot;current&quot;</span>
+<span class="sd">            - &quot;output_torque&quot;</span>
+<span class="sd">            - &quot;motor_angle&quot;</span>
+<span class="sd">            - &quot;motor_velocity&quot;</span>
+<span class="sd">            - &quot;motor_acceleration&quot;</span>
+<span class="sd">            - &quot;motor_torque&quot;</span>
+<span class="sd">            use_torque_compensation: Enables a more complex torque model to compensate for friction, if available</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">motor_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">motor_ID</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csv_file_name</span> <span class="o">=</span> <span class="n">CSV_file</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing device: &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span> <span class="o">=</span> <span class="n">motor_state</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span> <span class="o">=</span> <span class="n">motor_state</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span> <span class="o">=</span> <span class="n">MIT_command</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">=</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">IDLE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_position_limit</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_current_limit</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_velocity_limit</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_angle_threshold</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;P_max&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="c1"># radians, only really matters if the motor&#39;s going super fast</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span> <span class="o">-</span> <span class="mf">3.0</span> <span class="c1"># A, only really matters if the current changes quick</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_velocity_threshold</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;V_max&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="c1"># radians, only really matters if the motor&#39;s going super fast</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_pos</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_curr</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_vel</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_current_zone</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entered</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_command_time</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_updated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_torque_compensation</span> <span class="o">=</span> <span class="n">use_torque_compensation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">SF</span> <span class="o">=</span> <span class="mf">1.0</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_vars</span> <span class="o">=</span> <span class="n">log_vars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">LOG_FUNCTIONS</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;output_angle&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_angle_radians</span><span class="p">,</span> 
+            <span class="s2">&quot;output_velocity&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_velocity_radians_per_second</span><span class="p">,</span> 
+            <span class="s2">&quot;output_acceleration&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_acceleration_radians_per_second_squared</span><span class="p">,</span> 
+            <span class="s2">&quot;current&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_qaxis_amps</span><span class="p">,</span>
+            <span class="s2">&quot;output_torque&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_torque_newton_meters</span><span class="p">,</span>
+            <span class="s2">&quot;motor_angle&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_motor_angle_radians</span><span class="p">,</span> 
+            <span class="s2">&quot;motor_velocity&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_motor_velocity_radians_per_second</span><span class="p">,</span> 
+            <span class="s2">&quot;motor_acceleration&quot;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_motor_acceleration_radians_per_second_squared</span><span class="p">,</span> 
+            <span class="s2">&quot;motor_torque&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_motor_torque_newton_meters</span> 
+        <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span> <span class="o">=</span> <span class="n">CAN_Manager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">add_motor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+            
+<div class="viewcode-block" id="TMotorManager_mit_can.__enter__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.__enter__">[docs]</a>    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Used to safely power the motor on and begin the log file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Turning on control for device: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv_file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csv_file_name</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+                <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+                <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s2">&quot;pi_time&quot;</span><span class="p">]</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">log_vars</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csv_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csv_file_name</span><span class="p">,</span><span class="s1">&#39;a&#39;</span><span class="p">)</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csv_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">csv_file</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">power_on</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_command</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_entered</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_can_connection</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Device not connected: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.__exit__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.__exit__">[docs]</a>    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Used to safely power the motor off and close the log file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Turning off control for device: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">power_off</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv_file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csv_file</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">etype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exception</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iTM</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;Current_Factor&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">iTM</span><span class="o">/</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;Kt_TMotor&#39;</span><span class="p">])</span>
+    
+    <span class="k">def</span> <span class="nf">qaxis_current_to_TMotor_current</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iq</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">iq</span><span class="o">*</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;GEAR_RATIO&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;Kt_TMotor&#39;</span><span class="p">])</span><span class="o">/</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;Current_Factor&#39;</span><span class="p">]</span>
+
+
+    <span class="c1"># this method is called by the handler every time a message is recieved on the bus</span>
+    <span class="c1"># from this motor, to store the most recent state information for later</span>
+<div class="viewcode-block" id="TMotorManager_mit_can._update_state_async"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can._update_state_async">[docs]</a>    <span class="k">def</span> <span class="nf">_update_state_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">MIT_state</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method is called by the handler every time a message is recieved on the bus</span>
+<span class="sd">        from this motor, to store the most recent state information for later</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            MIT_state: The MIT_Motor_State namedtuple with the most recent motor state.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError when device sends back an error code that is not 0 (0 meaning no error)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">MIT_state</span><span class="o">.</span><span class="n">error</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Driver board error for device: &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="s1">&#39;ERROR_CODES&#39;</span><span class="p">][</span><span class="n">MIT_state</span><span class="o">.</span><span class="n">error</span><span class="p">])</span>
+
+        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_time</span> <span class="o">-</span> <span class="n">now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_time</span> <span class="o">=</span> <span class="n">now</span>
+        <span class="n">acceleration</span> <span class="o">=</span> <span class="p">(</span><span class="n">MIT_state</span><span class="o">.</span><span class="n">velocity</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span><span class="o">/</span><span class="n">dt</span>
+
+        <span class="c1"># The &quot;Current&quot; supplied by the controller is actually current*Kt, which approximates torque.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">MIT_state</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="n">MIT_state</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_state</span><span class="o">.</span><span class="n">current</span><span class="p">),</span> <span class="n">MIT_state</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span> <span class="n">MIT_state</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">acceleration</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_updated</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+    
+    <span class="c1"># this method is called by the user to synchronize the current state used by the controller</span>
+    <span class="c1"># with the most recent message recieved</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.update"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method is called by the user to synchronize the current state used by the controller</span>
+<span class="sd">        with the most recent message recieved, as well as to send the current command.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check that the motor is safely turned on</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entered</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Tried to update motor state before safely powering on for device: &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span>
+
+        <span class="c1"># check that the motor data is recent</span>
+        <span class="c1"># print(self._command_sent)</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_command_time</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.25</span> <span class="ow">and</span> <span class="p">(</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_update_time</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">):</span>
+            <span class="c1"># print(&quot;State update requested but no data recieved from motor. Delay longer after zeroing, decrease frequency, or check connection.&quot;)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection. &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">(),</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_command_sent</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># artificially extending the range of the position, current, and velocity that we track</span>
+        <span class="n">P_max</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;P_max&#39;</span><span class="p">]</span><span class="o">+</span> <span class="mf">0.01</span>
+        <span class="n">I_max</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mf">1.0</span>
+        <span class="n">V_max</span> <span class="o">=</span>  <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;V_max&#39;</span><span class="p">]</span><span class="o">+</span> <span class="mf">0.01</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_old_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_old_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="o">.</span><span class="n">position</span>
+        <span class="n">old_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_old_pos</span>
+        <span class="n">old_curr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_old_curr</span>
+        <span class="n">old_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_old_vel</span>
+        
+        <span class="n">new_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="o">.</span><span class="n">position</span>
+        <span class="n">new_curr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="o">.</span><span class="n">current</span>
+        <span class="n">new_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="o">.</span><span class="n">velocity</span>
+
+        <span class="n">thresh_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angle_threshold</span>
+        <span class="n">thresh_curr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_threshold</span>
+        <span class="n">thresh_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_velocity_threshold</span>
+        
+        <span class="n">curr_command</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">current</span>
+
+        <span class="n">actual_current</span> <span class="o">=</span> <span class="n">new_curr</span>
+
+        <span class="c1"># The TMotor will wrap around to -max at the limits for all values it returns!! Account for this</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">thresh_pos</span> <span class="o">&lt;=</span> <span class="n">new_pos</span> <span class="ow">and</span> <span class="n">new_pos</span> <span class="o">&lt;=</span> <span class="n">P_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="o">-</span><span class="n">P_max</span> <span class="o">&lt;=</span> <span class="n">old_pos</span> <span class="ow">and</span> <span class="n">old_pos</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">thresh_pos</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_position_limit</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">thresh_pos</span> <span class="o">&lt;=</span> <span class="n">old_pos</span> <span class="ow">and</span> <span class="n">old_pos</span> <span class="o">&lt;=</span> <span class="n">P_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="o">-</span><span class="n">P_max</span> <span class="o">&lt;=</span> <span class="n">new_pos</span> <span class="ow">and</span> <span class="n">new_pos</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">thresh_pos</span><span class="p">)</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_position_limit</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># current is basically the same as position, but if you instantly command a switch it can actually change fast enough</span>
+        <span class="c1"># to throw this off, so that is accounted for too. We just put a hard limit on the current to solve current jitter problems.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">thresh_curr</span> <span class="o">&lt;=</span> <span class="n">new_curr</span> <span class="ow">and</span> <span class="n">new_curr</span> <span class="o">&lt;=</span> <span class="n">I_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="o">-</span><span class="n">I_max</span> <span class="o">&lt;=</span> <span class="n">old_curr</span> <span class="ow">and</span> <span class="n">old_curr</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">thresh_curr</span><span class="p">):</span>
+            <span class="c1"># self._old_current_zone = -1</span>
+            <span class="c1"># if (thresh_curr &lt;= curr_command and curr_command &lt;= I_max):</span>
+            <span class="c1">#     self._times_past_current_limit -= 1</span>
+            <span class="k">if</span> <span class="n">curr_command</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">actual_current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">curr_command</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">actual_current</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">actual_current</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span>
+            <span class="n">new_curr</span> <span class="o">=</span> <span class="n">actual_current</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">thresh_curr</span> <span class="o">&lt;=</span> <span class="n">old_curr</span> <span class="ow">and</span> <span class="n">old_curr</span> <span class="o">&lt;=</span> <span class="n">I_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="o">-</span><span class="n">I_max</span> <span class="o">&lt;=</span> <span class="n">new_curr</span> <span class="ow">and</span> <span class="n">new_curr</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">thresh_curr</span><span class="p">):</span>
+            <span class="c1"># self._old_current_zone = 1</span>
+            <span class="c1"># if not (-I_max &lt;= curr_command and curr_command &lt;= -thresh_curr):</span>
+            <span class="c1">#     self._times_past_current_limit += 1</span>
+            <span class="k">if</span> <span class="n">curr_command</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">actual_current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">curr_command</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">actual_current</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">actual_current</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TMotor_current_to_qaxis_current</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;T_max&#39;</span><span class="p">])</span>
+            <span class="n">new_curr</span> <span class="o">=</span> <span class="n">actual_current</span>
+            
+
+        <span class="c1"># velocity should work the same as position</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">thresh_vel</span> <span class="o">&lt;=</span> <span class="n">new_vel</span> <span class="ow">and</span> <span class="n">new_vel</span> <span class="o">&lt;=</span> <span class="n">V_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="o">-</span><span class="n">V_max</span> <span class="o">&lt;=</span> <span class="n">old_vel</span> <span class="ow">and</span> <span class="n">old_vel</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">thresh_vel</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_velocity_limit</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">thresh_vel</span> <span class="o">&lt;=</span> <span class="n">old_vel</span> <span class="ow">and</span> <span class="n">old_vel</span> <span class="o">&lt;=</span> <span class="n">V_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="o">-</span><span class="n">V_max</span> <span class="o">&lt;=</span> <span class="n">new_vel</span> <span class="ow">and</span> <span class="n">new_vel</span> <span class="o">&lt;=</span> <span class="o">-</span><span class="n">thresh_vel</span><span class="p">)</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_velocity_limit</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+        <span class="c1"># update expanded state variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_pos</span> <span class="o">=</span> <span class="n">new_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_curr</span> <span class="o">=</span> <span class="n">new_curr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_old_vel</span> <span class="o">=</span> <span class="n">new_vel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">set_state_obj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_motor_state_async</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">position</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_position_limit</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;P_max&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">actual_current</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_times_past_velocity_limit</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;V_max&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># send current motor command</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_command</span><span class="p">()</span>
+
+        <span class="c1"># writing to log file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv_file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">csv_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_update_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">LOG_FUNCTIONS</span><span class="p">[</span><span class="n">var</span><span class="p">]()</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_vars</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_updated</span> <span class="o">=</span> <span class="kc">False</span></div>
+    
+    <span class="c1"># sends a command to the motor depending on whats controlm mode the motor is in</span>
+<div class="viewcode-block" id="TMotorManager_mit_can._send_command"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can._send_command">[docs]</a>    <span class="k">def</span> <span class="nf">_send_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends a command to the motor depending on whats controlm mode the motor is in. This method</span>
+<span class="sd">        is called by update(), and should only be called on its own if you don&#39;t want to update the motor state info.</span>
+
+<span class="sd">        Notably, the current is converted to amps from the reported &#39;torque&#39; value, which is i*Kt. </span>
+<span class="sd">        This allows control based on actual q-axis current, rather than estimated torque, which </span>
+<span class="sd">        doesn&#39;t account for friction losses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">==</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">FULL_STATE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">MIT_controller</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaxis_current_to_TMotor_current</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">current</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">==</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">IMPEDANCE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">MIT_controller</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kd</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">==</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">CURRENT</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">MIT_controller</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaxis_current_to_TMotor_current</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">current</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">==</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">IDLE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">MIT_controller</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">==</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">SPEED</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">MIT_controller</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kd</span><span class="p">,</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;UNDEFINED STATE for device &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_command_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span></div>
+
+    <span class="c1"># Basic Motor Utility Commands</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.power_on"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.power_on">[docs]</a>    <span class="k">def</span> <span class="nf">power_on</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Powers on the motor. You may hear a faint hiss.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">power_on</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_updated</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.power_off"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.power_off">[docs]</a>    <span class="k">def</span> <span class="nf">power_off</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Powers off the motor.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">power_off</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span></div>
+
+    <span class="c1"># zeros the position, like a scale you have to wait about a second before you can</span>
+    <span class="c1"># use the motor again. This responsibility is on the user!!</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_zero_position"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_zero_position">[docs]</a>    <span class="k">def</span> <span class="nf">set_zero_position</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Zeros the position--like a scale you have to wait about a second before you can</span>
+<span class="sd">        use the motor again. This responsibility is on the user!!&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">zero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_command_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span></div>
+
+    <span class="c1"># getters for motor state</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.get_temperature_celsius"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_temperature_celsius">[docs]</a>    <span class="k">def</span> <span class="nf">get_temperature_celsius</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">        The most recently updated motor temperature in degrees C.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">temperature</span></div>
+    
+<div class="viewcode-block" id="TMotorManager_mit_can.get_motor_error_code"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_motor_error_code">[docs]</a>    <span class="k">def</span> <span class="nf">get_motor_error_code</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">        The most recently updated motor error code.</span>
+<span class="sd">        Note the program should throw a runtime error before you get a chance to read</span>
+<span class="sd">        this value if it is ever anything besides 0.</span>
+
+<span class="sd">        Codes:</span>
+<span class="sd">        - 0 : &#39;No Error&#39;,</span>
+<span class="sd">        - 1 : &#39;Over temperature fault&#39;,</span>
+<span class="sd">        - 2 : &#39;Over current fault&#39;,</span>
+<span class="sd">        - 3 : &#39;Over voltage fault&#39;,</span>
+<span class="sd">        - 4 : &#39;Under voltage fault&#39;,</span>
+<span class="sd">        - 5 : &#39;Encoder fault&#39;,</span>
+<span class="sd">        - 6 : &#39;Phase current unbalance fault (The hardware may be damaged)&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">error</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_current_qaxis_amps"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_current_qaxis_amps">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_qaxis_amps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">        The most recently updated qaxis current in amps</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">current</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_output_angle_radians"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_output_angle_radians">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_angle_radians</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">        The most recently updated output angle in radians</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">position</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_output_velocity_radians_per_second"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_output_velocity_radians_per_second">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_velocity_radians_per_second</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The most recently updated output velocity in radians per second</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">velocity</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_output_acceleration_radians_per_second_squared"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_output_acceleration_radians_per_second_squared">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_acceleration_radians_per_second_squared</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The most recently updated output acceleration in radians per second per second</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">acceleration</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_output_torque_newton_meters"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_output_torque_newton_meters">[docs]</a>    <span class="k">def</span> <span class="nf">get_output_torque_newton_meters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            the most recently updated output torque in Nm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_torque_compensation</span><span class="p">:</span>
+            <span class="n">a_hat</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;a_hat&#39;</span><span class="p">]</span>
+            <span class="n">kt</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kt_actual&quot;</span><span class="p">]</span>
+            <span class="n">gr</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span>
+            <span class="n">ϵ</span> <span class="o">=</span> <span class="mf">0.1</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_qaxis_amps</span><span class="p">()</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_motor_velocity_radians_per_second</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">gr</span><span class="o">*</span><span class="n">kt</span><span class="o">*</span><span class="n">i</span> <span class="o">-</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">gr</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">i</span> <span class="o">-</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">ϵ</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="p">)</span> <span class="o">-</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">ϵ</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_qaxis_amps</span><span class="p">()</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kt_actual&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span></div>
+
+    <span class="c1"># uses plain impedance mode, will send 0.0 for current command.</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_impedance_gains_real_unit"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_impedance_gains_real_unit">[docs]</a>    <span class="k">def</span> <span class="nf">set_impedance_gains_real_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ki</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">K</span><span class="o">=</span><span class="mf">0.08922</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="mf">0.0038070</span><span class="p">,</span> <span class="n">ff</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses plain impedance mode, will send 0.0 for current command in addition to position request.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            kp: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            ki: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            K: The stiffness in Nm/rad</span>
+<span class="sd">            B: The damping in Nm/(rad/s)</span>
+<span class="sd">            ff: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span><span class="p">(</span><span class="n">isfinite</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="ow">and</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kp_min&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">K</span> <span class="ow">and</span> <span class="n">K</span> <span class="o">&lt;=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kp_max&quot;</span><span class="p">])</span>
+        <span class="k">assert</span><span class="p">(</span><span class="n">isfinite</span><span class="p">(</span><span class="n">B</span><span class="p">)</span> <span class="ow">and</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kd_min&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">B</span> <span class="ow">and</span> <span class="n">B</span> <span class="o">&lt;=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kd_max&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kp</span> <span class="o">=</span> <span class="n">K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kd</span> <span class="o">=</span> <span class="n">B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">=</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">IMPEDANCE</span></div>
+    
+    <span class="c1"># uses full MIT mode, will send whatever current command is set. </span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_impedance_gains_real_unit_full_state_feedback"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_impedance_gains_real_unit_full_state_feedback">[docs]</a>    <span class="k">def</span> <span class="nf">set_impedance_gains_real_unit_full_state_feedback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ki</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">K</span><span class="o">=</span><span class="mf">0.08922</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="mf">0.0038070</span><span class="p">,</span> <span class="n">ff</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;&quot;</span>
+<span class="sd">        Uses full state feedback mode, will send whatever current command is set in addition to position request.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            kp: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            ki: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            K: The stiffness in Nm/rad</span>
+<span class="sd">            B: The damping in Nm/(rad/s)</span>
+<span class="sd">            ff: A dummy argument for backward compatibility with the dephy library.&quot;&quot;&quot;</span>
+        <span class="k">assert</span><span class="p">(</span><span class="n">isfinite</span><span class="p">(</span><span class="n">K</span><span class="p">)</span> <span class="ow">and</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kp_min&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">K</span> <span class="ow">and</span> <span class="n">K</span> <span class="o">&lt;=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kp_max&quot;</span><span class="p">])</span>
+        <span class="k">assert</span><span class="p">(</span><span class="n">isfinite</span><span class="p">(</span><span class="n">B</span><span class="p">)</span> <span class="ow">and</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kd_min&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">B</span> <span class="ow">and</span> <span class="n">B</span> <span class="o">&lt;=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kd_max&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kp</span> <span class="o">=</span> <span class="n">K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kd</span> <span class="o">=</span> <span class="n">B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">=</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">FULL_STATE</span></div>
+
+    <span class="c1"># uses plain current mode, will send 0.0 for position gains.</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_current_gains"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_current_gains">[docs]</a>    <span class="k">def</span> <span class="nf">set_current_gains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kp</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">ki</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">ff</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">spoof</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses plain current mode, will send 0.0 for position gains in addition to requested current.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            kp: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            ki: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            ff: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">            spoof: A dummy argument for backward compatibility with the dephy library.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">=</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">CURRENT</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.set_speed_gains"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_speed_gains">[docs]</a>    <span class="k">def</span> <span class="nf">set_speed_gains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kd</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses plain speed mode, will send 0.0 for position gain and for feed forward current.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            kd: The gain for the speed controller. Control law will be (v_des - v_actual)*kd = iq</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">kd</span> <span class="o">=</span> <span class="n">kd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="o">=</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">SPEED</span></div>
+
+    <span class="c1"># used for either impedance or MIT mode to set output angle</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_output_angle_radians"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_output_angle_radians">[docs]</a>    <span class="k">def</span> <span class="nf">set_output_angle_radians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Used for either impedance or full state feedback mode to set output angle command.</span>
+<span class="sd">        Note, this does not send a command, it updates the TMotorManager&#39;s saved command,</span>
+<span class="sd">        which will be sent when update() is called.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pos: The desired output position in rads</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># position commands must be within a certain range :/</span>
+        <span class="c1"># pos = (np.abs(pos) % MIT_Params[self.type][&quot;P_max&quot;])*np.sign(pos) # this doesn&#39;t work because it will unwind itself!</span>
+        <span class="c1"># CANNOT Control using impedance mode for angles greater than 12.5 rad!!</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;P_max&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Cannot control using impedance mode for angles with magnitude greater than &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;P_max&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;rad!&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_TMotorManState</span><span class="o">.</span><span class="n">IMPEDANCE</span><span class="p">,</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">FULL_STATE</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Attempted to send position command without gains for device &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">pos</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.set_output_velocity_radians_per_second"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_output_velocity_radians_per_second">[docs]</a>    <span class="k">def</span> <span class="nf">set_output_velocity_radians_per_second</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vel</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Used for either speed or full state feedback mode to set output velocity command.</span>
+<span class="sd">        Note, this does not send a command, it updates the TMotorManager&#39;s saved command,</span>
+<span class="sd">        which will be sent when update() is called.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vel: The desired output speed in rad/s</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vel</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;V_max&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Cannot control using speed mode for angles with magnitude greater than &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;V_max&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;rad/s!&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_TMotorManState</span><span class="o">.</span><span class="n">SPEED</span><span class="p">,</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">FULL_STATE</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Attempted to send speed command without gains for device &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">vel</span></div>
+
+    <span class="c1"># used for either current MIT mode to set current</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_motor_current_qaxis_amps"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_motor_current_qaxis_amps">[docs]</a>    <span class="k">def</span> <span class="nf">set_motor_current_qaxis_amps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Used for either current or full state feedback mode to set current command.</span>
+<span class="sd">        Note, this does not send a command, it updates the TMotorManager&#39;s saved command,</span>
+<span class="sd">        which will be sent when update() is called.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            current: the desired current in amps.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">_TMotorManState</span><span class="o">.</span><span class="n">CURRENT</span><span class="p">,</span> <span class="n">_TMotorManState</span><span class="o">.</span><span class="n">FULL_STATE</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Attempted to send current command before entering current mode for device &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">())</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_command</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">current</span></div>
+
+    <span class="c1"># used for either current or MIT Mode to set current, based on desired torque</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_output_torque_newton_meters"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_output_torque_newton_meters">[docs]</a>    <span class="k">def</span> <span class="nf">set_output_torque_newton_meters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torque</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Used for either current or MIT Mode to set current, based on desired torque.</span>
+<span class="sd">        If a more complicated torque model is available for the motor, that will be used.</span>
+<span class="sd">        Otherwise it will just use the motor&#39;s torque constant.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            torque: The desired output torque in Nm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;Use_derived_torque_constants&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_torque_compensation</span><span class="p">:</span>
+            <span class="n">a_hat</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s1">&#39;a_hat&#39;</span><span class="p">]</span>
+            <span class="n">kt</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kt_actual&quot;</span><span class="p">]</span>
+            <span class="n">gr</span> <span class="o">=</span> <span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span>
+            <span class="n">ϵ</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_qaxis_amps</span><span class="p">()</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_motor_velocity_radians_per_second</span><span class="p">()</span>
+            <span class="n">bias</span> <span class="o">=</span> <span class="o">-</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">friction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SF</span><span class="o">*</span><span class="p">(</span><span class="n">v</span><span class="o">/</span><span class="p">(</span><span class="n">ϵ</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">a_hat</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> 
+            <span class="n">torque_constant</span> <span class="o">=</span> <span class="p">(</span><span class="n">gr</span><span class="o">*</span><span class="p">(</span><span class="n">a_hat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">kt</span> <span class="o">-</span> <span class="n">a_hat</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span>
+            <span class="n">Iq_des</span> <span class="o">=</span> <span class="p">(</span><span class="n">torque</span> <span class="o">-</span> <span class="n">bias</span> <span class="o">+</span> <span class="n">friction</span> <span class="p">)</span><span class="o">/</span><span class="n">torque_constant</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_motor_current_qaxis_amps</span><span class="p">(</span><span class="n">Iq_des</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_motor_current_qaxis_amps</span><span class="p">((</span><span class="n">torque</span><span class="o">/</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kt_actual&quot;</span><span class="p">]</span><span class="o">/</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">])</span> <span class="p">)</span></div>
+
+    <span class="c1"># motor-side functions to account for the gear ratio</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.set_motor_torque_newton_meters"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_motor_torque_newton_meters">[docs]</a>    <span class="k">def</span> <span class="nf">set_motor_torque_newton_meters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torque</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Version of set_output_torque that accounts for gear ratio to control motor-side torque</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            torque: The desired motor-side torque in Nm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_output_torque_newton_meters</span><span class="p">(</span><span class="n">torque</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;Kt_actual&quot;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.set_motor_angle_radians"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_motor_angle_radians">[docs]</a>    <span class="k">def</span> <span class="nf">set_motor_angle_radians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper for set_output_angle that accounts for gear ratio to control motor-side angle</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            pos: The desired motor-side position in rad.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_output_angle_radians</span><span class="p">(</span><span class="n">pos</span><span class="o">/</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">])</span> <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.set_motor_velocity_radians_per_second"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.set_motor_velocity_radians_per_second">[docs]</a>    <span class="k">def</span> <span class="nf">set_motor_velocity_radians_per_second</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vel</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper for set_output_velocity that accounts for gear ratio to control motor-side velocity</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            vel: The desired motor-side velocity in rad/s.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_output_velocity_radians_per_second</span><span class="p">(</span><span class="n">vel</span><span class="o">/</span><span class="p">(</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">])</span> <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_motor_angle_radians"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_motor_angle_radians">[docs]</a>    <span class="k">def</span> <span class="nf">get_motor_angle_radians</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper for get_output_angle that accounts for gear ratio to get motor-side angle</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The most recently updated motor-side angle in rad.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">position</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_motor_velocity_radians_per_second"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_motor_velocity_radians_per_second">[docs]</a>    <span class="k">def</span> <span class="nf">get_motor_velocity_radians_per_second</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper for get_output_velocity that accounts for gear ratio to get motor-side velocity</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The most recently updated motor-side velocity in rad/s.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">velocity</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_motor_acceleration_radians_per_second_squared"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_motor_acceleration_radians_per_second_squared">[docs]</a>    <span class="k">def</span> <span class="nf">get_motor_acceleration_radians_per_second_squared</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper for get_output_acceleration that accounts for gear ratio to get motor-side acceleration</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The most recently updated motor-side acceleration in rad/s/s.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_motor_state</span><span class="o">.</span><span class="n">acceleration</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.get_motor_torque_newton_meters"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.get_motor_torque_newton_meters">[docs]</a>    <span class="k">def</span> <span class="nf">get_motor_torque_newton_meters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper for get_output_torque that accounts for gear ratio to get motor-side torque</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The most recently updated motor-side torque in Nm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_output_torque_newton_meters</span><span class="p">()</span><span class="o">*</span><span class="n">MIT_Params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">][</span><span class="s2">&quot;GEAR_RATIO&quot;</span><span class="p">]</span></div>
+
+    <span class="c1"># Pretty stuff</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.__str__"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Prints the motor&#39;s device info and current&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_info_string</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot; | Position: &quot;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">{: 1f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">θ</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; rad | Velocity: &quot;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">{: 1f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">θd</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; rad/s | current: &quot;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">{: 1f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">i</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; A | torque: &quot;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">{: 1f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">τ</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; Nm&quot;</span></div>
+
+<div class="viewcode-block" id="TMotorManager_mit_can.device_info_string"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.device_info_string">[docs]</a>    <span class="k">def</span> <span class="nf">device_info_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Prints the motor&#39;s ID and device type.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;  ID: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span></div>
+
+    <span class="c1"># Checks the motor connection by sending a 10 commands and making sure the motor responds.</span>
+<div class="viewcode-block" id="TMotorManager_mit_can.check_can_connection"><a class="viewcode-back" href="../../TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can.check_can_connection">[docs]</a>    <span class="k">def</span> <span class="nf">check_can_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks the motor&#39;s connection by attempting to send 10 startup messages.</span>
+<span class="sd">        If it gets 10 replies, then the connection is confirmed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if a connection is established and False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_entered</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Tried to check_can_connection before entering motor control! Enter control using the __enter__ method, or instantiating the TMotorManager in a with block.&quot;</span><span class="p">)</span>
+        <span class="n">Listener</span> <span class="o">=</span> <span class="n">can</span><span class="o">.</span><span class="n">BufferedReader</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">notifier</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="n">Listener</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">power_on</span><span class="p">()</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">Listener</span><span class="o">.</span><span class="n">get_message</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">success</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_canman</span><span class="o">.</span><span class="n">notifier</span><span class="o">.</span><span class="n">remove_listener</span><span class="p">(</span><span class="n">Listener</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">success</span></div>
+
+    <span class="c1"># controller variables</span>
+    <span class="n">temperature</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_temperature_celsius</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;temperature_degrees_C&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Temperature in Degrees Celsius&quot;&quot;&quot;</span>
+
+    <span class="n">error</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_motor_error_code</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;temperature_degrees_C&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Motor error code. 0 means no error.&quot;&quot;&quot;</span>
+
+    <span class="c1"># electrical variables</span>
+    <span class="n">current_qaxis</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_current_qaxis_amps</span><span class="p">,</span> <span class="n">set_motor_current_qaxis_amps</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;current_qaxis_amps_current_only&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Q-axis current in amps&quot;&quot;&quot;</span>
+
+    <span class="c1"># output-side variables</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_output_angle_radians</span><span class="p">,</span> <span class="n">set_output_angle_radians</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;output_angle_radians_impedance_only&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Output angle in rad&quot;&quot;&quot;</span>
+
+    <span class="n">velocity</span> <span class="o">=</span> <span class="nb">property</span> <span class="p">(</span><span class="n">get_output_velocity_radians_per_second</span><span class="p">,</span> <span class="n">set_output_velocity_radians_per_second</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;output_velocity_radians_per_second&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Output velocity in rad/s&quot;&quot;&quot;</span>
+
+    <span class="n">acceleration</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_output_acceleration_radians_per_second_squared</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;output_acceleration_radians_per_second_squared&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Output acceleration in rad/s/s&quot;&quot;&quot;</span>
+
+    <span class="n">torque</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_output_torque_newton_meters</span><span class="p">,</span> <span class="n">set_output_torque_newton_meters</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;output_torque_newton_meters&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Output torque in Nm&quot;&quot;&quot;</span>
+
+    <span class="c1"># motor-side variables</span>
+    <span class="n">position_motorside</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_motor_angle_radians</span><span class="p">,</span> <span class="n">set_motor_angle_radians</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;motor_angle_radians_impedance_only&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Motor-side angle in rad&quot;&quot;&quot;</span>
+    
+    <span class="n">velocity_motorside</span> <span class="o">=</span> <span class="nb">property</span> <span class="p">(</span><span class="n">get_motor_velocity_radians_per_second</span><span class="p">,</span> <span class="n">set_motor_velocity_radians_per_second</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;motor_velocity_radians_per_second&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Motor-side velocity in rad/s&quot;&quot;&quot;</span>
+
+    <span class="n">acceleration_motorside</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_motor_acceleration_radians_per_second_squared</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;motor_acceleration_radians_per_second_squared&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Motor-side acceleration in rad/s/s&quot;&quot;&quot;</span>
+
+    <span class="n">torque_motorside</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_motor_torque_newton_meters</span><span class="p">,</span> <span class="n">set_motor_torque_newton_meters</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;motor_torque_newton_meters&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Motor-side torque in Nm&quot;&quot;&quot;</span></div>
+
+
+
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Mitry Anderson, Vamsi Peddinti.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

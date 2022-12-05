@@ -5,7 +5,7 @@ from NeuroLocoMiddleware.SysID import Chirp
 # except ModuleNotFoundError:
 from sys import path
 path.append("/home/pi/TMotorCANControl/src/")
-from TMotorCANControl.TMotorManager_servo_serial import *
+from TMotorCANControl.servo_serial import *
 
 def chirp_demo(dev, amp=1.0, dt=0.005):
     print("Starting current chirp demo. Press ctrl+C to quit.")

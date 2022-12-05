@@ -2,11 +2,11 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
 # try to import the default version, if that fails import from local directory
 try:
-     from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+     from TMotorCANControl.mit_can import TMotorManager
 except ModuleNotFoundError:
     from sys import path
     path.append("/home/pi/TMotorCANControl/src")
-    from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+    from TMotorCANControl.mit_can import TMotorManager
 import numpy as np
 import time
 from NeuroLocoMiddleware.SysID import Chirp

@@ -1,3 +1,3 @@
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
-from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo_can
-from TMotorCANControl.TMotorManager_servo_serial import TMotorManager_servo_serial
+from TMotorCANControl.mit_can import TMotorManager_mit_can
+from TMotorCANControl.servo_can import TMotorManager_servo_can
+from TMotorCANControl.servo_serial import TMotorManager_servo_serial

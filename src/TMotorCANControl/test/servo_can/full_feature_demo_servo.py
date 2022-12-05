@@ -9,7 +9,7 @@ import time
 # except ModuleNotFoundError:
 from sys import path
 path.append("/home/pi/TMotorCANControl/src")
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager_servo
+from TMotorCANControl.mit_can import TMotorManager_servo
 
 
 

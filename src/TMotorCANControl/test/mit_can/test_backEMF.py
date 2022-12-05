@@ -1,6 +1,6 @@
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 import time
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+from TMotorCANControl.mit_can import TMotorManager
 from NeuroLocoMiddleware.AdcManager import ADC_Manager;
 import numpy as np
 import matplotlib.pyplot as plt

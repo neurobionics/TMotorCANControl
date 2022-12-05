@@ -1,4 +1,4 @@
-from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo_can
+from TMotorCANControl.servo_can import TMotorManager_servo_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'

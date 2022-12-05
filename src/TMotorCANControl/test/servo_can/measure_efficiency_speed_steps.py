@@ -5,7 +5,7 @@ import csv
 import numpy as np
 from sys import path
 path.append("/home/pi/TMotorCANControl/src/")
-from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo
+from TMotorCANControl.servo_can import TMotorManager_servo
 from TMotorCANControl.test.servo_serial.Serial_manager_servo import *
 import serial
 

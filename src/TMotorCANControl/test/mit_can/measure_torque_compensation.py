@@ -4,7 +4,7 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
 from sys import path
 path.append("/home/pi/TMotorCANControl/src")
-from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+from TMotorCANControl.mit_can import TMotorManager
 
 test_torques = [0.0]# [0.0, 0.25,-0.25, 1.0,-1.0,5.0,-5.0,10.0,-10.0] # Nm
 csv_file_name = "log_adc_and_motor.csv"

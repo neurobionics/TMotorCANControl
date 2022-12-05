@@ -4,50 +4,29 @@ TMotorCANControl package
 Submodules
 ----------
 
-TMotorCANControl.CAN\_Manager module
-------------------------------------
+TMotorCANControl.mit\_can module
+--------------------------------
+A module for controlling the motor in MIT mode over the CAN bus.
 
-.. automodule:: TMotorCANControl.CAN_Manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: TMotorCANControl.mit_can
+      :members:
+      :special-members:
+      :private-members:
 
-TMotorCANControl.CAN\_manager\_servo module
--------------------------------------------
+TMotorCANControl.servo\_can module
+--------------------------------
+A module for controlling the motor in Servo mode over the CAN bus.
 
-.. automodule:: TMotorCANControl.CAN_manager_servo
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. automodule:: TMotorCANControl.servo_can
+    :members:
+    :special-members:
+    :private-members:
 
-TMotorCANControl.TMotorManager\_mit\_can module
------------------------------------------------
-
-.. automodule:: TMotorCANControl.TMotorManager_mit_can
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-TMotorCANControl.TMotorManager\_servo\_can module
--------------------------------------------------
-
-.. automodule:: TMotorCANControl.TMotorManager_servo_can
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-TMotorCANControl.TMotorManager\_servo\_serial module
-----------------------------------------------------
-
-.. automodule:: TMotorCANControl.TMotorManager_servo_serial
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: TMotorCANControl
-   :members:
-   :undoc-members:
-   :show-inheritance:
+TMotorCANControl.servo\_serial module
+--------------------------------
+A module for controlling the motor in Servo mode over a serial port.
+    
+.. automodule:: TMotorCANControl.servo_serial
+    :members:
+    :special-members:
+    :private-members:

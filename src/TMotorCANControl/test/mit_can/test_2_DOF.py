@@ -2,11 +2,11 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
 from TMotorCANControl.CAN_Manager_mit import MIT_Params, MIT_motor_state
 try:
-     from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+     from TMotorCANControl.mit_can import TMotorManager
 except ModuleNotFoundError:
     from sys import path
     path.append("/home/pi/TMotorCANControl/src")
-    from TMotorCANControl.TMotorManager_mit_can import TMotorManager
+    from TMotorCANControl.mit_can import TMotorManager
 
 import numpy as np
 import time

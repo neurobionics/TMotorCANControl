@@ -6,7 +6,8 @@ folder in this repository. The main interface is in the file TMotorManager_mit_c
 and TMotorManager_servo_serial for Servo mode (over serial). The CAN_Manager_mit and CAN_Manager_serial file contains a low-level CAN interface for interacting with the motor, which is used by the TMotorManager classes to control the motor in a more user-friendly way. Sample scripts can be found in the demos folder. For help setting up the motor using a Raspberry Pi 4 and with the PiCAN hat, see [these instructions](https://opensourceleg.com/TMotorCANControl/) on the Open Source Leg website. That page will walk you through all the setup.
 
 ## API Usage
-For some code examples, see the demos folder in this repository.
+For some code examples, see the demos folder in this repository. 
+For the full API documentation, see [our page on ReadTheDocs](https://tmotorcancontrol.readthedocs.io/en/latest/index.html).
 These examples make use of the soft_real_timeloop class from the [NeuroLocoMiddleware library](https://pypi.org/project/NeuroLocoMiddleware/) 
 for the control loops, but the library could be used without this dependancy. 
 
@@ -116,31 +117,33 @@ the motor position to 3.14 radians until the program is exited.
 
 ```python
 with TMotorManager_mit_can(motor_type='AK80-9', motor_ID=3) as dev:
-    dev.zero_position()
+    dev.set_zero_position()
     time.sleep(1.5)
     dev.set_impedance_gains_real_unit(K=10,B=0.5)
     loop = SoftRealtimeLoop(dt = 0.01, report=True, fade=0)
 
     for t in loop:
         dev.update()
-        dev.θ = 3.14
+        dev.position = 3.14
 ```
 
-For more examples, see the src/TMotorCANControl/demo folder. Have fun controlling some CubeMars Motors!
+For more examples, see the demos folder. Have fun controlling some CubeMars Motors!
 
 ## Other Resources
 1. [Setup Instructions on the OSL Website](https://opensourceleg.com/TMotorCANControl/)
 
-2. [AK-series motor manual](https://store.cubemars.com/images/file/20211201/1638329381542610.pdf)
+2. [API Documentation](https://tmotorcancontrol.readthedocs.io/en/latest/index.html)
+
+3. [AK-series motor manual](https://store.cubemars.com/images/file/20211201/1638329381542610.pdf)
 The documentation for the AK-series TMotors, which includes the CAN protocol and how to use R-Link
 
-3. [PiCAN 2 CAN Bus Hat](https://copperhilltech.com/pican-2-can-bus-interface-for-raspberry-pi/) 
+4. [PiCAN 2 CAN Bus Hat](https://copperhilltech.com/pican-2-can-bus-interface-for-raspberry-pi/) 
 The documentation for the CopperHill Raspberry Pi CAN hat.
 
-4. [RLink Youtube videos](https://www.youtube.com/channel/UCs-rBZ4uKBpOT9vokLZPhog/featured)
+5. [RLink Youtube videos](https://www.youtube.com/channel/UCs-rBZ4uKBpOT9vokLZPhog/featured)
 Yoyo's youtube channel has some tutorials on how to use the RLink software.
 
-5. [Mini-Cheetah-TMotor-Python-Can](https://github.com/dfki-ric-underactuated-lab/mini-cheetah-tmotor-python-can)
+6. [Mini-Cheetah-TMotor-Python-Can](https://github.com/dfki-ric-underactuated-lab/mini-cheetah-tmotor-python-can)
 This is another, more low-level library for controlling these motors in MIT mode.
 
 This work is performed by Mitry Anderson and Vamsi Peddinti.
