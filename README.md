@@ -15,23 +15,27 @@ The TMotorManager_mit_can, TMotorManager_servo_can, and TMotorManager_servo_seri
 that block, in order to ensure the motor is powered on when in use and powered off if an error is thrown or the 
 program ends. 
 
-To control a motor that has been set up for MIT control over the CAN bus, specify the motor type and CAN ID, as shown below 
-for an AK80-9 with CAN ID 3.
+To control a motor that has been set up for MIT control over the CAN bus,
+you can create a [TMotorManager_mit_can object](https://tmotorcancontrol.readthedocs.io/en/latest/TMotorCANControl.html#TMotorCANControl.mit_can.TMotorManager_mit_can), 
+as shown below for an AK80-9 with CAN ID 3. 
 ```python
 from TMotorCANControl.TMotorManager_mit_can import TMotorManager_mit_can
 with TMotorManager_mit_can(motor_type='AK80-9', motor_ID=3) as dev:
     dev.update()
 ```
 
-To control a motor that has been set up for Servo control over the CAN bus, specify the motor type and CAN ID, as shown below 
-for an AK80-9 with CAN ID 3.
+To control a motor that has been set up for Servo control over the CAN bus, 
+you can create a [TMotorManager_servo_can object](https://tmotorcancontrol.readthedocs.io/en/latest/TMotorCANControl.html#TMotorCANControl.servo_can.TMotorManager_servo_can),
+as shown below for an AK80-9 with CAN ID 3.
 ```python
 from TMotorCANControl.TMotorManager_servo_can import TMotorManager_servo_can
 with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=3) as dev:
     dev.update()
 ```
 
-To control a motor that has been set up for MIT control over the CAN bus, specify the motor type and CAN ID, as shown below
+To control a motor that has been set up for MIT control over the CAN bus,
+you can create a [TMotorManager_servo_serial object](https://tmotorcancontrol.readthedocs.io/en/latest/TMotorCANControl.html#TMotorCANControl.servo_serial.TMotorManager_servo_serial), 
+as shown below
 for an AK80-9 on usb serial port 'dev/tty/USB0', with baud rate 921600 (the default).
 ```python
 from TMotorCANControl.TMotorManager_servo_serial import TMotorManager_servo_serial
