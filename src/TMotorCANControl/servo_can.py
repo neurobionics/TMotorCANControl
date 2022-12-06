@@ -889,7 +889,7 @@ class TMotorManager_servo_can():
 
     def set_duty_cycle_percent(self, duty):
         """
-        Used for duty cycle control.
+        Used for duty cycle mode, to set desired duty cycle.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
 
@@ -905,7 +905,7 @@ class TMotorManager_servo_can():
 
     def set_output_velocity_radians_per_second(self, vel):
         """
-        Used for either speed or full state feedback mode to set output velocity command.
+        Used for velocity mode to set output velocity command.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
 
@@ -922,7 +922,7 @@ class TMotorManager_servo_can():
     # used for either current MIT mode to set current
     def set_motor_current_qaxis_amps(self, current):
         """
-        Used for either current or full state feedback mode to set current command.
+        Used for current mode to set current command.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
         
@@ -936,7 +936,7 @@ class TMotorManager_servo_can():
     # used for either current or MIT Mode to set current, based on desired torque
     def set_output_torque_newton_meters(self, torque):
         """
-        Used for either current or MIT Mode to set current, based on desired torque.
+        Used for current mode to set current, based on desired torque.
         If a more complicated torque model is available for the motor, that will be used.
         Otherwise it will just use the motor's torque constant.
         
@@ -948,7 +948,7 @@ class TMotorManager_servo_can():
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
         """
-        Version of set_output_torque that accounts for gear ratio to control motor-side torque
+        Wrapper of set_output_torque that accounts for gear ratio to control motor-side torque
         
         Args:
             torque: The desired motor-side torque in Nm.
@@ -1048,6 +1048,7 @@ class TMotorManager_servo_can():
 
     error = property(get_motor_error_code, doc="temperature_degrees_C")
     """Motor error code. 0 means no error.
+    
     Codes:
         0 : 'No Error',
         1 : 'Over temperature fault',
