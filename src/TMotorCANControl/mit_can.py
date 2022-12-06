@@ -543,7 +543,7 @@ class TMotorManager_mit_can():
     used in the context of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES):
+    def __init__(self, motor_type='AK80-9', motor_ID=1, max_mosfett_temp=50, CSV_file=None, log_vars = LOG_VARIABLES):
         """
         Sets up the motor manager. Note the device will not be powered on by this method! You must
         call __enter__, mostly commonly by using a with block, before attempting to control the motor.
@@ -551,6 +551,7 @@ class TMotorManager_mit_can():
         Args:
             motor_type: The type of motor being controlled, ie AK80-9.
             motor_ID: The CAN ID of the motor.
+            max_mosfett_temp: temperature of the mosfett above which to throw an error, in Celsius
             CSV_file: A CSV file to output log info to. If None, no log will be recorded.
             log_vars: The variables to log as a python list. The full list of possibilities is
                 - "output_angle"
@@ -582,6 +583,7 @@ class TMotorManager_mit_can():
         self._old_curr = 0.0
         self._old_vel = 0.0
         self._old_current_zone = 0
+        self.max_temp = max_mosfett_temp # max temp in deg C, can update later
 
         self._entered = False
         self._start_time = time.time()
@@ -690,6 +692,9 @@ class TMotorManager_mit_can():
         # check that the motor is safely turned on
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
+
+        if self.get_temperature_celsius() > self.max_temp:
+            raise RuntimeError("Temperature greater than {}C for device: {}".format(self.max_temp, self.device_info_string()))
 
         # check that the motor data is recent
         # print(self._command_sent)

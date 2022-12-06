@@ -580,6 +580,7 @@ class TMotorManager_servo_can():
         Args:
             motor_type: The type of motor being controlled, ie AK80-9.
             motor_ID: The CAN ID of the motor.
+            max_mosfett_temp: temperature of the mosfett above which to throw an error, in Celsius
             CSV_file: A CSV file to output log info to. If None, no log will be recorded.
             log_vars: The variables to log as a python list. The full list of possibilities is
                 - "output_angle"
@@ -887,9 +888,19 @@ class TMotorManager_servo_can():
             raise RuntimeError("Attempted to send position command without entering position control " + self.device_info_string()) 
 
     def set_duty_cycle_percent(self, duty):
+        """
+        Used for duty cycle control.
+        Note, this does not send a command, it updates the TMotorManager's saved command,
+        which will be sent when update() is called.
+
+        Args:
+            duty: The desired duty cycle, (-1 to 1)
+        """
         if self._control_state not in [_TMotorManState_Servo.DUTY_CYCLE]:
             raise RuntimeError("Attempted to send duty cycle command without gains for device " + self.device_info_string()) 
         else:
+            if np.abs(duty) > 1:
+                raise RuntimeError("Cannot control using duty cycle mode for duty cycles greater than 100%!")
             self._command.duty = duty
 
     def set_output_velocity_radians_per_second(self, vel):

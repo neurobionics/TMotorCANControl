@@ -528,7 +528,7 @@ class TMotorManager_servo_serial():
     used in the "context" of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']):
+    def __init__(self, port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9'], max_mosfett_temp = 50,):
         """
         Initialize the motor manager. Note that this will not turn on the motor, 
         until __enter__ is called (automatically called in a with block)
@@ -537,6 +537,7 @@ class TMotorManager_servo_serial():
             port: the name of the serial port to connect to (ie, /dev/ttyUSB0, COM3, etc)
             baud: the baud rate to use for connection. Should always be 961200 as far as I can tell.
             motor_params: A parameter dictionary defining the motor parameters, as defined above.
+            max_mosfett_temp: Temperature of the mosfett above which to throw an error, in Celsius
         """
         self.motor_params = motor_params
         self.port = port
@@ -547,6 +548,7 @@ class TMotorManager_servo_serial():
         self._motor_state_async = servo_serial_motor_state()
         self._command = None # overwrite with byte array of command to send on update()
         self._control_state = None
+        self.max_temp = max_mosfett_temp # max temp in deg C, can update later
 
         # TODO verify these work for other motor types!
         self.radps_per_ERPM =2*np.pi/180/60 # 5.82E-04 
@@ -765,6 +767,9 @@ class TMotorManager_servo_serial():
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
         
+        if self.get_temperature_celsius() > self.max_temp:
+            raise RuntimeError("Temperature greater than {}C for device: {}".format(self.max_temp, self.device_info_string()))
+
         # send the user specified command
         self.send_command()
 

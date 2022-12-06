@@ -28,7 +28,7 @@ author = 'Mitry Anderson, Vamsi Peddinti'
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '1.2.5'
+release = '1.2.6'
 
 
 # -- General configuration ---------------------------------------------------
