@@ -1181,22 +1181,26 @@ class TMotorManager_servo_serial():
 
         self.comm_set_current_loop(curr)
 
-    def set_output_angle_radians(self, pos, vel=1000, acc=500):
+    def set_output_angle_radians(self, pos, vel=0.75, acc=0.5):
         """
-        Update the current command to the desired position.
+        Update the current command to the desired position, when in position or position-velocity mode.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
 
         Args:
             pos: The desired output angle in rad
-            vel: The desired speed to get there (when in POSITION_VELOCITY mode)
-            acc: The desired acceleration to get there (when in POSITION_VELOCITY mode)
+            vel: The desired speed to get there in rad/s (when in POSITION_VELOCITY mode)
+            acc: The desired acceleration to get there in rad/s/s, ish (when in POSITION_VELOCITY mode)
         """
         
         if np.abs(pos) >= self.motor_params["P_max"]:
             raise RuntimeError("Cannot control using position mode for angles with magnitude greater than " + str(self.motor_params["P_max"]) + "rad!")
-
+        if np.abs(vel) >= self.motor_params["V_max"]:
+            raise RuntimeError("Cannot control velocities with magnitude greater than " + str(self.motor_params["V_max"]) + "rad/s!")
+        
         pos = (pos / self.rad_per_Eang)
+        vel = (vel / self.radps_per_ERPM)
+        acc = (acc / self.radps_per_ERPM)
         if self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION_VELOCITY:
             self.comm_set_position_velocity(pos, vel, acc)
         elif self._control_state == SERVO_SERIAL_CONTROL_STATE.POSITION:

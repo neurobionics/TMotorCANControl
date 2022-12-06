@@ -543,7 +543,7 @@ class TMotorManager_mit_can():
     used in the context of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES, use_torque_compensation=False):
+    def __init__(self, motor_type='AK80-9', motor_ID=1, CSV_file=None, log_vars = LOG_VARIABLES):
         """
         Sets up the motor manager. Note the device will not be powered on by this method! You must
         call __enter__, mostly commonly by using a with block, before attempting to control the motor.
@@ -553,16 +553,15 @@ class TMotorManager_mit_can():
             motor_ID: The CAN ID of the motor.
             CSV_file: A CSV file to output log info to. If None, no log will be recorded.
             log_vars: The variables to log as a python list. The full list of possibilities is
-            - "output_angle"
-            - "output_velocity"
-            - "output_acceleration"
-            - "current"
-            - "output_torque"
-            - "motor_angle"
-            - "motor_velocity"
-            - "motor_acceleration"
-            - "motor_torque"
-            use_torque_compensation: Enables a more complex torque model to compensate for friction, if available
+                - "output_angle"
+                - "output_velocity"
+                - "output_acceleration"
+                - "current"
+                - "output_torque"
+                - "motor_angle"
+                - "motor_velocity"
+                - "motor_acceleration"
+                - "motor_torque"
         """
         self.type = motor_type
         self.ID = motor_ID
@@ -589,7 +588,6 @@ class TMotorManager_mit_can():
         self._last_update_time = self._start_time
         self._last_command_time = None
         self._updated = False
-        self.use_torque_compensation = use_torque_compensation
         self.SF = 1.0
         
         self.log_vars = log_vars
@@ -611,7 +609,7 @@ class TMotorManager_mit_can():
             
     def __enter__(self):
         """
-        Used to safely power the motor on and begin the log file.
+        Used to safely power the motor on and begin the log file (if specified).
         """
         print('Turning on control for device: ' + self.device_info_string())
         if self.csv_file_name is not None:
@@ -630,7 +628,7 @@ class TMotorManager_mit_can():
 
     def __exit__(self, etype, value, tb):
         """
-        Used to safely power the motor off and close the log file.
+        Used to safely power the motor off and close the log file (if specified).
         """
         print('Turning off control for device: ' + self.device_info_string())
         self.power_off()
@@ -642,9 +640,15 @@ class TMotorManager_mit_can():
             traceback.print_exception(etype, value, tb)
 
     def TMotor_current_to_qaxis_current(self, iTM):
+        """
+        Try to convert TMotor reported torque to q-axis current
+        """
         return MIT_Params[self.type]['Current_Factor']*iTM/(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])
     
     def qaxis_current_to_TMotor_current(self, iq):
+        """
+        Try to convert q-axis current to TMotor reported torque
+        """
         return iq*(MIT_Params[self.type]['GEAR_RATIO']*MIT_Params[self.type]['Kt_TMotor'])/MIT_Params[self.type]['Current_Factor']
 
 
@@ -877,17 +881,7 @@ class TMotorManager_mit_can():
         Returns:
             the most recently updated output torque in Nm
         """
-        if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
-            a_hat = MIT_Params[self.type]['a_hat']
-            kt = MIT_Params[self.type]["Kt_actual"]
-            gr = MIT_Params[self.type]["GEAR_RATIO"]
-            ϵ = 0.1
-            i = self.get_current_qaxis_amps()
-            v = self.get_motor_velocity_radians_per_second()
-
-            return a_hat[0] + a_hat[1]*gr*kt*i - a_hat[2]*gr*np.abs(i)*i - a_hat[3]*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) ) - a_hat[4]*np.abs(i)*np.sign(v)*(np.abs(v)/(ϵ + np.abs(v)) )
-        else:
-            return self.get_current_qaxis_amps()*MIT_Params[self.type]["Kt_actual"]*MIT_Params[self.type]["GEAR_RATIO"]
+        return self.get_current_qaxis_amps()*MIT_Params[self.type]["Kt_actual"]*MIT_Params[self.type]["GEAR_RATIO"]
 
     # uses plain impedance mode, will send 0.0 for current command.
     def set_impedance_gains_real_unit(self, kp=0, ki=0, K=0.08922, B=0.0038070, ff=0):
@@ -1008,20 +1002,7 @@ class TMotorManager_mit_can():
         Args:
             torque: The desired output torque in Nm.
         """
-        if MIT_Params[self.type]['Use_derived_torque_constants'] and self.use_torque_compensation:
-            a_hat = MIT_Params[self.type]['a_hat']
-            kt = MIT_Params[self.type]["Kt_actual"]
-            gr = MIT_Params[self.type]["GEAR_RATIO"]
-            ϵ = 1.0
-            i = self.get_current_qaxis_amps()
-            v = self.get_motor_velocity_radians_per_second()
-            bias = - a_hat[0]
-            friction = self.SF*(v/(ϵ + np.abs(v)) )*(a_hat[3] + a_hat[4]*np.abs(i)) 
-            torque_constant = (gr*(a_hat[1]*kt - a_hat[2]*np.abs(i)))
-            Iq_des = (torque - bias + friction )/torque_constant
-            self.set_motor_current_qaxis_amps(Iq_des)
-        else:
-            self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["Kt_actual"]/MIT_Params[self.type]["GEAR_RATIO"]) )
+        self.set_motor_current_qaxis_amps((torque/MIT_Params[self.type]["Kt_actual"]/MIT_Params[self.type]["GEAR_RATIO"]) )
 
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
