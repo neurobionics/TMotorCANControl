@@ -1090,7 +1090,7 @@ class TMotorManager_mit_can():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | torque: " + '{: 1f}'.format(round(self.τ,3)) + " Nm"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.position,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.velocity,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.current_qaxis,3)) + " A | torque: " + '{: 1f}'.format(round(self.torque,3)) + " Nm | temperature: " + '{: 1f}'.format(round(self.temperature,3)) + "Degrees C"
 
     def device_info_string(self):
         """Prints the motor's ID and device type."""
