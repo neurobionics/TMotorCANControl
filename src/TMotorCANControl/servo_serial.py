@@ -23,7 +23,20 @@ Servo_Params_Serial = {
         'Kt': 0.115, # Nm before gearbox per A of qaxis current
         'GEAR_RATIO': 9, # 9:1 gear ratio
         'NUM_POLE_PAIRS' : 21 # 21 pole pairs
-    }        
+    },
+    'AK60-6': {
+        'Type' : 'AK60-6', # AK60-6 V1.1 name of motor to print out in diagnostics
+        'P_min' : -628.31, # rad (-100 turns limit)
+        'P_max' : 628.31, # rad (100 turns limit)
+        'V_min' : -100.0, # rad/s (-58.18 rad/s limit)
+        'V_max' : 100.0, # rad/s (58.18 rad/s limit)
+        'Curr_min' : -15.0,# A (-60A is the acutal limit)
+        'Curr_max' : 15.0, # A (60A is the acutal limit)
+        'Temp_max' : 50.0, # max mosfet temp in deg C
+        'Kt': 0.115, # Nm before gearbox per A of qaxis current
+        'GEAR_RATIO': 6, # 6:1 gear ratio
+        'NUM_POLE_PAIRS' : 2 # actually 14 pole pairs
+    }
 }
 """
 Dictionary with the default parameters for the motors, indexed by their name
@@ -589,11 +602,11 @@ class TMotorManager_servo_serial():
 
             # tell the motor to send back all parameters
             # TODO expand to allow user to only request some data, could be faster
-            self.set_motor_parameter_return_format_all()
+            self.comm_set_motor_parameter_return_format_all()
             self.send_command()
 
             # tell motor to send current position (for some reason current position is not in the other parameters)
-            self.begin_position_feedback()
+            self.comm_begin_position_feedback()
             self.send_command()
 
             # don't do anything else
@@ -621,7 +634,7 @@ class TMotorManager_servo_serial():
         self._reader_thread.stop() 
 
         # power down motor
-        self._ser.write(self.set_duty_cycle(0.0)) 
+        self._ser.write(self.comm_set_duty_cycle(0.0)) 
 
         # end serial connection
         self._ser.close() 
@@ -635,9 +648,9 @@ class TMotorManager_servo_serial():
         For now, just sends some parameter read commands and waits 0.2 seconds to
         see if we got a response.
         """
-        self._send_specific_command(self.get_motor_parameters())
-        self._send_specific_command(self.get_motor_parameters())
-        self._send_specific_command(self.get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
         # slight delay to ensure connection!
         time.sleep(0.2)
         return self._updated_async
@@ -681,7 +694,7 @@ class TMotorManager_servo_serial():
         Args:
             data: The data array to parse the position from.
         """
-        self._motor_state_async.position = -float(buffer_get_int32(data, 1))/1000.0
+        self._motor_state_async.position = -float(buffer_get_int32(data, 1))/10000.0
 
     def parse_set_position_feedback_async(self, data):
         """
@@ -796,7 +809,7 @@ class TMotorManager_servo_serial():
         There is no official power off command that I can see, so this will
         set the duty cycle to 0.0
         """
-        self.set_duty_cycle(0.0)
+        self.comm_set_duty_cycle(0.0)
         self.send_command()
 
     def enter_idle_mode(self):
@@ -937,7 +950,7 @@ class TMotorManager_servo_serial():
         """
         # 4 byte pos * 1000, 4 byte vel * 1, 4 byte a * 1
         buffer=[]
-        buffer_append_int32(buffer, int(pos*1000000))
+        buffer_append_int32(buffer, int(pos*1000))
         buffer_append_int32(buffer, int(vel))
         buffer_append_int32(buffer, int(acc))
         data = [COMM_PACKET_ID.COMM_SET_POS_SPD] + buffer
