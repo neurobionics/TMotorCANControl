@@ -10,7 +10,7 @@ Vdes = 0
 P = 2
 D = 0.3
 
-with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
+with TMotorManager_servo_can(motor_type='AK60-6', motor_ID=0) as dev:
     loop = SoftRealtimeLoop(dt=0.002, report=True, fade=0.0)
     dev.set_zero_position()
     

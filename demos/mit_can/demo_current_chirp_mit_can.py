@@ -3,14 +3,14 @@ from NeuroLocoMiddleware.SysID import Chirp
 from TMotorCANControl.mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK80-9'
+Type = 'AK60-6'
 ID = 1
 
 
 def chirp_demo(dev, amp=1.0, dt=0.001):
     print("Chirping ActPackA. Press CTRL-C to finish.")
     chirp = Chirp(250, 25, 1)
-    dev.set_set_current_gains()
+    dev.set_current_gains()
     
     print("Starting current chirp demo. Press ctrl+C to quit.")
 

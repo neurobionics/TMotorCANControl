@@ -5,19 +5,19 @@ import time
 from TMotorCANControl.mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK80-9'
+Type = 'AK60-6'
 ID = 1
 
 def full_state_feedback(dev):
     dev.set_zero_position() # has a delay!
     time.sleep(1.5)
-    dev.set_impedance_gains_real_unit_full_state_feedback(K=10,B=1)
+    dev.set_impedance_gains_real_unit_full_state_feedback(K=1,B=0.2)
     chirp = Chirp(250, 200, 0.5)
 
     print("Starting full state feedback demo. Press ctrl+C to quit.")
 
     loop = SoftRealtimeLoop(dt = 0.001, report=True, fade=0)
-    amp = 1.0
+    amp = 00
   
     for t in loop:
         dev.update()

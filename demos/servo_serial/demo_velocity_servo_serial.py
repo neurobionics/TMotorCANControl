@@ -5,7 +5,7 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
 vel = 1
 
-with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as dev:
+with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK60-6']) as dev:
         loop = SoftRealtimeLoop(dt=0.005, report=True, fade=0.0)
         dev.enter_velocity_control()
         
