@@ -22,7 +22,21 @@ Servo_Params_Serial = {
         'Temp_max' : 40.0, # max mosfet temp in deg C
         'Kt': 0.115, # Nm before gearbox per A of qaxis current
         'GEAR_RATIO': 9, # 9:1 gear ratio
-        'NUM_POLE_PAIRS' : 21 # 21 pole pairs
+        'NUM_POLE_PAIRS' : 21}, # 21 pole pairs
+    'AK60-6': {
+        'Type' : 'AK60-6', # name of motor to print out in diagnostics
+        'P_min' : -58.85, # rad (-58.85 rad limit)
+        'P_max' : 58.85, # rad (58.85 rad limit)
+        'V_min' : -20.0, # rad/s (-58.18 rad/s limit)
+        'V_max' : 20.0, # rad/s (58.18 rad/s limit)
+        'Curr_min' : -4,# A (-60A is the acutal limit)
+        'Curr_max' : 4, # A (60A is the acutal limit)
+        'I_min' : -4,# A (-60A is the acutal limit)
+        'I_max' : 4, # A (60A is the acutal limit)
+        'Temp_max' : 50.0, # max mosfet temp in deg C
+        'Kt': 0.113, # Nm before gearbox per A of qaxis current
+        'GEAR_RATIO': 6, # 6:1 gear ratio
+        'NUM_POLE_PAIRS' : 14 # 14 pole pairs
     }        
 }
 """
@@ -589,11 +603,11 @@ class TMotorManager_servo_serial():
 
             # tell the motor to send back all parameters
             # TODO expand to allow user to only request some data, could be faster
-            self.set_motor_parameter_return_format_all()
+            self.comm_set_motor_parameter_return_format_all()
             self.send_command()
 
             # tell motor to send current position (for some reason current position is not in the other parameters)
-            self.begin_position_feedback()
+            self.comm_begin_position_feedback()
             self.send_command()
 
             # don't do anything else
@@ -846,7 +860,7 @@ class TMotorManager_servo_serial():
         """
         self._control_state = SERVO_SERIAL_CONTROL_STATE.DUTY_CYCLE
 
-    def comm_set_duty_cycle(self, duty, set_command=True):
+    def set_duty_cycle(self, duty, set_command=True):
         """
         send a certain duty cycle voltage to motor
 
@@ -1006,7 +1020,7 @@ class TMotorManager_servo_serial():
         if set_command:
             self._command = bytearray([0x02, 0x02, 0x0B, 0x04, 0x9C, 0x7E, 0x03])
 
-    def comm_get_motor_parameters(self, set_command=True):
+    def get_motor_parameters(self, set_command=True):
         """
         Request the current motor parameters
 

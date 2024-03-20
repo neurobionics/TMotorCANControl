@@ -4,7 +4,7 @@ import time
 from TMotorCANControl.mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK80-9'
+Type = 'AK60-6'
 ID = 1
 
 def position_step(dev):

@@ -5,7 +5,7 @@ from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
 baud=921600
 port='/dev/ttyUSB0'
-motor_params = Servo_Params_Serial['AK80-9']
+motor_params = Servo_Params_Serial['AK60-6']
 
 with TMotorManager_servo_serial(port=port, baud=baud, motor_params=motor_params) as dev:
         loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)

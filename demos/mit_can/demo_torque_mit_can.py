@@ -3,7 +3,7 @@ import time
 from TMotorCANControl.mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK80-9'
+Type = 'AK60-6'
 ID = 1
 
 
@@ -19,7 +19,7 @@ def torque_step(dev):
         if t < 1.0:
             dev.torque = 0.0
         else:
-            dev.torque = 1.0
+            dev.torque = 0.2
 
     del loop
 

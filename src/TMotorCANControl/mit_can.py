@@ -33,6 +33,8 @@ MIT_Params = {
             'V_max' : 50.0,
             'T_min' : -18.0,
             'T_max' : 18.0,
+            'Temp_min' : 0,
+            'Temp_max' : 100,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -52,6 +54,8 @@ MIT_Params = {
             'V_max' : 50.0,
             'T_min' : -65.0,
             'T_max' : 65.0,
+            'Temp_min' : 0,
+            'Temp_max' : 100,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -69,6 +73,8 @@ MIT_Params = {
             'V_max' : 50.0,
             'T_min' : -15.0,
             'T_max' : 15.0,
+            'Temp_min' : 0,
+            'Temp_max' : 100,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -86,6 +92,8 @@ MIT_Params = {
             'V_max' : 50.0,
             'T_min' : -25.0,
             'T_max' : 25.0,
+            'Temp_min' : 0,
+            'Temp_max' : 100,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -103,6 +111,8 @@ MIT_Params = {
             'V_max' : 76.0,
             'T_min' : -12.0,
             'T_max' : 12.0,
+            'Temp_min' : 0,
+            'Temp_max' : 100,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -120,6 +130,8 @@ MIT_Params = {
             'V_max' : 8.0,
             'T_min' : -144.0,
             'T_max' : 144.0,
+            'Temp_min' : 0,
+            'Temp_max' : 100,
             'Kp_min': 0.0,
             'Kp_max': 500.0,
             'Kd_min': 0.0,
@@ -501,6 +513,8 @@ class CAN_Manager(object):
                                             MIT_Params[motor_type]['V_max'], 12)
         current = CAN_Manager.uint_to_float(current_uint, MIT_Params[motor_type]['T_min'], 
                                             MIT_Params[motor_type]['T_max'], 12)
+        temp = int(CAN_Manager.uint_to_float(temp, MIT_Params[motor_type]['Temp_min'], 
+                                            MIT_Params[motor_type]['Temp_max'], 8))
 
         if self.debug:
             print('  Position: ' + str(position))
@@ -1076,7 +1090,7 @@ class TMotorManager_mit_can():
     # Pretty stuff
     def __str__(self):
         """Prints the motor's device info and current"""
-        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.θ,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.θd,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.i,3)) + " A | torque: " + '{: 1f}'.format(round(self.τ,3)) + " Nm"
+        return self.device_info_string() + " | Position: " + '{: 1f}'.format(round(self.position,3)) + " rad | Velocity: " + '{: 1f}'.format(round(self.velocity,3)) + " rad/s | current: " + '{: 1f}'.format(round(self.current_qaxis,3)) + " A | torque: " + '{: 1f}'.format(round(self.torque,3)) + " Nm | temperature: " + '{: 1f}'.format(round(self.temperature,3)) + "Degrees C"
 
     def device_info_string(self):
         """Prints the motor's ID and device type."""
