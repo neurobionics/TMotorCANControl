@@ -1,10 +1,6 @@
-from TMotorCANControl.servo_serial import TMotorManager_servo_serial
+from TMotorCANControl.servo_serial import *
 
-# CHANGE THESE TO MATCH YOUR DEVICE!
-Type = 'AK10-9'
-ID = 0
-
-with TMotorManager_servo_serial(motor_type=Type, motor_ID=ID) as dev:
+with TMotorManager_servo_serial(port= '/dev/ttyUSB0', motor_params=Servo_Params_Serial["AK80-9"]) as dev:
     if dev.check_connection():
         print("\nmotor is successfully connected!\n")
     else:
